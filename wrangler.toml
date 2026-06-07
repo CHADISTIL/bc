@@ -1,0 +1,13 @@
+name = "bc-electric-push"
+main = "cloudflare-worker.js"
+compatibility_date = "2024-01-01"
+
+# Cron: كل دقيقة
+[triggers]
+crons = ["* * * * *"]
+
+# متغيرات البيئة — أضفها في Dashboard أو هنا
+# [vars]
+# FIREBASE_URL = "https://faddi-410e9-default-rtdb.firebaseio.com"
+# CONTACT_EMAIL = "admin@bcelectric.dz"
+# VAPID_PUBLIC_KEY و VAPID_PRIVATE_KEY أضفها كـ Secrets من Dashboard
