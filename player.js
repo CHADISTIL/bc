@@ -26,11 +26,11 @@ var CSS=`
 .jp-wrap.fs .jp-top{display:none}
 
 /* controls */
-.jp-ctrl{position:absolute;left:0;right:0;bottom:6px;padding:0 10px 4px;background:linear-gradient(to top,rgba(0,0,0,.75),transparent);z-index:20;transition:opacity .3s;padding-top:28px}
+.jp-ctrl{position:absolute;left:0;right:0;bottom:16px;padding:0 10px 4px;background:linear-gradient(to top,rgba(0,0,0,.75),transparent);z-index:20;transition:opacity .3s;padding-top:28px}
 .jp-row{display:flex;align-items:center;justify-content:space-between}
-.jp-time{font-size:.8em;font-weight:600;background:rgba(0,0,0,.4);padding:4px 10px;border-radius:12px;text-shadow:0 1px 2px #000}
-.jp-btns{display:flex;gap:8px;align-items:center}
-.jp-cb{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center;font-size:1em;font-weight:700}
+.jp-time{font-size:.98em;font-weight:600;background:rgba(0,0,0,.4);padding:5px 12px;border-radius:14px;text-shadow:0 1px 2px #000}
+.jp-btns{display:flex;gap:10px;align-items:center}
+.jp-cb{width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center;font-size:1.2em;font-weight:700}
 .jp-cb:active{background:rgba(255,255,255,.32);transform:scale(.92)}
 .jp-cb span{font-size:.62em}
 .jp-wrap.hide .jp-ctrl,.jp-wrap.hide .jp-top,.jp-wrap.hide .jp-fsbar{opacity:0;pointer-events:none}
@@ -111,21 +111,21 @@ var CSS=`
 #jpNL{font-size:.88em;color:#ddd;text-align:center;padding:0 16px}
 
 /* below the wrap */
-.jp-info{position:relative;overflow:hidden;min-height:70px}
-.jp-ibg{position:absolute;inset:0;background-size:cover;background-position:center 30%;filter:blur(22px) brightness(.38) saturate(1.4);transform:scale(1.1)}
-.jp-ic{position:relative;padding:12px 14px 14px}
-.jp-it{font-size:.98em;font-weight:800;line-height:1.45;text-shadow:0 1px 6px #000}
-.jp-im{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
-.jp-im span{font-size:.68em;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.15);padding:2px 9px;border-radius:14px;color:#ddd}
-.jp-bar2{display:flex;gap:8px;overflow-x:auto;padding:9px 11px;background:rgba(6,8,20,.94);border-bottom:1px solid rgba(255,255,255,.06);scrollbar-width:none}
+.jp-wrap{z-index:2}
+.jp-pbg{position:absolute;top:0;left:0;right:0;height:620px;background-size:cover;background-position:center top;opacity:.6;-webkit-mask-image:linear-gradient(#000 0%,#000 30%,transparent 100%);mask-image:linear-gradient(#000 0%,#000 30%,transparent 100%);pointer-events:none;z-index:0}
+.jp-bar2,.jp-slot{position:relative;z-index:1}
+.jp-bar2{display:flex;gap:8px;overflow-x:auto;padding:9px 11px;background:transparent;scrollbar-width:none}
 .jp-bar2::-webkit-scrollbar{display:none}
 .jp-bar2 .jp-pill{background:rgba(255,255,255,.09);color:#dce3f0;text-shadow:none}
 .jp-slot{padding:6px 14px 40px;max-width:900px;margin:auto}
 
+/* embed */
+#jp.embed #jpClose,#jp.embed #jpMin,#jp.embed .jp-bar2,#jp.embed .jp-slot,#jp.embed .jp-pbg{display:none!important}
+#jp.embed .jp-wrap{position:fixed;inset:0;width:100%;height:100%;max-height:none;aspect-ratio:auto}
 /* mini */
 #jp.mini{inset:auto;top:0;left:0;width:0;height:0;overflow:visible;background:transparent}
 #jp.mini .jp-main{position:static;overflow:visible}
-#jp.mini .jp-info,#jp.mini .jp-bar2,#jp.mini .jp-slot,#jp.mini .jp-top,#jp.mini .jp-ctrl,#jp.mini .jp-fsbar,#jp.mini .jp-sub,#jp.mini .jp-jump{display:none!important}
+#jp.mini .jp-pbg,#jp.mini .jp-bar2,#jp.mini .jp-slot,#jp.mini .jp-top,#jp.mini .jp-ctrl,#jp.mini .jp-fsbar,#jp.mini .jp-sub,#jp.mini .jp-jump{display:none!important}
 #jp.mini .jp-wrap{position:fixed;left:12px;top:calc(100vh - 230px);width:240px;height:135px;max-height:none;aspect-ratio:auto;border-radius:14px;z-index:2147483000;box-shadow:0 12px 40px rgba(0,0,0,.85),0 0 0 1px rgba(255,255,255,.12);cursor:grab;touch-action:none}
 #jp.mini .jp-prog{height:3px}
 .jp-mb{display:none;position:absolute;inset:0;z-index:30;background:rgba(0,0,0,.4);align-items:center;justify-content:space-around;opacity:0;transition:opacity .2s}
@@ -216,7 +216,7 @@ root.innerHTML=`
   <div class="jp-next" id="jpNext"><div class="jp-ring"><svg viewBox="0 0 72 72"><circle class="t" cx="36" cy="36" r="32"/><circle class="r" id="jpRing" cx="36" cy="36" r="32"/></svg><span id="jpNum">5</span></div><div id="jpNL"></div><div class="jp-nb"><button id="jpNC">إلغاء</button><button class="p" id="jpNP">تشغيل الآن</button></div></div>
   <div class="jp-mb" id="jpMB"><button id="mbX"><i class="fas fa-expand-alt"></i></button><button id="mbP"><i class="fas fa-pause"></i></button><button id="mbC"><i class="fas fa-times"></i></button></div>
  </div>
- <div class="jp-info"><div class="jp-ibg" id="jpIBG"></div><div class="jp-ic"><div class="jp-it" id="jpIT"></div><div class="jp-im" id="jpIM"></div></div></div>
+ <div class="jp-pbg" id="jpIBG"></div>
  <div class="jp-bar2">
    <button class="jp-pill" data-a="heart"><i class="far fa-heart"></i><span>أضف للمفضلة</span></button>
    <button class="jp-pill" data-a="dl"><i class="fas fa-download"></i>تحميل</button>
@@ -250,15 +250,13 @@ function open(o){
   S.opts=o;
   if(!S.open){
     S.open=true;root.classList.add('on');document.body.classList.add('lock');
-    try{history.pushState({jp:1},'')}catch(e){}
+    if(!o.embed)try{history.pushState({jp:1},'')}catch(e){}
   }
   if(S.mini)exitMini();
   cancelNext();closeModal();
   S.ad.fired={};S.ad.count=0;S.subOff=0;S.pT=Date.now();
   $('#jpTT').textContent=o.title||'';
-  $('#jpIT').textContent=o.title||'';
-  var chips=(o.chips||[]).filter(Boolean).map(function(c){return '<span>'+esc(c)+'</span>'}).join('');
-  $('#jpIM').innerHTML=chips;
+  root.classList.toggle('embed',!!o.embed);
   var bg=o.backdrop||o.poster||'';
   $('#jpIBG').style.backgroundImage=bg?'url("'+bg+'")':'none';
   vid.poster=o.backdrop||o.poster||'';
@@ -288,7 +286,7 @@ function close(){
   cancelAnimationFrame(S.subRaf);S.cues=[];
   if(isFs())exitFs();
   unlock();
-  root.classList.remove('on','mini');S.open=false;S.mini=false;
+  root.classList.remove('on','mini','embed');S.open=false;S.mini=false;
   document.body.classList.remove('lock');
   wrap.removeAttribute('style');
   if(oc)try{oc()}catch(e){}
@@ -374,8 +372,23 @@ function subLoop(){
   S.subRaf=requestAnimationFrame(subLoop);
 }
 function syncCC(){$('#jpCC').style.color=S.subOn?'#ff375f':'#fff'}
-var FONTS={system:"system-ui,-apple-system,'Segoe UI',sans-serif",serif:"Georgia,'Times New Roman',serif",arial:"Arial,sans-serif"};
+var FONTLIST=[['system','تلقائي (خط النظام)',null,"system-ui,-apple-system,'Segoe UI',sans-serif"],
+['tajawal','Tajawal','Tajawal','sans-serif'],['cairo','Cairo','Cairo','sans-serif'],['almarai','Almarai','Almarai','sans-serif'],
+['mada','Mada','Mada','sans-serif'],['ibm','IBM Plex Sans Arabic','IBM Plex Sans Arabic','sans-serif'],['kufi','Noto Kufi Arabic','Noto Kufi Arabic','sans-serif'],
+['naskh','Noto Naskh Arabic','Noto Naskh Arabic','serif'],['amiri','Amiri','Amiri','serif'],['scheherazade','Scheherazade New','Scheherazade New','serif'],
+['lateef','Lateef','Lateef','serif'],['markazi','Markazi Text','Markazi Text','serif'],['harmattan','Harmattan','Harmattan','sans-serif'],
+['elmessiri','El Messiri','El Messiri','sans-serif'],['changa','Changa','Changa','sans-serif'],['reem','Reem Kufi','Reem Kufi','sans-serif'],
+['baloo','Baloo Bhaijaan 2','Baloo Bhaijaan 2','sans-serif'],['lemonada','Lemonada','Lemonada','cursive'],['rubik','Rubik','Rubik','sans-serif'],['arial','Arial','Arial','sans-serif']];
+var FONTS={},FONTLOADED={};
+FONTLIST.forEach(function(f){FONTS[f[0]]=f[2]?"'"+f[2]+"',"+f[3]:f[3]});
+function loadFont(k){
+  var f=FONTLIST.filter(function(x){return x[0]===k})[0];
+  if(!f||!f[2]||FONTLOADED[k])return;FONTLOADED[k]=1;
+  var l=document.createElement('link');l.rel='stylesheet';l.href='https://fonts.googleapis.com/css2?family='+f[2].replace(/ /g,'+')+':wght@700&display=swap';document.head.appendChild(l);
+}
+function fontOpts(){return FONTLIST.map(function(f){return '<option value="'+f[0]+'">'+f[1]+'</option>'}).join('')}
 function applySubStyle(){
+  loadFont(subStyle.font);
   var s=subStyle,sh=s.shadow==='none'?'none':'0.5px 0.5px 0 '+s.shadow+',-0.5px 0.5px 0 '+s.shadow+',0.5px -0.5px 0 '+s.shadow+',-0.5px -0.5px 0 '+s.shadow+',0 2px 8px '+s.shadow;
   root.style.setProperty('--ss',s.size+'px');root.style.setProperty('--sf',FONTS[s.font]||FONTS.system);
   root.style.setProperty('--sh',sh);root.style.setProperty('--sc',s.color);LS.set('jp_substyle',s);
@@ -514,6 +527,22 @@ $('#jpTouch').addEventListener('pointerup',function(e){
 $('#jpTouch').addEventListener('pointercancel',function(){seeking=false;$('#jpProg').classList.remove('act')});
 
 /* ───────────── pills / bar actions ───────────── */
+function copyText(t,msg){
+  var done=function(){toast(msg||'تم النسخ')};
+  var fb=function(){var i=document.createElement('textarea');i.value=t;i.style.cssText='position:fixed;opacity:0';document.body.appendChild(i);i.select();try{document.execCommand('copy');done()}catch(e){prompt('انسخ:',t)}i.remove()};
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).then(done,fb);else fb();
+}
+function openEmbed(){
+  var u=S.opts&&S.opts.embedUrl;if(!u)return;
+  var code='<div style="position:relative;padding-top:56.25%"><iframe src="'+u+'" style="position:absolute;inset:0;width:100%;height:100%;border:0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe></div>';
+  modal('رابط التضمين','fa-code',function(b){
+    var ta=document.createElement('textarea');ta.readOnly=true;ta.value=code;ta.dir='ltr';
+    ta.style.cssText='width:100%;height:120px;background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.15);border-radius:10px;padding:10px;font-size:12px;font-family:monospace;resize:none;box-sizing:border-box';
+    ta.onclick=function(){ta.select()};b.appendChild(ta);
+    var o1=document.createElement('button');o1.className='jp-opt';o1.innerHTML='<i class="fas fa-copy" style="color:#ff4757;width:18px"></i>نسخ كود iframe';o1.onclick=function(){copyText(code,'تم نسخ كود التضمين')};b.appendChild(o1);
+    var o2=document.createElement('button');o2.className='jp-opt';o2.innerHTML='<i class="fas fa-link" style="color:#ff4757;width:18px"></i>نسخ رابط التضمين فقط';o2.onclick=function(){copyText(u,'تم نسخ الرابط')};b.appendChild(o2);
+  });
+}
 function share(){
   var o=S.opts||{},u=o.shareUrl||location.href,t=o.title||document.title;
   if(navigator.share){navigator.share({title:t,text:t,url:u}).catch(function(){});return}
@@ -526,6 +555,8 @@ function act(a){
     case 'heart':heart();break;
     case 'dl':openDownload();break;
     case 'share':share();break;
+    case 'copylink':copyText((S.opts&&S.opts.shareUrl)||location.href,'تم نسخ الرابط');break;
+    case 'embed':openEmbed();break;
     case 'report':openReport();break;
     case 'more':openMore();break;
     case 'lock':lock();break;
@@ -598,6 +629,8 @@ function openMore(){
       S.quals.length>1?['qual','fa-layer-group','جودة الفيديو',(S.quals[S.qi]||{}).label]:null,
       ['loop','fa-redo','تكرار الفيديو',vid.loop?'يعمل':'متوقف'],
       ['lock','fa-lock','قفل الشاشة',''],
+      ['copylink','fa-link','نسخ رابط المشاهدة',''],
+      (S.opts&&S.opts.embedUrl)?['embed','fa-code','رابط التضمين (iframe)','']:null,
       S.cues.length?['sub','fa-closed-captioning','إعدادات الترجمة','']:null
     ].filter(Boolean);
     rows.forEach(function(r){
@@ -613,7 +646,7 @@ function openSubModal(){
     <div class="jp-line"><span>إظهار الترجمة</span><button class="jp-opt" id="sm_t" style="width:auto;padding:6px 16px"></button></div>
     <div class="jp-line"><span>التزامن (ث)</span><div class="ct"><button id="sm_o1">−</button><b id="sm_ov"></b><button id="sm_o2">+</button></div></div>
     <div class="jp-line"><span>حجم الخط</span><div class="ct"><button id="sm_s1">−</button><b id="sm_sv"></b><button id="sm_s2">+</button></div></div>
-    <div class="jp-line"><span>نوع الخط</span><select class="jp-sel" id="sm_f"><option value="system">تلقائي</option><option value="serif">Serif</option><option value="arial">Arial</option></select></div>
+    <div class="jp-line"><span>نوع الخط</span><select class="jp-sel" id="sm_f">${fontOpts()}</select></div>
     <div class="jp-line"><span>لون النص</span><div class="jp-cols" id="sm_c"></div></div>
     <div class="jp-line"><span>لون الظل</span><div class="jp-cols" id="sm_h"></div></div>`;
     var up=function(){
@@ -783,7 +816,7 @@ wrap.addEventListener('touchend',function(e){
   wrap.style.transform='';wrap.style.opacity='';
   if(dy>window.innerHeight*.18)enterMini();
 },{passive:true});
-window.addEventListener('popstate',function(){if(S.open&&!S.mini){if(isFs())exitFs();else enterMini()}});
+window.addEventListener('popstate',function(){if(S.open&&!S.mini&&!(S.opts&&S.opts.embed)){if(isFs())exitFs();else enterMini()}});
 
 /* auto PiP */
 document.addEventListener('visibilitychange',function(){
