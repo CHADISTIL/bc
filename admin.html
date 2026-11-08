@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>jawrab — لوحة الروابط</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:"Tajawal",sans-serif}
+body{background:linear-gradient(#1a1a2e,#16213e);color:#fff;min-height:100vh;padding:16px;max-width:760px;margin:auto}
+h1{font-size:1.2em;margin-bottom:14px;color:#ff4757}
+.card{background:rgba(26,26,46,.8);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:16px;margin-bottom:14px}
+.inp,textarea,select{width:100%;background:rgba(255,255,255,.08);border:1px solid transparent;border-radius:10px;padding:10px 12px;color:#fff;font-size:.9em;margin-bottom:8px;outline:none}
+.inp:focus,textarea:focus{border-color:#ff4757}
+textarea{min-height:90px;resize:vertical;direction:ltr;text-align:left}
+select option{background:#1a1a2e}
+button{border:none;border-radius:20px;padding:10px 18px;font-weight:700;cursor:pointer;color:#fff;background:#ff4757;font-size:.88em}
+button.sec{background:rgba(255,255,255,.14)}
+button.del{background:rgba(255,71,87,.2);color:#ff6b7a;padding:6px 12px;font-size:.75em}
+button:disabled{opacity:.4}
+label{display:block;font-size:.78em;color:#aaa;margin-bottom:5px}
+.res{display:flex;gap:10px;padding:8px;border-radius:10px;cursor:pointer;align-items:center}
+.res:hover{background:rgba(255,255,255,.07)}
+.res img{width:40px;height:58px;object-fit:cover;border-radius:5px;background:#222}
+.sm{font-size:.74em;color:#999}
+.msg{padding:10px;border-radius:10px;font-size:.85em;margin-bottom:12px}
+.msg.err{background:rgba(255,71,87,.15);color:#ff8a96}
+.msg.ok{background:rgba(0,200,83,.15);color:#5eea9a}
+.row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.row>*{margin-bottom:0}
+.eprow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 10px;background:rgba(255,255,255,.05);border-radius:8px;margin-bottom:6px;font-size:.82em}
+.eprow span{word-break:break-all;flex:1}
+</style>
+</head>
+<body>
+<h1>jawrab — إدارة روابط المشاهدة</h1>
+<div id="status" class="msg" style="display:none"></div>
+
+<div class="card" id="loginBox">
+  <button id="login">تسجيل الدخول بـ Google</button>
+  <p class="sm" style="margin-top:10px">بعد الدخول سيظهر لك معرّف حسابك (UID). أضفه إلى مجموعة <b>admins</b> في Firestore ليُسمح لك بالكتابة.</p>
+</div>
+
+<div id="app" style="display:none">
+  <div class="card">
+    <div class="row"><div class="sm" id="who" style="flex:1"></div><button class="sec" id="logout">خروج</button></div>
+    <label>ابحث في TMDB</label>
+    <div class="row"><input class="inp" id="q" placeholder="اسم فيلم أو مسلسل أو أنمي"><button id="sBtn">بحث</button></div>
+    <div id="results"></div>
+  </div>
+
+  <div class="card" id="editor" style="display:none">
+    <div class="row"><b id="eTitle" style="flex:1"></b><span class="sm" id="eId"></span></div>
+
+    <div id="movieBox">
+      <label>روابط الفيلم — سطر لكل جودة بصيغة <code>1080p|https://...</code> أو الرابط فقط</label>
+      <textarea id="mq" placeholder="1080p|https://example.com/movie-1080.mp4&#10;720p|https://example.com/movie-720.mp4"></textarea>
+      <label>ترجمة (VTT أو SRT) — اختياري</label>
+      <textarea id="msub" placeholder="WEBVTT ..."></textarea>
+      <button id="saveMovie">حفظ الفيلم</button>
+    </div>
+
+    <div id="tvBox" style="display:none">
+      <div class="row">
+        <div style="flex:1"><label>الموسم</label><input class="inp" id="eS" type="number" min="1" value="1"></div>
+        <div style="flex:1"><label>الحلقة</label><input class="inp" id="eE" type="number" min="1" value="1"></div>
+      </div>
+      <label>روابط الحلقة — سطر لكل جودة</label>
+      <textarea id="eq" placeholder="720p|https://..."></textarea>
+      <label>ترجمة الحلقة — اختياري</label>
+      <textarea id="esub"></textarea>
+      <div class="row"><button id="saveEp">حفظ الحلقة</button><button class="sec" id="nextEp">حفظ وانتقل للتالية</button></div>
+      <h3 style="margin:16px 0 8px;font-size:.95em">الحلقات المضافة</h3>
+      <div id="epList"></div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {getAuth,onAuthStateChanged,GoogleAuthProvider,signInWithPopup,signOut} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {getFirestore,doc,getDoc,setDoc,deleteDoc,collection,getDocs} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const app=initializeApp({apiKey:"AIzaSyBeSb5lSBNQGl8TmwNbga39w6kfOk0jk8E",authDomain:"spacepower-f4ebe.firebaseapp.com",projectId:"spacepower-f4ebe",storageBucket:"spacepower-f4ebe.firebasestorage.app",messagingSenderId:"882928806115",appId:"1:882928806115:web:e73f9dc43ed6f4d1e67dd6"});
+const auth=getAuth(app),db=getFirestore(app);
+const KEY="1427d0e123035564137327f27f47c86c";
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function msg(t,type){const s=$("#status");s.style.display="block";s.className="msg "+type;s.innerHTML=t}
+let sel=null;
+
+onAuthStateChanged(auth,u=>{
+  if(!u){$("#loginBox").style.display="";$("#app").style.display="none";return}
+  $("#loginBox").style.display="none";$("#app").style.display="";
+  $("#who").textContent=u.email;
+  msg(`معرّف حسابك (UID): <b dir="ltr" style="user-select:all">${u.uid}</b><br>أنشئ في Firestore مجموعة <b>admins</b> ووثيقة معرّفها هذا الـ UID (يمكن ترك الحقول فارغة أو إضافة حقل واحد).`,"ok");
+});
+$("#login").onclick=()=>signInWithPopup(auth,new GoogleAuthProvider()).catch(e=>msg("تعذر الدخول: "+e.code,"err"));
+$("#logout").onclick=()=>signOut(auth);
+
+async function search(){
+  const q=$("#q").value.trim();if(q.length<2)return;
+  const r=await fetch(`https://api.themoviedb.org/3/search/multi?api_key=${KEY}&language=ar&query=${encodeURIComponent(q)}`).then(r=>r.json());
+  const items=(r.results||[]).filter(x=>x.media_type==="movie"||x.media_type==="tv").slice(0,8);
+  $("#results").innerHTML=items.map(x=>`<div class="res" data-t="${x.media_type}" data-id="${x.id}" data-n="${esc(x.title||x.name)}">
+    <img src="${x.poster_path?"https://image.tmdb.org/t/p/w92"+x.poster_path:""}" alt="">
+    <div><div>${esc(x.title||x.name)}</div><div class="sm">${x.media_type==="movie"?"فيلم":"مسلسل / أنمي"} · ${(x.release_date||x.first_air_date||"").slice(0,4)} · ID ${x.id}</div></div></div>`).join("")||"<div class='sm'>لا نتائج</div>";
+  document.querySelectorAll(".res").forEach(el=>el.onclick=()=>pick(el.dataset.t,+el.dataset.id,el.dataset.n));
+}
+$("#sBtn").onclick=search;$("#q").onkeydown=e=>{if(e.key==="Enter")search()};
+
+const tid=()=>`${sel.type}_${sel.id}`;
+function parseQ(txt){
+  return txt.split("\n").map(l=>l.trim()).filter(Boolean).map(l=>{
+    const i=l.indexOf("|");
+    if(i>0&&!/^https?:/i.test(l.slice(0,i)))return{label:l.slice(0,i).trim(),url:l.slice(i+1).trim()};
+    return{label:"تلقائي",url:l};
+  }).filter(q=>/^https?:\/\//i.test(q.url));
+}
+const fmtQ=a=>(a||[]).map(q=>`${q.label}|${q.url}`).join("\n");
+
+async function pick(type,id,name){
+  sel={type,id,name};
+  $("#editor").style.display="";$("#eTitle").textContent=name;$("#eId").textContent=tid();
+  $("#movieBox").style.display=type==="movie"?"":"none";
+  $("#tvBox").style.display=type==="tv"?"":"none";
+  const s=await getDoc(doc(db,"titles",tid())).catch(()=>null);
+  const d=s&&s.exists()?s.data():{};
+  $("#mq").value=fmtQ(d.qualities||(d.watchUrl?[{label:"تلقائي",url:d.watchUrl}]:[]));
+  $("#msub").value=d.subtitle||"";
+  if(type==="tv")loadEps();
+  window.scrollTo({top:$("#editor").offsetTop-10,behavior:"smooth"});
+}
+
+$("#saveMovie").onclick=async()=>{
+  const qualities=parseQ($("#mq").value);
+  if(!qualities.length)return msg("أدخل رابطاً صالحاً واحداً على الأقل","err");
+  try{
+    await setDoc(doc(db,"titles",tid()),{type:"movie",tmdbId:sel.id,title:sel.name,qualities,watchUrl:qualities[0].url,subtitle:$("#msub").value.trim(),updatedAt:Date.now()},{merge:true});
+    msg("تم حفظ الفيلم ✓","ok");
+  }catch(e){msg("فشل الحفظ — تأكد أن حسابك ضمن admins وأن القواعد منشورة ("+e.code+")","err")}
+};
+
+async function saveEp(){
+  const s=+$("#eS").value,e=+$("#eE").value,qualities=parseQ($("#eq").value);
+  if(!s||!e)return msg("حدد الموسم والحلقة","err");
+  if(!qualities.length)return msg("أدخل رابطاً صالحاً","err");
+  try{
+    await setDoc(doc(db,"titles",tid()),{type:"tv",tmdbId:sel.id,title:sel.name,updatedAt:Date.now()},{merge:true});
+    await setDoc(doc(db,"titles",tid(),"episodes",`s${s}e${e}`),{season:s,episode:e,qualities,url:qualities[0].url,subtitle:$("#esub").value.trim(),updatedAt:Date.now()});
+    msg(`تم حفظ الموسم ${s} الحلقة ${e} ✓`,"ok");loadEps();return true;
+  }catch(x){msg("فشل الحفظ — تأكد أن حسابك ضمن admins ("+x.code+")","err")}
+}
+$("#saveEp").onclick=saveEp;
+$("#nextEp").onclick=async()=>{if(await saveEp()){$("#eE").value=+$("#eE").value+1;$("#eq").value="";$("#esub").value=""}};
+
+async function loadEps(){
+  const box=$("#epList");box.innerHTML="…";
+  const s=await getDocs(collection(db,"titles",tid(),"episodes")).catch(()=>null);
+  if(!s||s.empty){box.innerHTML="<div class='sm'>لا توجد حلقات بعد</div>";return}
+  const arr=[];s.forEach(d=>arr.push({id:d.id,...d.data()}));
+  arr.sort((a,b)=>a.season-b.season||a.episode-b.episode);
+  box.innerHTML=arr.map(x=>`<div class="eprow"><b>S${x.season}E${x.episode}</b><span>${esc((x.qualities||[]).map(q=>q.label).join(" · "))}</span><button class="sec" data-e="${x.id}" data-a="edit" style="padding:6px 12px;font-size:.75em">تعديل</button><button class="del" data-e="${x.id}" data-a="del">حذف</button></div>`).join("");
+  box.querySelectorAll("button").forEach(b=>b.onclick=async()=>{
+    const x=arr.find(i=>i.id===b.dataset.e);
+    if(b.dataset.a==="del"){if(confirm("حذف الحلقة؟")){await deleteDoc(doc(db,"titles",tid(),"episodes",x.id)).catch(()=>msg("فشل الحذف","err"));loadEps()}}
+    else{$("#eS").value=x.season;$("#eE").value=x.episode;$("#eq").value=fmtQ(x.qualities);$("#esub").value=x.subtitle||"";window.scrollTo({top:$("#tvBox").offsetTop,behavior:"smooth"})}
+  });
+}
+</script>
+</body>
+</html>
