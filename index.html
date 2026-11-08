@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
+<script>if(/^#\/(embed|movie|tv)\//.test(location.hash)){var h=document.documentElement.classList;h.add("boot");if(/^#\/embed\//.test(location.hash))h.add("embed")}</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#1a1a2e">
@@ -84,14 +85,22 @@ background:rgba(22,33,62,.85);backdrop-filter:blur(12px);border-bottom:1px solid
 .d-hero::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,#12142a,transparent 70%)}
 .d-body{padding:0 14px 40px;margin-top:-60px;position:relative;z-index:2;max-width:900px;margin-inline:auto}
 .jp-slot #favBtn{display:none}
-body.embed .top,body.embed #nav,body.embed #main,body.embed .page-end,body.embed #detail{display:none!important}
+html.embed .top,html.embed #nav,html.embed #main,html.embed .page-end,html.embed #detail{display:none!important}
+html.embed body{background:#000}
+html.boot body::after{content:"";position:fixed;inset:0;background:#000;z-index:299}
 .jp-slot .d-body{margin-top:8px;padding:0 0 20px}
-.d-top{display:flex;gap:14px;align-items:flex-end}
-.d-poster{width:110px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.6);flex-shrink:0}
-.d-title{font-size:1.2em;font-weight:800;line-height:1.35;margin-bottom:6px}
-.badges{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
-.bdg{background:rgba(255,255,255,.1);font-size:.72em;padding:4px 10px;border-radius:12px}
-.acts{display:flex;gap:8px;margin:12px 0;flex-wrap:wrap}
+.d-top{display:flex;gap:16px;align-items:flex-start}
+.d-poster{width:108px;aspect-ratio:2/3;object-fit:cover;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.6);flex-shrink:0;background:#222}
+.d-info{flex:1;min-width:0;padding-top:4px}
+.d-title{font-size:1.3em;font-weight:800;line-height:1.35;margin-bottom:8px}
+.d-meta{display:flex;flex-wrap:wrap;align-items:center;font-size:.82em;color:#b8bdd0;margin-bottom:10px}
+.d-meta span+span::before{content:"·";margin:0 8px;color:#666}
+.d-meta .rate{color:var(--gold);font-weight:800}
+.d-gen{display:flex;flex-wrap:wrap;gap:6px}
+.d-gen span{font-size:.72em;padding:4px 11px;border-radius:12px;border:1px solid rgba(255,255,255,.16);color:#d5d9e6}
+.acts{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin:16px 0 4px}
+.acts .btn{justify-content:center;border-radius:14px;padding:12px 14px;border:1px solid rgba(255,255,255,.1)}
+.acts .btn.sec{background:rgba(255,255,255,.07)}
 .fav-b.on{background:rgba(255,0,85,.2);color:var(--secondary)}
 .desc{font-size:.86em;color:#ccc;line-height:1.9;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:14px;margin:10px 0}
 .h2{font-size:.95em;font-weight:800;margin:18px 0 8px;display:flex;align-items:center;gap:7px}
@@ -495,9 +504,6 @@ async function openDetail(type,id,epSel){
     const it=norm({...d,media_type:type},type);
     const link=own&&own.exists()?own.data():null;
     const quals=link?normQuals(link):[];
-    const genres=(d.genres||[]).map(g=>`<span class="bdg">${esc(g.name)}</span>`).join("");
-    const rt=d.runtime?`<span class="bdg"><i class="far fa-clock"></i> ${d.runtime} د</span>`:"";
-    const sn=d.number_of_seasons?`<span class="bdg">${d.number_of_seasons} مواسم</span>`:"";
     const trailer=(d.videos?.results||[]).find(v=>v.site==="YouTube"&&v.type==="Trailer");
     const cast=(d.credits?.cast||[]).slice(0,12).map(c=>`<div class="cm"><img loading="lazy" src="${c.profile_path?IMG+"w185"+c.profile_path:`https://ui-avatars.com/api/?name=${encodeURIComponent(c.name)}&background=1a1a2e&color=fff`}" alt=""><div>${esc(c.name)}</div></div>`).join("");
     const sim=list(d.similar||{},type).slice(0,12);
@@ -505,9 +511,9 @@ async function openDetail(type,id,epSel){
     <div class="d-hero"><img src="${esc(d.backdrop_path?IMG+"w1280"+d.backdrop_path:it.poster)}" alt=""></div>
     <div class="d-body">
       <div class="d-top"><img class="d-poster" src="${esc(it.poster)}" alt="">
-        <div><div class="d-title">${esc(it.title)}</div>
-        <div class="badges"><span class="bdg rate"><i class="fas fa-star"></i> ${it.rating}</span><span class="bdg">${esc(it.year)}</span><span class="bdg">${type==="tv"?"مسلسل":"فيلم"}</span>${rt}${sn}</div></div></div>
-      <div class="badges">${genres}</div>
+        <div class="d-info"><div class="d-title">${esc(it.title)}</div>
+        <div class="d-meta"><span class="rate"><i class="fas fa-star"></i> ${it.rating}</span><span>${esc(it.year)}</span><span>${type==="tv"?"مسلسل":"فيلم"}</span>${d.runtime?`<span>${d.runtime} د</span>`:""}${d.number_of_seasons?`<span>${d.number_of_seasons} مواسم</span>`:""}</div>
+        <div class="d-gen">${(d.genres||[]).map(g=>`<span>${esc(g.name)}</span>`).join("")}</div></div></div>
       <div class="acts" id="acts"></div>
       ${d.overview?`<div class="desc">${esc(d.overview)}</div>`:""}
       <div id="epsBox"></div>
@@ -596,7 +602,6 @@ function play(o){
 getDoc(doc(db,"settings","vast")).then(s=>{if(s.exists()&&window.JP)JP.configure({vast:s.data()})}).catch(()=>{});
 
 async function runEmbed(type,id,se,ep){
-  document.body.classList.add("embed");
   try{const v=await getDoc(doc(db,"settings","vast"));if(v.exists()&&window.JP)JP.configure({vast:v.data()})}catch(e){}
   try{
     if(type==="tv"){se=se||1;ep=ep||1}
@@ -616,7 +621,9 @@ async function runEmbed(type,id,se,ep){
  else{
   goTab("home");
   const m=location.hash.match(/^#\/(movie|tv)\/(\d+)(?:\/(\d+)\/(\d+))?/);
-  if(m)openDetail(m[1],+m[2],m[3]?{s:+m[3],e:+m[4]}:null)
+  if(m){openDetail(m[1],+m[2],m[3]?{s:+m[3],e:+m[4]}:null);
+    const t0=Date.now(),iv=setInterval(()=>{if((window.JP&&JP.isOpen())||Date.now()-t0>8000){clearInterval(iv);document.documentElement.classList.remove("boot")}},100)}
+  else document.documentElement.classList.remove("boot")
  }}
 </script>
 </body>

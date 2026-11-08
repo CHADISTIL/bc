@@ -26,7 +26,7 @@ var CSS=`
 .jp-wrap.fs .jp-top{display:none}
 
 /* controls */
-.jp-ctrl{position:absolute;left:0;right:0;bottom:16px;padding:0 10px 4px;background:linear-gradient(to top,rgba(0,0,0,.75),transparent);z-index:20;transition:opacity .3s;padding-top:28px}
+.jp-ctrl{position:absolute;left:0;right:0;bottom:0;padding:0 12px 18px;background:linear-gradient(to top,rgba(0,0,0,.75),transparent);z-index:20;transition:opacity .3s;padding-top:28px}
 .jp-row{display:flex;align-items:center;justify-content:space-between}
 .jp-time{font-size:.98em;font-weight:600;background:rgba(0,0,0,.4);padding:5px 12px;border-radius:14px;text-shadow:0 1px 2px #000}
 .jp-btns{display:flex;gap:10px;align-items:center}
@@ -34,7 +34,7 @@ var CSS=`
 .jp-cb:active{background:rgba(255,255,255,.32);transform:scale(.92)}
 .jp-cb span{font-size:.62em}
 .jp-wrap.hide .jp-ctrl,.jp-wrap.hide .jp-top,.jp-wrap.hide .jp-fsbar{opacity:0;pointer-events:none}
-.jp-wrap.fs .jp-ctrl{padding-bottom:calc(8px + env(safe-area-inset-bottom))}
+.jp-wrap.fs .jp-ctrl{padding-bottom:calc(20px + env(safe-area-inset-bottom))}
 
 /* progress */
 .jp-prog{position:absolute;left:0;right:0;bottom:0;height:5px;background:rgba(255,255,255,.2);z-index:21;transition:height .15s}
@@ -114,9 +114,12 @@ var CSS=`
 .jp-wrap{z-index:2}
 .jp-pbg{position:absolute;top:0;left:0;right:0;height:620px;background-size:cover;background-position:center top;opacity:.6;-webkit-mask-image:linear-gradient(#000 0%,#000 30%,transparent 100%);mask-image:linear-gradient(#000 0%,#000 30%,transparent 100%);pointer-events:none;z-index:0}
 .jp-bar2,.jp-slot{position:relative;z-index:1}
-.jp-bar2{display:flex;gap:8px;overflow-x:auto;padding:9px 11px;background:transparent;scrollbar-width:none}
+.jp-bar2{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;padding:14px 14px 6px;max-width:900px;margin:auto}
 .jp-bar2::-webkit-scrollbar{display:none}
-.jp-bar2 .jp-pill{background:rgba(255,255,255,.09);color:#dce3f0;text-shadow:none}
+.jp-bar2 .jp-pill{flex-direction:column;justify-content:center;gap:6px;padding:11px 2px 9px;border-radius:14px;font-size:.72em;font-weight:600;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.09);color:#dce3f0;text-shadow:none;min-width:0}
+.jp-bar2 .jp-pill i{font-size:1.45em;line-height:1}
+.jp-bar2 .jp-pill:active{background:rgba(255,255,255,.18)}
+.jp-bar2 .jp-pill.on{background:rgba(255,55,95,.22);border-color:rgba(255,55,95,.5);color:#ff7a93}
 .jp-slot{padding:6px 14px 40px;max-width:900px;margin:auto}
 
 /* embed */
@@ -218,7 +221,7 @@ root.innerHTML=`
  </div>
  <div class="jp-pbg" id="jpIBG"></div>
  <div class="jp-bar2">
-   <button class="jp-pill" data-a="heart"><i class="far fa-heart"></i><span>أضف للمفضلة</span></button>
+   <button class="jp-pill" data-a="heart"><i class="far fa-heart"></i><span>المفضلة</span></button>
    <button class="jp-pill" data-a="dl"><i class="fas fa-download"></i>تحميل</button>
    <button class="jp-pill" data-a="share"><i class="fas fa-share-nodes"></i>مشاركة</button>
    <button class="jp-pill" data-a="report"><i class="fas fa-flag"></i>إبلاغ</button>
@@ -584,7 +587,7 @@ function syncHeart(){
   var f=S.opts&&S.opts.fav&&S.opts.fav.is();
   root.querySelectorAll('.jp-pill[data-a="heart"]').forEach(function(b){
     b.classList.toggle('on',!!f);b.querySelector('i').className=(f?'fas':'far')+' fa-heart';
-    b.querySelector('span').textContent=f?'في المفضلة':'أضف للمفضلة';
+    b.querySelector('span').textContent=f?'محفوظة':'المفضلة';
   });
 }
 async function heart(){
