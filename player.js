@@ -8,7 +8,7 @@ var REPORT_URL='https://formspree.io/f/maqkwjqv';
 
 /* ───────────── CSS ───────────── */
 var CSS=`
-#jp{position:fixed;inset:0;z-index:300;background:#0d0f1f;display:none;color:#fff;direction:rtl;font-family:"Tajawal",system-ui,sans-serif}
+#jp{position:fixed;inset:0;z-index:300;background:#0d0f1f;display:none;color:#fff;direction:rtl;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
 #jp.on{display:block}
 #jp *{-webkit-tap-highlight-color:transparent}
 #jp button{font-family:inherit;color:inherit;border:none;background:none;cursor:pointer}
@@ -162,15 +162,12 @@ var CSS=`
 .jp-pg div{height:100%;width:0;background:linear-gradient(90deg,#ff4757,#ff375f);transition:width .3s}
 .jp-st{font-size:.8em;color:#ccc;text-align:center;min-height:1.2em}
 .jp-dlc{position:fixed;top:90px;left:14px;width:58px;height:58px;border-radius:50%;background:#1a1a2e;z-index:2147483640;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.75em;color:#fff;box-shadow:0 4px 20px rgba(0,0,0,.6);cursor:pointer;border:3px solid #ff4757}
-#jpToast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:rgba(14,18,38,.97);padding:9px 20px;border-radius:22px;font-size:.82em;z-index:2147483647;border:1px solid rgba(255,255,255,.1);opacity:0;transition:opacity .25s;pointer-events:none;direction:rtl;white-space:nowrap;color:#fff;font-family:"Tajawal",system-ui,sans-serif}
+#jpToast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:rgba(14,18,38,.97);padding:9px 20px;border-radius:22px;font-size:.82em;z-index:2147483647;border:1px solid rgba(255,255,255,.1);opacity:0;transition:opacity .25s;pointer-events:none;direction:rtl;white-space:nowrap;color:#fff;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
 #jpToast.on{opacity:1}
 `;
 
 /* ───────────── DOM ───────────── */
 var st=document.createElement('style');st.textContent=CSS;document.head.appendChild(st);
-var fl=document.createElement('link');fl.rel='stylesheet';
-fl.href='https://fonts.googleapis.com/css2?family=Cairo:wght@600;700&family=Almarai:wght@700&family=Amiri:wght@700&display=swap';
-document.head.appendChild(fl);
 
 var root=document.createElement('div');root.id='jp';
 root.innerHTML=`
@@ -198,6 +195,7 @@ root.innerHTML=`
       <button class="jp-pill" data-a="qual" id="fsQ" style="display:none"><i class="fas fa-layer-group"></i>الجودة</button>
       <button class="jp-pill" data-a="sub" id="fsS" style="display:none"><i class="fas fa-closed-captioning"></i>ترجمة</button>
       <button class="jp-pill" data-a="dl"><i class="fas fa-download"></i>تحميل</button>
+   <button class="jp-pill" data-a="share"><i class="fas fa-share-nodes"></i>مشاركة</button>
       <button class="jp-pill" data-a="report"><i class="fas fa-flag"></i>إبلاغ</button>
     </div>
   </div>
@@ -222,6 +220,7 @@ root.innerHTML=`
  <div class="jp-bar2">
    <button class="jp-pill" data-a="heart"><i class="far fa-heart"></i><span>أضف للمفضلة</span></button>
    <button class="jp-pill" data-a="dl"><i class="fas fa-download"></i>تحميل</button>
+   <button class="jp-pill" data-a="share"><i class="fas fa-share-nodes"></i>مشاركة</button>
    <button class="jp-pill" data-a="report"><i class="fas fa-flag"></i>إبلاغ</button>
    <button class="jp-pill" data-a="more"><i class="fas fa-bars"></i>المزيد</button>
  </div>
@@ -241,7 +240,7 @@ function loadScript(src){return new Promise(function(res,rej){var s=document.cre
 
 /* ───────────── state ───────────── */
 var S={open:false,mini:false,opts:null,quals:[],qi:0,hls:null,curUrl:'',cues:[],subText:'',subOn:true,subOff:0,subRaf:0,locked:false,
-  ad:{cfg:null,busy:false,fired:{},count:0},ctrlT:0,modal:null,speed:1,fsOpen:false,nextT:0};
+  ad:{cfg:null,busy:false,fired:{},count:0},pT:0,ctrlT:0,modal:null,speed:1,fsOpen:false,nextT:0};
 var subStyle=LS.get('jp_substyle',{size:16,font:'system',shadow:'black',color:'white'});
 
 /* ───────────── open / close ───────────── */
@@ -255,7 +254,7 @@ function open(o){
   }
   if(S.mini)exitMini();
   cancelNext();closeModal();
-  S.ad.fired={};S.ad.count=0;S.subOff=0;
+  S.ad.fired={};S.ad.count=0;S.subOff=0;S.pT=Date.now();
   $('#jpTT').textContent=o.title||'';
   $('#jpIT').textContent=o.title||'';
   var chips=(o.chips||[]).filter(Boolean).map(function(c){return '<span>'+esc(c)+'</span>'}).join('');
@@ -278,9 +277,11 @@ function open(o){
 }
 function startMain(){
   var q=S.quals[S.qi];if(!q){showErr();return}
-  loadSource(q,0,true);
+  loadSource(q,(S.opts&&S.opts.startAt)||0,true);
 }
 function close(){
+  var oc=S.opts&&S.opts.onClose;
+  try{if(S.opts&&S.opts.onProgress&&vid.duration&&vid.currentTime>1&&!S.ad.busy)S.opts.onProgress(vid.currentTime,vid.duration)}catch(e){}
   cancelNext();closeModal();stopAd();
   try{vid.pause()}catch(e){}
   destroyHls();vid.removeAttribute('src');vid.load();
@@ -290,6 +291,7 @@ function close(){
   root.classList.remove('on','mini');S.open=false;S.mini=false;
   document.body.classList.remove('lock');
   wrap.removeAttribute('style');
+  if(oc)try{oc()}catch(e){}
 }
 
 /* ───────────── source / hls / quality ───────────── */
@@ -372,7 +374,7 @@ function subLoop(){
   S.subRaf=requestAnimationFrame(subLoop);
 }
 function syncCC(){$('#jpCC').style.color=S.subOn?'#ff375f':'#fff'}
-var FONTS={system:"system-ui,-apple-system,'Segoe UI',sans-serif",cairo:"'Cairo',sans-serif",almarai:"'Almarai',sans-serif",amiri:"'Amiri',serif",arial:"Arial,sans-serif"};
+var FONTS={system:"system-ui,-apple-system,'Segoe UI',sans-serif",serif:"Georgia,'Times New Roman',serif",arial:"Arial,sans-serif"};
 function applySubStyle(){
   var s=subStyle,sh=s.shadow==='none'?'none':'0.5px 0.5px 0 '+s.shadow+',-0.5px 0.5px 0 '+s.shadow+',0.5px -0.5px 0 '+s.shadow+',-0.5px -0.5px 0 '+s.shadow+',0 2px 8px '+s.shadow;
   root.style.setProperty('--ss',s.size+'px');root.style.setProperty('--sf',FONTS[s.font]||FONTS.system);
@@ -439,6 +441,8 @@ vid.addEventListener('timeupdate',function(){
   $('#jpBar').style.width=(d?vid.currentTime/d*100:0)+'%';
   $('#jpTime').textContent=fmt(vid.currentTime)+' / '+fmt(d);
   checkAds();
+  var o=S.opts;
+  if(o&&o.onProgress&&!S.ad.busy&&d&&Date.now()-S.pT>15000){S.pT=Date.now();try{o.onProgress(vid.currentTime,d)}catch(e){}}
 });
 vid.addEventListener('loadedmetadata',function(){
   $('#jpSpin').style.display='none';
@@ -510,10 +514,18 @@ $('#jpTouch').addEventListener('pointerup',function(e){
 $('#jpTouch').addEventListener('pointercancel',function(){seeking=false;$('#jpProg').classList.remove('act')});
 
 /* ───────────── pills / bar actions ───────────── */
+function share(){
+  var o=S.opts||{},u=o.shareUrl||location.href,t=o.title||document.title;
+  if(navigator.share){navigator.share({title:t,text:t,url:u}).catch(function(){});return}
+  var done=function(){toast('تم نسخ الرابط')};
+  var fb=function(){var i=document.createElement('input');i.value=u;i.style.cssText='position:fixed;opacity:0';document.body.appendChild(i);i.select();try{document.execCommand('copy');done()}catch(e){prompt('انسخ الرابط',u)}i.remove()};
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(u).then(done,fb);else fb();
+}
 function act(a){
   switch(a){
     case 'heart':heart();break;
     case 'dl':openDownload();break;
+    case 'share':share();break;
     case 'report':openReport();break;
     case 'more':openMore();break;
     case 'lock':lock();break;
@@ -601,7 +613,7 @@ function openSubModal(){
     <div class="jp-line"><span>إظهار الترجمة</span><button class="jp-opt" id="sm_t" style="width:auto;padding:6px 16px"></button></div>
     <div class="jp-line"><span>التزامن (ث)</span><div class="ct"><button id="sm_o1">−</button><b id="sm_ov"></b><button id="sm_o2">+</button></div></div>
     <div class="jp-line"><span>حجم الخط</span><div class="ct"><button id="sm_s1">−</button><b id="sm_sv"></b><button id="sm_s2">+</button></div></div>
-    <div class="jp-line"><span>نوع الخط</span><select class="jp-sel" id="sm_f"><option value="system">تلقائي</option><option value="cairo">Cairo</option><option value="almarai">Almarai</option><option value="amiri">Amiri</option><option value="arial">Arial</option></select></div>
+    <div class="jp-line"><span>نوع الخط</span><select class="jp-sel" id="sm_f"><option value="system">تلقائي</option><option value="serif">Serif</option><option value="arial">Arial</option></select></div>
     <div class="jp-line"><span>لون النص</span><div class="jp-cols" id="sm_c"></div></div>
     <div class="jp-line"><span>لون الظل</span><div class="jp-cols" id="sm_h"></div></div>`;
     var up=function(){

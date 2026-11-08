@@ -5,13 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#1a1a2e">
 <title>jawrab</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
 :root{--primary:#ff4757;--secondary:#ff0055;--dark:#1a1a2e;--card:rgba(26,26,46,.7);--gold:#f5c518;
 --bg:linear-gradient(to bottom,#1a1a2e,#16213e)}
-*{margin:0;padding:0;box-sizing:border-box;font-family:"Tajawal",system-ui,sans-serif;-webkit-tap-highlight-color:transparent}
+*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;-webkit-tap-highlight-color:transparent}
 body{background:var(--bg);background-attachment:fixed;color:#fff;min-height:100vh;overflow-x:hidden}
 body.lock{overflow:hidden}
 button{cursor:pointer;border:none;color:inherit;background:none}
@@ -64,6 +62,8 @@ background:rgba(22,33,62,.85);backdrop-filter:blur(12px);border-bottom:1px solid
 .card .ct{font-size:.7em;font-weight:600;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .card .cr{font-size:.65em;color:var(--gold);margin-top:2px}
 .card .bd{position:absolute;top:6px;right:6px;background:var(--primary);font-size:.58em;font-weight:700;padding:2px 6px;border-radius:3px}
+.card .pgb{position:absolute;left:0;right:0;bottom:0;height:4px;background:rgba(255,255,255,.25)}
+.card .pgb i{display:block;height:100%;background:var(--primary)}
 .card .bd.tv{background:#1565c0}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;padding:6px 14px 20px}
 .grid .card{flex:unset}
@@ -83,6 +83,7 @@ background:rgba(22,33,62,.85);backdrop-filter:blur(12px);border-bottom:1px solid
 .d-hero img{width:100%;height:100%;object-fit:cover}
 .d-hero::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,#12142a,transparent 70%)}
 .d-body{padding:0 14px 40px;margin-top:-60px;position:relative;z-index:2;max-width:900px;margin-inline:auto}
+.jp-slot .d-body{margin-top:8px;padding:0 0 20px}
 .d-top{display:flex;gap:14px;align-items:flex-end}
 .d-poster{width:110px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.6);flex-shrink:0}
 .d-title{font-size:1.2em;font-weight:800;line-height:1.35;margin-bottom:6px}
@@ -164,6 +165,7 @@ background:rgba(22,33,62,.85);backdrop-filter:blur(12px);border-bottom:1px solid
 <nav class="nav" id="nav">
   <button data-n="home" class="on"><i class="fas fa-house"></i>الرئيسية</button>
   <button data-n="search"><i class="fas fa-magnifying-glass"></i>بحث</button>
+  <button data-n="hist"><i class="fas fa-clock-rotate-left"></i>السجل</button>
   <button data-n="fav"><i class="fas fa-heart"></i>المفضلة</button>
 </nav>
 
@@ -257,6 +259,7 @@ document.querySelectorAll("#nav button").forEach(b=>b.onclick=()=>{
   const n=b.dataset.n;
   if(n==="home") goTab("home");
   else if(n==="search"){goTab("home");$("#q").focus()}
+  else if(n==="hist")showHist();
   else showFavs();
 });
 function goTab(t,sort){
@@ -286,6 +289,7 @@ async function renderHome(){
     m.appendChild(row("المسلسلات الأعلى تقييماً","fa-trophy",list(tTop,"tv"),["tv","top"]));
     m.appendChild(row("أنمي شائع","fa-wand-sparkles",list(aPop,"tv"),["anime","pop"]));
     m.appendChild(row("الأنمي الأعلى تقييماً","fa-crown",list(aTop,"tv"),["anime","top"]));
+    updateHistRow();
   }catch(e){m.innerHTML=`<div class="center">تعذر تحميل المحتوى، تحقق من الاتصال</div>`}
 }
 function buildHero(items){
@@ -356,6 +360,7 @@ onAuthStateChanged(auth,async u=>{
     try{const s=await getDocs(collection(db,"users",u.uid,"favorites"));s.forEach(d=>favSet.add(d.id))}catch(e){}
   }else a.innerHTML=`<i class="fas fa-user"></i>`;
   const fb=$("#favBtn");if(fb)syncFav(fb);
+  await loadHist();updateHistRow();if(curTab==="hist")showHist();
 });
 $("#acct").onclick=e=>{
   e.stopPropagation();
@@ -382,6 +387,66 @@ $("#aGo").onclick=async()=>{
   try{aMode==="in"?await signInWithEmailAndPassword(auth,e,p):await createUserWithEmailAndPassword(auth,e,p);ok()}
   catch(x){$("#aerr").textContent=AERR[x.code]||"حدث خطأ، حاول مجدداً"}
 };
+
+/* ───── watch history ───── */
+const HK="jp_hist";
+let histCache=new Map();
+async function loadHist(){
+  histCache=new Map();
+  if(user){try{const s=await getDocs(collection(db,"users",user.uid,"history"));s.forEach(d=>histCache.set(d.id,d.data()))}catch(e){}}
+  else{try{(JSON.parse(localStorage.getItem(HK))||[]).forEach(x=>histCache.set(favId(x.type,x.tmdbId),x))}catch(e){}}
+}
+function saveHist(key,data){
+  histCache.set(key,data);
+  if(user)setDoc(doc(db,"users",user.uid,"history",key),data).catch(()=>{});
+  else{try{localStorage.setItem(HK,JSON.stringify([...histCache.values()].sort((a,b)=>b.watchedAt-a.watchedAt).slice(0,40)))}catch(e){}}
+}
+const histList=()=>[...histCache.values()].sort((a,b)=>(b.watchedAt||0)-(a.watchedAt||0));
+function histTrack(it,se,ep){
+  const key=favId(it.type,it.id),old=histCache.get(key);
+  const same=old&&(old.season||0)===(se||0)&&(old.episode||0)===(ep||0);
+  const d={type:it.type,tmdbId:it.id,title:it.title,poster:it.poster,season:se||0,episode:ep||0,pos:same?old.pos||0:0,dur:same?old.dur||0:0,watchedAt:Date.now()};
+  saveHist(key,d);
+  return{
+    startAt:d.pos>15&&(!d.dur||d.pos<d.dur*0.95)?d.pos:0,
+    onProgress:(t,dur)=>{const cur=histCache.get(key)||d;saveHist(key,{...cur,pos:t/dur>0.95?0:Math.floor(t),dur:Math.floor(dur),watchedAt:Date.now()})}
+  };
+}
+function histCard(x){
+  const c=card({id:x.tmdbId,type:x.type,title:x.title,poster:x.poster,rating:""});
+  if(x.type==="tv"&&x.season)c.querySelector(".ov").insertAdjacentHTML("beforeend",`<div class="cr">م${x.season} · ح${x.episode}</div>`);
+  const pct=x.dur?Math.min(100,Math.round(x.pos/x.dur*100)):0;
+  if(pct>0)c.insertAdjacentHTML("beforeend",`<div class="pgb"><i style="width:${pct}%"></i></div>`);
+  c.onclick=()=>x.type==="tv"&&x.season?openDetail("tv",x.tmdbId,{s:x.season,e:x.episode}):openDetail(x.type,x.tmdbId);
+  return c;
+}
+function updateHistRow(){
+  const old=$("#histSec");if(old)old.remove();
+  if(curTab!=="home")return;
+  const items=histList().slice(0,15);if(!items.length)return;
+  const m=$("#main");if(!m||!m.querySelector(".sec"))return;
+  const s=document.createElement("section");s.className="sec";s.id="histSec";
+  s.innerHTML=`<div class="sec-h"><div class="sec-t"><i class="fas fa-clock-rotate-left"></i>تابع المشاهدة</div><button class="more">السجل</button></div><div class="rowx"></div>`;
+  items.forEach(x=>s.querySelector(".rowx").appendChild(histCard(x)));
+  s.querySelector(".more").onclick=showHist;
+  const hero=m.querySelector(".hero");
+  if(hero)hero.after(s);else m.prepend(s);
+}
+async function showHist(){
+  setNavUI("hist");setTabUI("");$("#q").value="";window.scrollTo(0,0);curTab="hist";
+  const m=$("#main");
+  const items=histList();
+  if(!items.length){m.innerHTML=`<div class="center">لا يوجد سجل مشاهدة بعد</div>`;return}
+  m.innerHTML=`<div class="sec-h" style="margin-top:12px"><div class="sec-t"><i class="fas fa-clock-rotate-left"></i>آخر ما شاهدته</div><button class="more" id="hclr">مسح السجل</button></div>${user?"":`<div class="sm" style="padding:0 14px 8px;color:#999;font-size:.78em">سجّل الدخول لحفظ السجل على حسابك</div>`}<div class="grid" id="hg"></div>`;
+  items.forEach(x=>$("#hg").appendChild(histCard(x)));
+  $("#hclr").onclick=async()=>{
+    if(!confirm("مسح كل سجل المشاهدة؟"))return;
+    const keys=[...histCache.keys()];histCache=new Map();
+    if(user)await Promise.all(keys.map(k=>deleteDoc(doc(db,"users",user.uid,"history",k)).catch(()=>{})));
+    else try{localStorage.removeItem(HK)}catch(e){}
+    showHist();
+  };
+}
 
 /* ───── favorites ───── */
 const favId=(t,id)=>`${t}_${id}`;
@@ -411,7 +476,11 @@ async function showFavs(){
 }
 
 /* ───── detail ───── */
-async function openDetail(type,id){
+const setHash=h=>{try{history.replaceState(history.state,"",h||location.pathname+location.search)}catch(e){}};
+const shareLink=(t,id,se,ep)=>location.href.split("#")[0]+"#/"+t+"/"+id+(se?`/${se}/${ep}`:"");
+async function openDetail(type,id,epSel){
+  if(window.JP&&JP.isOpen())JP.close();
+  setHash(`#/${type}/${id}`);
   const ov=$("#detail");ov.innerHTML=`<button class="d-back" id="dback"><i class="fas fa-arrow-right"></i></button>${spinner()}`;
   ov.classList.add("on");document.body.classList.add("lock");ov.scrollTop=0;
   $("#dback").onclick=closeDetail;
@@ -445,46 +514,59 @@ async function openDetail(type,id){
     $("#dback").onclick=closeDetail;
     const acts=$("#acts");
     if(type==="movie"){
-      const b=document.createElement("button");b.className="btn pri";
-      if(quals.length){b.innerHTML=`<i class="fas fa-play"></i> مشاهدة`;b.onclick=()=>play({title:it.title,quals,subtitle:link.subtitle,poster:it.poster,backdrop:d.backdrop_path?IMG+"w1280"+d.backdrop_path:it.poster,chips:[it.year,"فيلم"].filter(Boolean),kind:"movie",fav:favFor(it)})}
-      else{b.innerHTML=`<i class="fas fa-play"></i> غير متوفر بعد`;b.disabled=true}
-      acts.appendChild(b);
+      if(quals.length){
+        const bodyEl=ov.querySelector(".d-body");
+        closeDetail();
+        const h=histTrack(it,0,0);
+        play({...h,title:it.title,quals,subtitle:link.subtitle,poster:it.poster,backdrop:d.backdrop_path?IMG+"w1280"+d.backdrop_path:it.poster,chips:[it.year,"فيلم"].filter(Boolean),kind:"movie",fav:favFor(it),slot:bodyEl,shareUrl:shareLink("movie",id),onClose:()=>setHash("")});
+        setHash(`#/movie/${id}`);
+      }else{
+        const b=document.createElement("button");b.className="btn pri";b.innerHTML=`<i class="fas fa-play"></i> غير متوفر بعد`;b.disabled=true;acts.appendChild(b);
+      }
     }
     if(trailer){const t=document.createElement("button");t.className="btn sec";t.innerHTML=`<i class="fab fa-youtube"></i> الإعلان`;t.onclick=()=>window.open("https://www.youtube.com/watch?v="+trailer.key,"_blank");acts.appendChild(t)}
     const fb=document.createElement("button");fb.className="btn sec fav-b";fb.id="favBtn";fb.dataset.fid=favId(type,id);syncFav(fb);fb.onclick=()=>toggleFav(fb,it);acts.appendChild(fb);
-    if(type==="tv") renderEpisodes(d,it);
+    if(type==="tv") renderEpisodes(d,it,epSel);
     if(sim.length){$("#simBox").innerHTML=`<div class="h2"><i class="fas fa-clone"></i>مشابه</div><div class="rowx" style="padding:0"></div>`;sim.forEach(s=>$("#simBox .rowx").appendChild(card(s)))}
   }catch(e){ov.innerHTML=`<button class="d-back" id="dback"><i class="fas fa-arrow-right"></i></button><div class="center" style="padding-top:90px">تعذر تحميل التفاصيل</div>`;$("#dback").onclick=closeDetail}
 }
-function closeDetail(){$("#detail").classList.remove("on");document.body.classList.remove("lock")}
+function closeDetail(){setHash("");$("#detail").classList.remove("on");document.body.classList.remove("lock")}
 
-async function renderEpisodes(d,it){
-  const box=$("#epsBox");
+async function renderEpisodes(d,it,epSel){
+  const box=$("#epsBox"),bodyEl=box.closest(".d-body");
+  const info=document.createElement("div");bodyEl.insertBefore(info,bodyEl.firstChild);
   const seasons=(d.seasons||[]).filter(s=>s.season_number>0&&s.episode_count>0);
   if(!seasons.length)return;
   let epLinks={};
   try{const s=await getDocs(collection(db,"titles",favId("tv",d.id),"episodes"));s.forEach(x=>epLinks[x.id]=x.data())}catch(e){}
   box.innerHTML=`<div class="h2"><i class="fas fa-list-ol"></i>الحلقات</div><select class="sel" id="seasonSel">${seasons.map(s=>`<option value="${s.season_number}">الموسم ${s.season_number}</option>`).join("")}</select><div class="eps" id="eps"></div>`;
+  if(epSel&&seasons.some(x=>x.season_number===epSel.s))$("#seasonSel").value=epSel.s;
   const load=async()=>{
     const n=$("#seasonSel").value,eps=$("#eps");eps.innerHTML=spinner();
     try{
       const r=await tm(`/tv/${d.id}/season/${n}`);
       eps.innerHTML="";
       const allEps=r.episodes||[];
-      allEps.forEach(e=>{
-        const lk=epLinks[`s${n}e${e.episode_number}`];
-        const qs=lk?normQuals(lk):[];
+      const mk=ep=>{const l=epLinks[`s${n}e${ep.episode_number}`];return{ep,l,q:l?normQuals(l):[]}};
+      const back=()=>{const dt=$("#detail");if(dt.classList.contains("on")){if(bodyEl.parentNode!==dt)dt.appendChild(bodyEl);setHash(`#/tv/${d.id}`)}else setHash("")};
+      const playEp=i=>{const c=mk(allEps[i]);if(!c.q.length)return;
+        const img=c.ep.still_path;
+        info.innerHTML=c.ep.overview?`<div class="desc"><b>${esc(c.ep.name||"")}</b><br>${esc(c.ep.overview)}</div>`:"";
+        const h=histTrack(it,+n,c.ep.episode_number);
+        play({...h,title:`${it.title} - الحلقة ${c.ep.episode_number}`,quals:c.q,subtitle:c.l.subtitle,poster:img?IMG+"w300"+img:it.poster,backdrop:img?IMG+"w780"+img:it.poster,chips:[`الموسم ${n}`,`الحلقة ${c.ep.episode_number}`],kind:"episode",fav:favFor(it),slot:bodyEl,
+          shareUrl:shareLink("tv",d.id,n,c.ep.episode_number),onClose:back,
+          next:()=>{for(let j=i+1;j<allEps.length;j++){if(mk(allEps[j]).q.length)return{title:`${it.title} - الحلقة ${allEps[j].episode_number}`,play:()=>playEp(j)}}return null}});
+        setHash(`#/tv/${d.id}/${n}/${c.ep.episode_number}`);
+      };
+      allEps.forEach((e,i)=>{
+        const qs=mk(e).q;
         const el=document.createElement("div");el.className="ep"+(qs.length?"":" off");
         el.innerHTML=`<img loading="lazy" src="${e.still_path?IMG+"w300"+e.still_path:esc(it.poster)}" alt="">
         <div class="ep-i"><div class="ep-t">${e.episode_number}. ${esc(e.name)}</div><div class="ep-m">${qs.length?`<span class="ok"><i class="fas fa-circle-play"></i> متاحة</span>`:"غير متوفرة بعد"}${e.runtime?` · ${e.runtime} د`:""}</div></div>`;
-        const mk=ep=>{const l=epLinks[`s${n}e${ep.episode_number}`];return{ep,l,q:l?normQuals(l):[]}};
-        const playEp=i=>{const c=mk(allEps[i]);if(!c.q.length)return;
-          play({title:`${it.title} - الحلقة ${c.ep.episode_number}`,quals:c.q,subtitle:c.l.subtitle,poster:c.ep.still_path?IMG+"w300"+c.ep.still_path:it.poster,backdrop:c.ep.still_path?IMG+"w780"+c.ep.still_path:it.poster,chips:[`الموسم ${n}`,`الحلقة ${c.ep.episode_number}`],kind:"episode",fav:favFor(it),
-            next:()=>{for(let j=i+1;j<allEps.length;j++){if(mk(allEps[j]).q.length)return{title:`${it.title} - الحلقة ${allEps[j].episode_number}`,play:()=>playEp(j)}}return null}})};
-        const idx=allEps.indexOf(e);
-        el.onclick=()=>qs.length?playEp(idx):toast("هذه الحلقة غير متوفرة بعد");
+        el.onclick=()=>qs.length?playEp(i):toast("هذه الحلقة غير متوفرة بعد");
         eps.appendChild(el);
       });
+      if(epSel&&!epSel.done&&+n===epSel.s){epSel.done=true;const i=allEps.findIndex(x=>x.episode_number===epSel.e);if(i>=0)playEp(i)}
     }catch(e){eps.innerHTML=`<div class="center">تعذر تحميل الحلقات</div>`}
   };
   $("#seasonSel").onchange=load;load();
@@ -511,6 +593,8 @@ function play(o){
 getDoc(doc(db,"settings","vast")).then(s=>{if(s.exists()&&window.JP)JP.configure({vast:s.data()})}).catch(()=>{});
 
 goTab("home");
+{const m=location.hash.match(/^#\/(movie|tv)\/(\d+)(?:\/(\d+)\/(\d+))?/);
+ if(m)openDetail(m[1],+m[2],m[3]?{s:+m[3],e:+m[4]}:null)}
 </script>
 </body>
 </html>

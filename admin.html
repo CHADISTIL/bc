@@ -4,9 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>jawrab — لوحة الروابط</title>
-<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:"Tajawal",sans-serif}
+*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
 body{background:linear-gradient(#1a1a2e,#16213e);color:#fff;min-height:100vh;padding:16px;max-width:760px;margin:auto}
 h1{font-size:1.2em;margin-bottom:14px;color:#ff4757}
 .card{background:rgba(26,26,46,.8);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:16px;margin-bottom:14px}
@@ -29,6 +28,10 @@ label{display:block;font-size:.78em;color:#aaa;margin-bottom:5px}
 .row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
 .row>*{margin-bottom:0}
 .eprow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 10px;background:rgba(255,255,255,.05);border-radius:8px;margin-bottom:6px;font-size:.82em}
+.pub{display:flex;gap:10px;align-items:center;padding:8px;border-radius:10px;background:rgba(255,255,255,.05);margin-bottom:6px}
+.pub img{width:40px;height:58px;object-fit:cover;border-radius:5px;background:#222;flex:none}
+.pub .t{flex:1;min-width:0}
+.pub .t b{display:block;font-size:.88em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .eprow span{word-break:break-all;flex:1}
 </style>
 </head>
@@ -47,6 +50,12 @@ label{display:block;font-size:.78em;color:#aaa;margin-bottom:5px}
     <label>ابحث في TMDB</label>
     <div class="row"><input class="inp" id="q" placeholder="اسم فيلم أو مسلسل أو أنمي"><button id="sBtn">بحث</button></div>
     <div id="results"></div>
+  </div>
+
+  <div class="card">
+    <b>المنشورات</b> <span class="sm" id="pubCount"></span>
+    <input class="inp" id="pubF" placeholder="بحث في المنشورات…" style="margin-top:8px">
+    <div id="pubList"><div class="sm">…</div></div>
   </div>
 
   <div class="card">
@@ -118,7 +127,7 @@ let sel=null;
 onAuthStateChanged(auth,u=>{
   if(!u){$("#loginBox").style.display="";$("#app").style.display="none";return}
   $("#loginBox").style.display="none";$("#app").style.display="";
-  $("#who").textContent=u.email;loadVast();
+  $("#who").textContent=u.email;loadVast();loadPub();
   msg(`معرّف حسابك (UID): <b dir="ltr" style="user-select:all">${u.uid}</b><br>أنشئ في Firestore مجموعة <b>admins</b> ووثيقة معرّفها هذا الـ UID (يمكن ترك الحقول فارغة أو إضافة حقل واحد).`,"ok");
 });
 $("#login").onclick=()=>signInWithPopup(auth,new GoogleAuthProvider()).catch(e=>msg("تعذر الدخول: "+e.code,"err"));
@@ -163,7 +172,7 @@ $("#saveMovie").onclick=async()=>{
   if(!qualities.length)return msg("أدخل رابطاً صالحاً واحداً على الأقل","err");
   try{
     await setDoc(doc(db,"titles",tid()),{type:"movie",tmdbId:sel.id,title:sel.name,qualities,watchUrl:qualities[0].url,subtitle:$("#msub").value.trim(),updatedAt:Date.now()},{merge:true});
-    msg("تم حفظ الفيلم ✓","ok");
+    msg("تم حفظ الفيلم ✓","ok");loadPub();
   }catch(e){msg("فشل الحفظ — تأكد أن حسابك ضمن admins وأن القواعد منشورة ("+e.code+")","err")}
 };
 
@@ -174,7 +183,7 @@ async function saveEp(){
   try{
     await setDoc(doc(db,"titles",tid()),{type:"tv",tmdbId:sel.id,title:sel.name,updatedAt:Date.now()},{merge:true});
     await setDoc(doc(db,"titles",tid(),"episodes",`s${s}e${e}`),{season:s,episode:e,qualities,url:qualities[0].url,subtitle:$("#esub").value.trim(),updatedAt:Date.now()});
-    msg(`تم حفظ الموسم ${s} الحلقة ${e} ✓`,"ok");loadEps();return true;
+    msg(`تم حفظ الموسم ${s} الحلقة ${e} ✓`,"ok");loadEps();loadPub();return true;
   }catch(x){msg("فشل الحفظ — تأكد أن حسابك ضمن admins ("+x.code+")","err")}
 }
 $("#saveEp").onclick=saveEp;
@@ -193,6 +202,38 @@ async function loadEps(){
     else{$("#eS").value=x.season;$("#eE").value=x.episode;$("#eq").value=fmtQ(x.qualities);$("#esub").value=x.subtitle||"";window.scrollTo({top:$("#tvBox").offsetTop,behavior:"smooth"})}
   });
 }
+/* ───── المنشورات ───── */
+let pubs=[];
+async function loadPub(){
+  const box=$("#pubList");
+  try{
+    const s=await getDocs(collection(db,"titles"));
+    pubs=[];s.forEach(d=>pubs.push({id:d.id,...d.data()}));
+    pubs.sort((x,y)=>(y.updatedAt||0)-(x.updatedAt||0));
+    $("#pubCount").textContent=`(${pubs.length})`;
+    renderPub();
+  }catch(e){box.innerHTML="<div class='sm'>تعذر تحميل المنشورات ("+esc(e.code||"")+")</div>"}
+}
+const posterCache={};
+async function posterOf(x){
+  const k=x.id;if(posterCache[k]!==undefined)return posterCache[k];
+  try{const r=await fetch(`https://api.themoviedb.org/3/${x.type}/${x.tmdbId}?api_key=${KEY}&language=ar`).then(r=>r.json());
+    posterCache[k]=r.poster_path?"https://image.tmdb.org/t/p/w92"+r.poster_path:""}catch(e){posterCache[k]=""}
+  return posterCache[k];
+}
+function renderPub(){
+  const f=$("#pubF").value.trim().toLowerCase(),box=$("#pubList");
+  const arr=pubs.filter(x=>!f||String(x.title||"").toLowerCase().includes(f)||String(x.tmdbId).includes(f));
+  if(!arr.length){box.innerHTML="<div class='sm' style='margin-top:8px'>لا توجد منشورات</div>";return}
+  box.innerHTML=arr.map(x=>`<div class="pub" data-k="${esc(x.id)}"><img alt=""><div class="t"><b>${esc(x.title||x.id)}</b><div class="sm">${x.type==="tv"?"مسلسل / أنمي":"فيلم"} · ID ${x.tmdbId}${x.updatedAt?" · "+new Date(x.updatedAt).toLocaleDateString("ar"):""}</div></div><button class="sec">تعديل</button></div>`).join("");
+  box.querySelectorAll(".pub").forEach(el=>{
+    const x=pubs.find(p=>p.id===el.dataset.k);
+    el.querySelector("button").onclick=()=>pick(x.type,x.tmdbId,x.title||x.id);
+    posterOf(x).then(u=>{if(u)el.querySelector("img").src=u});
+  });
+}
+$("#pubF").oninput=renderPub;
+
 /* ───── VAST settings ───── */
 const nums=t=>String(t).split(/[,،\s]+/).map(Number).filter(n=>n>0);
 async function loadVast(){
