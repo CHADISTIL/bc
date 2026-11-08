@@ -1,0 +1,37 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{db}/documents {
+
+    function isAdmin() {
+      return request.auth != null &&
+        exists(/databases/$(db)/documents/admins/$(request.auth.uid));
+    }
+
+    // روابط المشاهدة: قراءة للجميع، كتابة للمشرفين فقط
+    match /titles/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+      match /episodes/{ep} {
+        allow read: if true;
+        allow write: if isAdmin();
+      }
+    }
+
+    // بيانات كل مستخدم (المفضلة...) لصاحبها فقط
+    match /users/{uid}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // إعدادات التطبيق (إعلانات VAST...): قراءة للجميع، كتابة للمشرفين
+    match /settings/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // قائمة المشرفين تُنشأ يدوياً من Console فقط
+    match /admins/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+  }
+}

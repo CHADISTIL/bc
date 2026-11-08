@@ -110,16 +110,6 @@ background:rgba(22,33,62,.85);backdrop-filter:blur(12px);border-bottom:1px solid
 .ep-m .ok{color:#00c853}
 
 /* player */
-#player{position:fixed;inset:0;z-index:300;background:#000;display:none;flex-direction:column}
-#player.on{display:flex}
-#player video{flex:1;width:100%;min-height:0;background:#000}
-.p-bar{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;gap:10px;padding:10px 12px;background:linear-gradient(rgba(0,0,0,.8),transparent);z-index:2;transition:opacity .3s}
-.p-bar.hide{opacity:0;pointer-events:none}
-.p-t{flex:1;font-size:.85em;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.p-btn{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center}
-.p-q{background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:16px;padding:7px 12px;font-size:.78em;outline:none}
-.p-q option{background:#1a1a2e}
-.p-err{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.75);padding:16px 22px;border-radius:12px;text-align:center;display:none}
 
 /* auth modal */
 .modal{position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:16px}
@@ -179,16 +169,6 @@ background:rgba(22,33,62,.85);backdrop-filter:blur(12px);border-bottom:1px solid
 
 <div class="ov-page" id="detail"></div>
 
-<div id="player">
-  <div class="p-bar" id="pbar">
-    <button class="p-btn" id="pclose"><i class="fas fa-arrow-right"></i></button>
-    <div class="p-t" id="ptitle"></div>
-    <select class="p-q" id="pq" style="display:none"></select>
-  </div>
-  <video id="vid" controls playsinline></video>
-  <div class="p-err" id="perr"><i class="fas fa-triangle-exclamation" style="font-size:2em;color:#ffeb3b;margin-bottom:8px"></i><div>تعذر تشغيل الفيديو</div></div>
-</div>
-
 <div class="modal" id="authModal">
   <div class="mbox">
     <h3>تسجيل الدخول</h3>
@@ -204,6 +184,7 @@ background:rgba(22,33,62,.85);backdrop-filter:blur(12px);border-bottom:1px solid
 </div>
 <div id="toast"></div>
 
+<script src="player.js"></script>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {getAuth,onAuthStateChanged,GoogleAuthProvider,signInWithPopup,signInWithEmailAndPassword,createUserWithEmailAndPassword,signOut}
@@ -465,7 +446,7 @@ async function openDetail(type,id){
     const acts=$("#acts");
     if(type==="movie"){
       const b=document.createElement("button");b.className="btn pri";
-      if(quals.length){b.innerHTML=`<i class="fas fa-play"></i> مشاهدة`;b.onclick=()=>play({title:it.title,quals,sub:link.subtitle})}
+      if(quals.length){b.innerHTML=`<i class="fas fa-play"></i> مشاهدة`;b.onclick=()=>play({title:it.title,quals,subtitle:link.subtitle,poster:it.poster,backdrop:d.backdrop_path?IMG+"w1280"+d.backdrop_path:it.poster,chips:[it.year,"فيلم"].filter(Boolean),kind:"movie",fav:favFor(it)})}
       else{b.innerHTML=`<i class="fas fa-play"></i> غير متوفر بعد`;b.disabled=true}
       acts.appendChild(b);
     }
@@ -489,13 +470,19 @@ async function renderEpisodes(d,it){
     try{
       const r=await tm(`/tv/${d.id}/season/${n}`);
       eps.innerHTML="";
-      (r.episodes||[]).forEach(e=>{
+      const allEps=r.episodes||[];
+      allEps.forEach(e=>{
         const lk=epLinks[`s${n}e${e.episode_number}`];
         const qs=lk?normQuals(lk):[];
         const el=document.createElement("div");el.className="ep"+(qs.length?"":" off");
         el.innerHTML=`<img loading="lazy" src="${e.still_path?IMG+"w300"+e.still_path:esc(it.poster)}" alt="">
         <div class="ep-i"><div class="ep-t">${e.episode_number}. ${esc(e.name)}</div><div class="ep-m">${qs.length?`<span class="ok"><i class="fas fa-circle-play"></i> متاحة</span>`:"غير متوفرة بعد"}${e.runtime?` · ${e.runtime} د`:""}</div></div>`;
-        el.onclick=()=>qs.length?play({title:`${it.title} - الحلقة ${e.episode_number}`,quals:qs,sub:lk.subtitle}):toast("هذه الحلقة غير متوفرة بعد");
+        const mk=ep=>{const l=epLinks[`s${n}e${ep.episode_number}`];return{ep,l,q:l?normQuals(l):[]}};
+        const playEp=i=>{const c=mk(allEps[i]);if(!c.q.length)return;
+          play({title:`${it.title} - الحلقة ${c.ep.episode_number}`,quals:c.q,subtitle:c.l.subtitle,poster:c.ep.still_path?IMG+"w300"+c.ep.still_path:it.poster,backdrop:c.ep.still_path?IMG+"w780"+c.ep.still_path:it.poster,chips:[`الموسم ${n}`,`الحلقة ${c.ep.episode_number}`],kind:"episode",fav:favFor(it),
+            next:()=>{for(let j=i+1;j<allEps.length;j++){if(mk(allEps[j]).q.length)return{title:`${it.title} - الحلقة ${allEps[j].episode_number}`,play:()=>playEp(j)}}return null}})};
+        const idx=allEps.indexOf(e);
+        el.onclick=()=>qs.length?playEp(idx):toast("هذه الحلقة غير متوفرة بعد");
         eps.appendChild(el);
       });
     }catch(e){eps.innerHTML=`<div class="center">تعذر تحميل الحلقات</div>`}
@@ -511,33 +498,17 @@ function normQuals(o){
   if(!q.length&&o.url)q=[{label:"تلقائي",url:o.url}];
   return q;
 }
-let hls=null,pTimer;
-function loadHls(){return window.Hls?Promise.resolve():new Promise((res,rej)=>{const s=document.createElement("script");s.src="https://cdn.jsdelivr.net/npm/hls.js@1";s.onload=res;s.onerror=rej;document.head.appendChild(s)})}
-function srtToVtt(t){t=t.trim();return t.startsWith("WEBVTT")?t:"WEBVTT\n\n"+t.replace(/\r/g,"").replace(/(\d+:\d+:\d+),(\d+)/g,"$1.$2")}
-async function setSrc(url,t0){
-  const v=$("#vid");$("#perr").style.display="none";
-  if(hls){hls.destroy();hls=null}
-  if(/\.m3u8(\?|$)/i.test(url)&&!v.canPlayType("application/vnd.apple.mpegurl")){
-    try{await loadHls();if(window.Hls.isSupported()){hls=new window.Hls();hls.loadSource(url);hls.attachMedia(v)}else v.src=url}catch(e){v.src=url}
-  }else v.src=url;
-  if(t0)v.addEventListener("loadedmetadata",()=>{v.currentTime=t0},{once:true});
-  v.play().catch(()=>{});
+function favFor(it){
+  const id=favId(it.type,it.id);
+  return{is:()=>favSet.has(id),toggle:async()=>{
+    if(!user){openAuth("سجّل الدخول لحفظ المفضلة");return null}
+    const b=document.createElement("button");b.dataset.fid=id;await toggleFav(b,it);return favSet.has(id)}};
 }
-function play({title,quals,sub}){
-  const p=$("#player"),v=$("#vid"),q=$("#pq");
-  $("#ptitle").textContent=title;
-  v.querySelectorAll("track").forEach(t=>t.remove());
-  if(sub){try{const tr=document.createElement("track");tr.kind="subtitles";tr.label="العربية";tr.srclang="ar";tr.default=true;tr.src=URL.createObjectURL(new Blob([srtToVtt(sub)],{type:"text/vtt"}));v.appendChild(tr)}catch(e){}}
-  if(quals.length>1){q.style.display="";q.innerHTML=quals.map((x,i)=>`<option value="${i}">${esc(x.label)}</option>`).join("");q.onchange=()=>setSrc(quals[q.value].url,v.currentTime)}
-  else q.style.display="none";
-  p.classList.add("on");
-  setSrc(quals[0].url);
-  v.onerror=()=>{$("#perr").style.display="block"};
-  showBar();
+function play(o){
+  if(!window.JP){toast("المشغّل غير محمّل — تأكد من رفع player.js");return}
+  JP.open(o);
 }
-function showBar(){const b=$("#pbar");b.classList.remove("hide");clearTimeout(pTimer);pTimer=setTimeout(()=>{if(!$("#vid").paused)b.classList.add("hide")},3000)}
-$("#player").addEventListener("pointermove",showBar);$("#player").addEventListener("click",showBar);
-$("#pclose").onclick=()=>{const v=$("#vid");v.pause();v.removeAttribute("src");v.load();if(hls){hls.destroy();hls=null}$("#player").classList.remove("on");if(document.fullscreenElement)document.exitFullscreen().catch(()=>{})};
+getDoc(doc(db,"settings","vast")).then(s=>{if(s.exists()&&window.JP)JP.configure({vast:s.data()})}).catch(()=>{});
 
 goTab("home");
 </script>

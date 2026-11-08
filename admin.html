@@ -49,6 +49,32 @@ label{display:block;font-size:.78em;color:#aaa;margin-bottom:5px}
     <div id="results"></div>
   </div>
 
+  <div class="card">
+    <b>إعلانات VAST</b>
+    <p class="sm" style="margin:6px 0 10px">تتحكم في ظهور الإعلانات داخل مشغّل الفيديو.</p>
+    <label><input type="checkbox" id="vOn" style="width:auto;margin-left:6px">تفعيل الإعلانات</label>
+    <label style="margin-top:8px">رابط VAST</label>
+    <input class="inp" id="vUrl" dir="ltr" placeholder="https://.../watch.xml?key=...">
+    <label><input type="checkbox" id="vPre" style="width:auto;margin-left:6px">إعلان عند بدء التشغيل (Pre-roll)</label>
+    <div class="row" style="margin-top:8px">
+      <div style="flex:1"><label>بعد دقائق (مفصولة بفاصلة)</label><input class="inp" id="vMin" dir="ltr" placeholder="3, 20"></div>
+      <div style="flex:1"><label>عند نسب % من الفيديو</label><input class="inp" id="vPct" dir="ltr" placeholder="50, 80"></div>
+    </div>
+    <div class="row">
+      <div style="flex:1"><label>أقصى عدد إعلانات للفيديو</label><input class="inp" id="vMax" type="number" min="1" value="4"></div>
+      <div style="flex:1"><label>أقل مدة للفيديو (دقائق)</label><input class="inp" id="vDur" type="number" min="0" value="0"></div>
+    </div>
+    <div class="row">
+      <label style="flex:1"><input type="checkbox" id="vMov" style="width:auto;margin-left:6px">على الأفلام</label>
+      <label style="flex:1"><input type="checkbox" id="vEp" style="width:auto;margin-left:6px">على الحلقات</label>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <label style="flex:1"><input type="checkbox" id="vSkip" style="width:auto;margin-left:6px">يمكن تخطي الإعلان</label>
+      <div style="flex:1"><label>زر التخطي بعد (ثوانٍ)</label><input class="inp" id="vSkipT" type="number" min="0" value="5"></div>
+    </div>
+    <button id="vSave">حفظ إعدادات الإعلانات</button>
+  </div>
+
   <div class="card" id="editor" style="display:none">
     <div class="row"><b id="eTitle" style="flex:1"></b><span class="sm" id="eId"></span></div>
 
@@ -92,7 +118,7 @@ let sel=null;
 onAuthStateChanged(auth,u=>{
   if(!u){$("#loginBox").style.display="";$("#app").style.display="none";return}
   $("#loginBox").style.display="none";$("#app").style.display="";
-  $("#who").textContent=u.email;
+  $("#who").textContent=u.email;loadVast();
   msg(`معرّف حسابك (UID): <b dir="ltr" style="user-select:all">${u.uid}</b><br>أنشئ في Firestore مجموعة <b>admins</b> ووثيقة معرّفها هذا الـ UID (يمكن ترك الحقول فارغة أو إضافة حقل واحد).`,"ok");
 });
 $("#login").onclick=()=>signInWithPopup(auth,new GoogleAuthProvider()).catch(e=>msg("تعذر الدخول: "+e.code,"err"));
@@ -167,6 +193,25 @@ async function loadEps(){
     else{$("#eS").value=x.season;$("#eE").value=x.episode;$("#eq").value=fmtQ(x.qualities);$("#esub").value=x.subtitle||"";window.scrollTo({top:$("#tvBox").offsetTop,behavior:"smooth"})}
   });
 }
+/* ───── VAST settings ───── */
+const nums=t=>String(t).split(/[,،\s]+/).map(Number).filter(n=>n>0);
+async function loadVast(){
+  const s=await getDoc(doc(db,"settings","vast")).catch(()=>null);
+  const d=s&&s.exists()?s.data():{enabled:true,url:"https://www.videosprofitnetwork.com/watch.xml?key=3f1497cd192863eda22ba81d86a3fc75",preroll:true,atMinutes:[3],atPercents:[50,80],maxPerVideo:4,movies:true,episodes:true,skippable:true,skipAfter:5,minDurationMin:0};
+  $("#vOn").checked=!!d.enabled;$("#vUrl").value=d.url||"";$("#vPre").checked=d.preroll!==false;
+  $("#vMin").value=(d.atMinutes||[]).join(", ");$("#vPct").value=(d.atPercents||[]).join(", ");
+  $("#vMax").value=d.maxPerVideo??4;$("#vDur").value=d.minDurationMin??0;
+  $("#vMov").checked=d.movies!==false;$("#vEp").checked=d.episodes!==false;
+  $("#vSkip").checked=d.skippable!==false;$("#vSkipT").value=d.skipAfter??5;
+}
+$("#vSave").onclick=async()=>{
+  const url=$("#vUrl").value.trim();
+  if($("#vOn").checked&&!/^https?:\/\//i.test(url))return msg("أدخل رابط VAST صالحاً","err");
+  try{
+    await setDoc(doc(db,"settings","vast"),{enabled:$("#vOn").checked,url,preroll:$("#vPre").checked,atMinutes:nums($("#vMin").value),atPercents:nums($("#vPct").value),maxPerVideo:+$("#vMax").value||4,minDurationMin:+$("#vDur").value||0,movies:$("#vMov").checked,episodes:$("#vEp").checked,skippable:$("#vSkip").checked,skipAfter:+$("#vSkipT").value||0,updatedAt:Date.now()});
+    msg("تم حفظ إعدادات الإعلانات ✓","ok");
+  }catch(e){msg("فشل الحفظ — تأكد من نشر قاعدة settings ("+e.code+")","err")}
+};
 </script>
 </body>
 </html>
