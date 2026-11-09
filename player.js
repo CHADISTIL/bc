@@ -37,8 +37,9 @@ var CSS=`
 .jp-wrap.fs .jp-ctrl{padding-bottom:calc(20px + env(safe-area-inset-bottom))}
 
 /* progress */
-.jp-prog{position:absolute;left:0;right:0;bottom:0;height:5px;background:rgba(255,255,255,.2);z-index:21;transition:height .15s}
-.jp-prog.act{height:10px}
+.jp-prog{position:absolute;left:0;right:0;bottom:0;height:9px;background:rgba(255,255,255,.2);z-index:21;transition:height .35s cubic-bezier(.4,0,.2,1)}
+.jp-wrap.hide .jp-prog{height:3px}
+.jp-wrap .jp-prog.act{height:13px;transition-duration:.15s}
 .jp-bar{height:100%;width:0;background:#ff375f;position:relative}
 .jp-bar::after{content:"";position:absolute;right:-6px;top:50%;width:13px;height:13px;border-radius:50%;background:#ff375f;transform:translateY(-50%) scale(0);transition:transform .15s}
 .jp-prog.act .jp-bar::after{transform:translateY(-50%) scale(1)}
@@ -112,7 +113,7 @@ var CSS=`
 
 /* below the wrap */
 .jp-wrap{z-index:2}
-.jp-pbg{position:absolute;top:0;left:0;right:0;height:620px;background-size:cover;background-position:center top;opacity:.6;-webkit-mask-image:linear-gradient(#000 0%,#000 30%,transparent 100%);mask-image:linear-gradient(#000 0%,#000 30%,transparent 100%);pointer-events:none;z-index:0}
+.jp-pbg{position:absolute;top:0;left:0;right:0;height:620px;background-size:cover;background-position:center top;opacity:.6;filter:blur(4px);-webkit-mask-image:linear-gradient(#000 0%,#000 30%,transparent 100%);mask-image:linear-gradient(#000 0%,#000 30%,transparent 100%);pointer-events:none;z-index:0}
 .jp-bar2,.jp-slot{position:relative;z-index:1}
 .jp-bar2{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;padding:14px 14px 6px;max-width:900px;margin:auto}
 .jp-bar2::-webkit-scrollbar{display:none}
@@ -560,6 +561,7 @@ function act(a){
     case 'share':share();break;
     case 'copylink':copyText((S.opts&&S.opts.shareUrl)||location.href,'تم نسخ الرابط');break;
     case 'embed':openEmbed();break;
+    case 'list':if(isFs())exitFs();try{S.opts.onList()}catch(e){}break;
     case 'report':openReport();break;
     case 'more':openMore();break;
     case 'lock':lock();break;
@@ -634,6 +636,7 @@ function openMore(){
       ['lock','fa-lock','قفل الشاشة',''],
       ['copylink','fa-link','نسخ رابط المشاهدة',''],
       (S.opts&&S.opts.embedUrl)?['embed','fa-code','رابط التضمين (iframe)','']:null,
+      (S.opts&&S.opts.onList)?['list','fa-bookmark','إضافة إلى قائمة','']:null,
       S.cues.length?['sub','fa-closed-captioning','إعدادات الترجمة','']:null
     ].filter(Boolean);
     rows.forEach(function(r){
@@ -673,13 +676,14 @@ function openSubModal(){
 }
 function openReport(){
   modal('الإبلاغ عن محتوى','fa-flag',function(b,m){
-    ['الفيديو لا يشتغل','محتوى غير لائق','مشكلة ترجمة','الصوت غير متزامن'].forEach(function(r){
+    ['الفيديو لا يشتغل','الصوت غير متزامن','مشكلة في الترجمة','جودة سيئة','محتوى غير لائق','أخرى'].forEach(function(r){
       var o=document.createElement('button');o.className='jp-opt';o.textContent=r;o.onclick=function(){sendReport(r)};b.appendChild(o);
     });
   });
 }
 function sendReport(reason){
   closeModal();
+  try{S.opts&&S.opts.onReport&&S.opts.onReport(reason)}catch(e){}
   var f=new FormData();f.append('email','send@jawrab.txt');f.append('name',(S.opts&&S.opts.title)||'');f.append('message',reason);
   fetch(REPORT_URL,{method:'POST',body:f,headers:{Accept:'application/json'}}).then(function(r){toast(r.ok?'تم إرسال الإبلاغ':'فشل الإرسال')}).catch(function(){toast('تعذر الاتصال')});
 }

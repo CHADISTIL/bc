@@ -89,6 +89,22 @@ html.embed .top,html.embed #nav,html.embed #main,html.embed .page-end,html.embed
 html.embed body{background:#000}
 html.boot body::after{content:"";position:fixed;inset:0;background:#000;z-index:299}
 .jp-slot .d-body{margin-top:8px;padding:0 0 20px}
+.cm{cursor:pointer}
+.p-head{display:flex;gap:16px;align-items:center;padding:64px 14px 8px;max-width:900px;margin:auto}
+.p-head img{width:96px;height:96px;border-radius:50%;object-fit:cover;background:#222;flex-shrink:0}
+.p-name{font-size:1.25em;font-weight:800;margin-bottom:4px}
+.p-sub{font-size:.78em;color:#aab;line-height:1.7}
+.p-bio{font-size:.84em;color:#ccc;line-height:1.9;margin:6px 14px 8px;max-width:900px;margin-inline:auto;padding:0 14px;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.p-bio.open{-webkit-line-clamp:unset;display:block}
+.chip.dash{border:1px dashed rgba(255,255,255,.3);background:none;color:#bbb}
+.chips{overflow-x:auto;scrollbar-width:none;flex-wrap:nowrap}.chip{white-space:nowrap;flex-shrink:0}
+.lhead{display:flex;align-items:center;gap:8px;padding:6px 14px}.lhead b{flex:1;font-size:1.02em}
+.ib{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.09);display:flex;align-items:center;justify-content:center;font-size:.85em}
+.card .rm{position:absolute;top:5px;left:5px;z-index:3;width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,.7);font-size:.7em;display:flex;align-items:center;justify-content:center}
+.lrow{display:flex;align-items:center;gap:10px;width:100%;padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.07);margin-bottom:8px;font-size:.9em;text-align:right}
+.lrow i{color:#888;font-size:1.1em}.lrow.on i{color:var(--primary)}.lrow small{margin-right:auto;color:#999;font-size:.75em}
+.lrow.sug{border:1px dashed rgba(255,255,255,.3);background:none}
+.row2{display:flex;gap:8px;margin-top:6px}.row2 .inp{margin:0;flex:1}
 .d-top{display:flex;gap:16px;align-items:flex-start}
 .d-poster{width:108px;aspect-ratio:2/3;object-fit:cover;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.6);flex-shrink:0;background:#222}
 .d-info{flex:1;min-width:0;padding-top:4px}
@@ -177,10 +193,11 @@ html.boot body::after{content:"";position:fixed;inset:0;background:#000;z-index:
   <button data-n="home" class="on"><i class="fas fa-house"></i>الرئيسية</button>
   <button data-n="search"><i class="fas fa-magnifying-glass"></i>بحث</button>
   <button data-n="hist"><i class="fas fa-clock-rotate-left"></i>السجل</button>
-  <button data-n="fav"><i class="fas fa-heart"></i>المفضلة</button>
+  <button data-n="fav"><i class="fas fa-bookmark"></i>مكتبتي</button>
 </nav>
 
 <div class="ov-page" id="detail"></div>
+<div class="ov-page" id="person" style="z-index:110"></div>
 
 <div class="modal" id="authModal">
   <div class="mbox">
@@ -202,7 +219,7 @@ html.boot body::after{content:"";position:fixed;inset:0;background:#000;z-index:
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {getAuth,onAuthStateChanged,GoogleAuthProvider,signInWithPopup,signInWithEmailAndPassword,createUserWithEmailAndPassword,signOut}
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import {getFirestore,doc,getDoc,setDoc,deleteDoc,collection,getDocs}
+import {getFirestore,doc,getDoc,setDoc,deleteDoc,updateDoc,addDoc,increment,collection,getDocs,query,orderBy,limit}
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const app=initializeApp({
@@ -228,7 +245,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 function norm(x,type){
   const t=x.media_type||type;
-  return {id:x.id,type:t,title:x.title||x.name||"",
+  return {id:x.id,type:t,title:x.original_title||x.original_name||x.title||x.name||"",
     poster:x.poster_path?IMG+"w342"+x.poster_path:"",
     backdrop:x.backdrop_path?IMG+"w1280"+x.backdrop_path:"",
     rating:x.vote_average?Math.round(x.vote_average*10)/10:0,
@@ -278,28 +295,77 @@ function goTab(t,sort){
   if(t==="home") renderHome(); else renderGrid(t,sort||"pop");
 }
 
-/* ───── home ───── */
+/* ───── home (configurable from admin: settings/home) ───── */
+const DEFAULT_HOME={hero:"trend",sections:[
+ {id:"trend",title:"الشائع الآن",icon:"fa-fire",source:"trending",mtype:"all",period:"week",limit:20,enabled:true},
+ {id:"mpop",title:"أفلام شائعة",icon:"fa-film",source:"popular",mtype:"movie",limit:20,more:true,enabled:true},
+ {id:"mtop",title:"الأفلام الأعلى تقييماً",icon:"fa-star",source:"top",mtype:"movie",limit:20,more:true,enabled:true},
+ {id:"tpop",title:"مسلسلات شائعة",icon:"fa-tv",source:"popular",mtype:"tv",limit:20,more:true,enabled:true},
+ {id:"ttop",title:"المسلسلات الأعلى تقييماً",icon:"fa-trophy",source:"top",mtype:"tv",limit:20,more:true,enabled:true},
+ {id:"apop",title:"أنمي شائع",icon:"fa-wand-sparkles",source:"popular",mtype:"anime",limit:20,more:true,enabled:true},
+ {id:"atop",title:"الأنمي الأعلى تقييماً",icon:"fa-crown",source:"top",mtype:"anime",limit:20,more:true,enabled:true}]};
+let homeCfg=null;
+async function loadHomeCfg(){
+  if(homeCfg)return homeCfg;
+  try{const s=await getDoc(doc(db,"settings","home"));if(s.exists()&&Array.isArray(s.data().sections)&&s.data().sections.length)homeCfg=s.data()}catch(e){}
+  return homeCfg||(homeCfg=DEFAULT_HOME);
+}
+const today=()=>new Date().toISOString().slice(0,10);
+async function fetchSection(sc){
+  const mt=sc.mtype||"movie",bt=baseType(mt),n=+sc.limit||20;
+  let items=[];
+  switch(sc.source){
+    case"trending":items=list(await tm(`/trending/${mt==="all"?"all":bt}/${sc.period||"week"}`),mt==="all"?undefined:bt);break;
+    case"popular":case"top":
+      items=mt==="all"?list(await tm("/trending/all/week")):list(await tm(...SRC[mt][sc.source==="top"?"top":"pop"]),bt);break;
+    case"now":
+      if(mt==="movie")items=list(await tm("/movie/now_playing"),"movie");
+      else if(mt==="anime")items=list(await tm("/discover/tv",{...ANIME,sort_by:"first_air_date.desc","first_air_date.lte":today(),"vote_count.gte":"5"}),"tv");
+      else items=list(await tm("/tv/on_the_air"),"tv");break;
+    case"upcoming":items=list(await tm("/movie/upcoming"),"movie");break;
+    case"discover":{
+      const p={sort_by:sc.sort==="vote"?"vote_average.desc":sc.sort==="date"?(bt==="movie"?"primary_release_date.desc":"first_air_date.desc"):"popularity.desc"};
+      if(sc.sort==="vote")p["vote_count.gte"]=String(sc.minVotes||(bt==="movie"?1000:400));
+      if(sc.sort==="date"){p[bt==="movie"?"primary_release_date.lte":"first_air_date.lte"]=today();p["vote_count.gte"]="5"}
+      let g=String(sc.genres||"").replace(/\s/g,"");
+      if(mt==="anime"){g=g?"16,"+g:"16";p.with_original_language=sc.lang||"ja"}
+      else if(sc.lang)p.with_original_language=sc.lang;
+      if(g)p.with_genres=g;
+      items=list(await tm("/discover/"+bt,p),bt);break}
+    case"views":{
+      const q=await getDocs(query(collection(db,"stats"),orderBy("views","desc"),limit(n*2)));
+      q.forEach(d=>{const x=d.data();if(mt!=="all"&&baseType(mt)!==x.type)return;items.push({id:x.tmdbId,type:x.type,title:x.title,poster:x.poster,backdrop:"",rating:0,year:"",overview:""})});break}
+    case"added":{
+      const q=await getDocs(query(collection(db,"titles"),orderBy("updatedAt","desc"),limit(n*2)));
+      const docs=[];q.forEach(d=>{const x=d.data();if(mt==="all"||baseType(mt)===x.type)docs.push(x)});
+      const r=await Promise.all(docs.slice(0,n).map(x=>tm(`/${x.type}/${x.tmdbId}`).then(d=>norm({...d,media_type:x.type},x.type)).catch(()=>null)));
+      items=r.filter(x=>x&&x.poster);break}
+    case"ids":{
+      const ids=String(sc.ids||"").split(/[,،\s]+/).map(t=>t.match(/^(movie|tv)[:\/_-]?(\d+)$/i)).filter(Boolean);
+      const r=await Promise.all(ids.slice(0,n).map(m=>tm(`/${m[1].toLowerCase()}/${m[2]}`).then(d=>norm({...d,media_type:m[1].toLowerCase()},m[1].toLowerCase())).catch(()=>null)));
+      items=r.filter(x=>x&&x.poster);break}
+  }
+  return items.slice(0,n);
+}
 let heroTimer;
 async function renderHome(){
   const m=$("#main");m.innerHTML=spinner();clearInterval(heroTimer);
   try{
-    const [trend,mTop,tTop,aTop,mPop,tPop,aPop]=await Promise.all([
-      tm("/trending/all/week"),
-      tm(...SRC.movie.top),tm(...SRC.tv.top),tm(...SRC.anime.top),
-      tm(...SRC.movie.pop),tm(...SRC.tv.pop),tm(...SRC.anime.pop)
-    ]);
+    const cfg=await loadHomeCfg();
+    const secs=cfg.sections.filter(x=>x.enabled!==false);
+    const res=await Promise.all(secs.map(x=>fetchSection(x).catch(()=>[])));
     if(curTab!=="home")return;
     m.innerHTML="";
-    const tr=list(trend);
-    const heroItems=tr.filter(x=>x.backdrop).slice(0,5);
-    if(heroItems.length) m.appendChild(buildHero(heroItems));
-    m.appendChild(row("الشائع الآن","fa-fire",tr));
-    m.appendChild(row("أفلام شائعة","fa-film",list(mPop,"movie"),["movie","pop"]));
-    m.appendChild(row("الأفلام الأعلى تقييماً","fa-star",list(mTop,"movie"),["movie","top"]));
-    m.appendChild(row("مسلسلات شائعة","fa-tv",list(tPop,"tv"),["tv","pop"]));
-    m.appendChild(row("المسلسلات الأعلى تقييماً","fa-trophy",list(tTop,"tv"),["tv","top"]));
-    m.appendChild(row("أنمي شائع","fa-wand-sparkles",list(aPop,"tv"),["anime","pop"]));
-    m.appendChild(row("الأنمي الأعلى تقييماً","fa-crown",list(aTop,"tv"),["anime","top"]));
+    if(cfg.hero!==""){
+      let hi=secs.findIndex(x=>x.id===cfg.hero);if(hi<0)hi=0;
+      const heroItems=(res[hi]||[]).filter(x=>x.backdrop).slice(0,5);
+      if(heroItems.length)m.appendChild(buildHero(heroItems));
+    }
+    secs.forEach((x,i)=>{
+      if(!res[i].length)return;
+      const more=x.more&&(x.source==="popular"||x.source==="top")&&SRC[x.mtype]?[x.mtype,x.source==="top"?"top":"pop"]:null;
+      m.appendChild(row(x.title,x.icon||"fa-film",res[i],more));
+    });
     updateHistRow();
   }catch(e){m.innerHTML=`<div class="center">تعذر تحميل المحتوى، تحقق من الاتصال</div>`}
 }
@@ -348,7 +414,7 @@ async function loadMoreGrid(){
 let sT;
 $("#q").addEventListener("input",e=>{
   clearTimeout(sT);const q=e.target.value.trim();
-  if(q.length<2){if(!q)goTab(curTab);return}
+  if(q.length<2){if(!q)goTab(["home","movie","tv","anime"].includes(curTab)?curTab:"home");return}
   sT=setTimeout(()=>doSearch(q),450);
 });
 async function doSearch(q){
@@ -371,7 +437,7 @@ onAuthStateChanged(auth,async u=>{
     try{const s=await getDocs(collection(db,"users",u.uid,"favorites"));s.forEach(d=>favSet.add(d.id))}catch(e){}
   }else a.innerHTML=`<i class="fas fa-user"></i>`;
   const fb=$("#favBtn");if(fb)syncFav(fb);
-  await loadHist();updateHistRow();if(curTab==="hist")showHist();
+  await loadHist();updateHistRow();if(curTab==="hist")showHist();if(curTab==="lib")showFavs();
 });
 $("#acct").onclick=e=>{
   e.stopPropagation();
@@ -420,6 +486,8 @@ function histTrack(it,se,ep){
   saveHist(key,d);
   return{
     startAt:d.pos>15&&(!d.dur||d.pos<d.dur*0.95)?d.pos:0,
+    rep:{type:it.type,tmdbId:it.id,title:it.title,season:se||0,episode:ep||0},
+    onList:()=>openListModal(it),
     onProgress:(t,dur)=>{const cur=histCache.get(key)||d;saveHist(key,{...cur,pos:t/dur>0.95?0:Math.floor(t),dur:Math.floor(dur),watchedAt:Date.now()})}
   };
 }
@@ -471,19 +539,124 @@ async function toggleFav(btn,it){
     syncFav(btn);
   }catch(e){toast("تعذر الحفظ")}
 }
-async function showFavs(){
-  setNavUI("fav");setTabUI("");$("#q").value="";window.scrollTo(0,0);
+/* ───── custom lists ───── */
+let lists=[];
+async function loadLists(){
+  lists=[];if(!user)return;
+  try{const q=await getDocs(collection(db,"users",user.uid,"lists"));q.forEach(d=>lists.push({id:d.id,...d.data()}));lists.sort((a,b)=>(a.createdAt||0)-(b.createdAt||0))}catch(e){}
+}
+const inList=(l,it)=>(l.items||[]).some(x=>x.tmdbId===it.id&&x.type===it.type);
+const saveList=l=>setDoc(doc(db,"users",user.uid,"lists",l.id),{name:l.name,items:l.items||[],createdAt:l.createdAt||Date.now(),updatedAt:Date.now()});
+async function newList(name){
+  const l={id:"l"+Date.now().toString(36),name:String(name).trim().slice(0,40),items:[],createdAt:Date.now()};
+  if(!l.name)return null;
+  await saveList(l);lists.push(l);return l;
+}
+function openListModal(it){
+  if(!user){openAuth("سجّل الدخول لإنشاء قوائمك");return}
+  const m=document.createElement("div");m.className="modal on";m.style.zIndex=500;document.body.appendChild(m);
+  const close=()=>m.remove();
+  m.addEventListener("click",e=>{if(e.target===m)close()});
+  const draw=()=>{
+    const sug=!lists.some(l=>l.name==="أخطط للمشاهدة");
+    m.innerHTML=`<div class="mbox"><h3><i class="fas fa-bookmark"></i> إضافة إلى قائمة</h3><div style="font-size:.78em;color:#999;text-align:center;margin:-8px 0 12px">${esc(it.title)}</div>
+    <div id="lm-l">${lists.map((l,i)=>`<button class="lrow ${inList(l,it)?"on":""}" data-i="${i}"><i class="fas fa-${inList(l,it)?"square-check":"square"}"></i>${esc(l.name)}<small>${(l.items||[]).length}</small></button>`).join("")}</div>
+    ${sug?`<button class="lrow sug" id="lm-s"><i class="fas fa-plus"></i>أخطط للمشاهدة<small>قائمة مقترحة</small></button>`:""}
+    <div class="row2"><input class="inp" id="lm-n" placeholder="اسم قائمة جديدة" maxlength="40"><button class="btn pri" id="lm-c">إنشاء</button></div>
+    <button class="btn sec" id="lm-x" style="width:100%;justify-content:center;margin-top:10px">تم</button></div>`;
+    m.querySelectorAll("#lm-l .lrow").forEach(b=>b.onclick=async()=>{
+      const l=lists[+b.dataset.i];
+      try{
+        if(inList(l,it)){l.items=l.items.filter(x=>!(x.tmdbId===it.id&&x.type===it.type));toast("أُزيل من "+l.name)}
+        else{l.items=[...(l.items||[]),{type:it.type,tmdbId:it.id,title:it.title,poster:it.poster,rating:it.rating||0,addedAt:Date.now()}];toast("أُضيف إلى "+l.name)}
+        await saveList(l);draw();
+      }catch(e){toast("تعذر الحفظ")}
+    });
+    const create=async name=>{try{const l=await newList(name);if(!l)return;l.items=[{type:it.type,tmdbId:it.id,title:it.title,poster:it.poster,rating:it.rating||0,addedAt:Date.now()}];await saveList(l);toast("أُضيف إلى "+l.name);draw()}catch(e){toast("تعذر إنشاء القائمة")}};
+    const s=m.querySelector("#lm-s");if(s)s.onclick=()=>create("أخطط للمشاهدة");
+    m.querySelector("#lm-c").onclick=()=>create(m.querySelector("#lm-n").value);
+    m.querySelector("#lm-x").onclick=close;
+  };
+  draw();
+}
+async function showFavs(sel){
+  sel=sel||"fav";
+  setNavUI("fav");setTabUI("");$("#q").value="";window.scrollTo(0,0);curTab="lib";
   const m=$("#main");
-  if(!user){m.innerHTML=`<div class="center"><i class="fas fa-heart" style="font-size:2.4em;color:var(--primary);margin-bottom:12px"></i><p>سجّل الدخول لعرض مفضلتك</p><br><button class="btn pri" id="fl">تسجيل الدخول</button></div>`;$("#fl").onclick=()=>openAuth();return}
+  if(!user){m.innerHTML=`<div class="center"><i class="fas fa-bookmark" style="font-size:2.4em;color:var(--primary);margin-bottom:12px"></i><p>سجّل الدخول لعرض مفضلتك وقوائمك</p><br><button class="btn pri" id="fl">تسجيل الدخول</button></div>`;$("#fl").onclick=()=>openAuth();return}
   m.innerHTML=spinner();
   try{
+    await loadLists();
     const s=await getDocs(collection(db,"users",user.uid,"favorites"));
-    const items=[];s.forEach(d=>{const x=d.data();items.push({id:x.tmdbId,type:x.type,title:x.title,poster:x.poster,rating:x.rating,addedAt:x.addedAt||0})});
-    items.sort((a,b)=>b.addedAt-a.addedAt);
-    if(!items.length){m.innerHTML=`<div class="center">لا توجد عناصر في المفضلة بعد</div>`;return}
-    m.innerHTML=`<div class="sec-h" style="margin-top:12px"><div class="sec-t"><i class="fas fa-heart"></i>المفضلة</div></div><div class="grid" id="fg"></div>`;
-    items.forEach(i=>$("#fg").appendChild(card(i)));
-  }catch(e){m.innerHTML=`<div class="center">تعذر تحميل المفضلة</div>`}
+    const favs=[];s.forEach(d=>{const x=d.data();favs.push({id:x.tmdbId,type:x.type,title:x.title,poster:x.poster,rating:x.rating,addedAt:x.addedAt||0})});
+    favs.sort((a,b)=>b.addedAt-a.addedAt);
+    const cur=lists.find(l=>l.id===sel);if(!cur)sel="fav";
+    const hasPlan=lists.some(l=>l.name==="أخطط للمشاهدة");
+    m.innerHTML=`<div class="chips" style="padding-top:12px"><button class="chip ${sel==="fav"?"on":""}" data-k="fav"><i class="fas fa-heart"></i> المفضلة</button>${lists.map(l=>`<button class="chip ${sel===l.id?"on":""}" data-k="${l.id}">${esc(l.name)}</button>`).join("")}${hasPlan?"":`<button class="chip dash" data-k="+plan">+ أخطط للمشاهدة</button>`}<button class="chip dash" data-k="+new">+ قائمة جديدة</button></div><div id="lbody"></div>`;
+    m.querySelectorAll(".chip").forEach(c=>c.onclick=async()=>{
+      const k=c.dataset.k;
+      if(k==="+new"||k==="+plan"){
+        const name=k==="+plan"?"أخطط للمشاهدة":prompt("اسم القائمة الجديدة");
+        if(!name)return;
+        try{const l=await newList(name);if(l)showFavs(l.id)}catch(e){toast("تعذر إنشاء القائمة")}
+      }else showFavs(k);
+    });
+    const body=$("#lbody");
+    if(sel==="fav"){
+      body.innerHTML=favs.length?`<div class="grid" id="lg"></div>`:`<div class="center">لا توجد عناصر في المفضلة بعد</div>`;
+      favs.forEach(i=>$("#lg").appendChild(card(i)));
+    }else{
+      const items=[...(cur.items||[])].sort((a,b)=>(b.addedAt||0)-(a.addedAt||0));
+      body.innerHTML=`<div class="lhead"><b>${esc(cur.name)} <span class="sm" style="color:#888;font-weight:400">(${items.length})</span></b><button class="ib" id="l-ren" title="إعادة تسمية"><i class="fas fa-pen"></i></button><button class="ib" id="l-del" title="حذف القائمة"><i class="fas fa-trash"></i></button></div>${items.length?`<div class="grid" id="lg"></div>`:`<div class="center">القائمة فارغة — أضف أفلاماً ومسلسلات من زر «إضافة لقائمة» في صفحة العمل</div>`}`;
+      items.forEach(x=>{
+        const c=card({id:x.tmdbId,type:x.type,title:x.title,poster:x.poster,rating:x.rating});
+        c.insertAdjacentHTML("beforeend",`<button class="rm"><i class="fas fa-xmark"></i></button>`);
+        c.querySelector(".rm").onclick=async e=>{e.stopPropagation();cur.items=cur.items.filter(y=>!(y.tmdbId===x.tmdbId&&y.type===x.type));try{await saveList(cur);showFavs(cur.id)}catch(_){toast("تعذر الحذف")}};
+        $("#lg").appendChild(c);
+      });
+      $("#l-ren").onclick=async()=>{const n=prompt("الاسم الجديد",cur.name);if(!n||!n.trim())return;cur.name=n.trim().slice(0,40);try{await saveList(cur);showFavs(cur.id)}catch(_){toast("تعذر الحفظ")}};
+      $("#l-del").onclick=async()=>{if(!confirm("حذف القائمة «"+cur.name+"»؟"))return;try{await deleteDoc(doc(db,"users",user.uid,"lists",cur.id));showFavs("fav")}catch(_){toast("تعذر الحذف")}};
+    }
+  }catch(e){m.innerHTML=`<div class="center">تعذر التحميل</div>`}
+}
+
+/* ───── reports & visit stats ───── */
+function addReport(rep,reason){
+  if(!rep)return;
+  addDoc(collection(db,"reports"),{type:rep.type,tmdbId:rep.tmdbId,title:String(rep.title||"").slice(0,150),season:rep.season||0,episode:rep.episode||0,reason:String(reason).slice(0,100),createdAt:Date.now(),status:"new"}).catch(()=>{});
+}
+const seenVisit=new Set();
+async function trackVisit(it){
+  const key=favId(it.type,it.id);if(seenVisit.has(key))return;seenVisit.add(key);
+  const ref=doc(db,"stats",key);
+  try{await updateDoc(ref,{views:increment(1),lastView:Date.now()})}
+  catch(e){if(e.code==="not-found")try{await setDoc(ref,{type:it.type,tmdbId:it.id,title:it.title,poster:it.poster||"",views:1,lastView:Date.now()})}catch(_){}}
+}
+
+/* ───── actor page ───── */
+const SKIP_G=[10767,10763,10764];
+const closePerson=()=>{$("#person").classList.remove("on");if(!$("#detail").classList.contains("on"))document.body.classList.remove("lock")};
+async function openPerson(id){
+  if(window.JP&&JP.isOpen())JP.close();
+  const pv=$("#person");pv.innerHTML=`<button class="d-back" id="pback"><i class="fas fa-arrow-right"></i></button>${spinner()}`;
+  pv.classList.add("on");document.body.classList.add("lock");pv.scrollTop=0;$("#pback").onclick=closePerson;
+  try{
+    const p=await tm(`/person/${id}`,{append_to_response:"combined_credits"});
+    const seen=new Set();
+    const all=(p.combined_credits?.cast||[]).filter(x=>x.poster_path&&(x.media_type==="movie"||x.media_type==="tv")&&!(x.genre_ids||[]).some(g=>SKIP_G.includes(g))&&!seen.has(x.media_type+x.id)&&seen.add(x.media_type+x.id))
+      .sort((a,b)=>(b.vote_count||0)-(a.vote_count||0)).map(x=>norm(x,x.media_type));
+    const sub=[p.known_for_department,p.birthday?"وُلد "+p.birthday:"",p.place_of_birth].filter(Boolean).map(esc).join("<br>");
+    pv.innerHTML=`<button class="d-back" id="pback"><i class="fas fa-arrow-right"></i></button>
+    <div class="p-head"><img src="${p.profile_path?esc(IMG+"w185"+p.profile_path):`https://ui-avatars.com/api/?name=${encodeURIComponent(p.name)}&background=1a1a2e&color=fff`}" alt=""><div><div class="p-name">${esc(p.name)}</div><div class="p-sub">${sub}</div></div></div>
+    ${p.biography?`<div class="p-bio" id="pbio">${esc(p.biography)}</div>`:""}
+    <div class="chips" id="pch"><button class="chip on" data-f="all">الكل (${all.length})</button><button class="chip" data-f="movie">أفلام (${all.filter(x=>x.type==="movie").length})</button><button class="chip" data-f="tv">مسلسلات (${all.filter(x=>x.type==="tv").length})</button></div>
+    <div class="grid" id="pgrid" style="max-width:900px;margin:auto"></div>`;
+    $("#pback").onclick=closePerson;
+    const bio=$("#pbio");if(bio)bio.onclick=()=>bio.classList.toggle("open");
+    const draw=f=>{const g=$("#pgrid");g.innerHTML="";const a=all.filter(x=>f==="all"||x.type===f);if(!a.length)g.innerHTML=`<div class="center" style="grid-column:1/-1">لا توجد أعمال</div>`;a.slice(0,80).forEach(x=>g.appendChild(card(x)))};
+    draw("all");
+    pv.querySelectorAll("#pch .chip").forEach(c=>c.onclick=()=>{pv.querySelectorAll("#pch .chip").forEach(x=>x.classList.toggle("on",x===c));draw(c.dataset.f)});
+  }catch(e){pv.innerHTML=`<button class="d-back" id="pback"><i class="fas fa-arrow-right"></i></button><div class="center" style="padding-top:90px">تعذر تحميل الصفحة</div>`;$("#pback").onclick=closePerson}
 }
 
 /* ───── detail ───── */
@@ -491,6 +664,7 @@ const setHash=h=>{try{history.replaceState(history.state,"",h||location.pathname
 const embedLink=(t,id,se,ep)=>location.href.split("#")[0]+"#/embed/"+t+"/"+id+(se?`/${se}/${ep}`:"");
 const shareLink=(t,id,se,ep)=>location.href.split("#")[0]+"#/"+t+"/"+id+(se?`/${se}/${ep}`:"");
 async function openDetail(type,id,epSel){
+  $("#person").classList.remove("on");
   if(window.JP&&JP.isOpen())JP.close();
   setHash(`#/${type}/${id}`);
   const ov=$("#detail");ov.innerHTML=`<button class="d-back" id="dback"><i class="fas fa-arrow-right"></i></button>${spinner()}`;
@@ -505,7 +679,7 @@ async function openDetail(type,id,epSel){
     const link=own&&own.exists()?own.data():null;
     const quals=link?normQuals(link):[];
     const trailer=(d.videos?.results||[]).find(v=>v.site==="YouTube"&&v.type==="Trailer");
-    const cast=(d.credits?.cast||[]).slice(0,12).map(c=>`<div class="cm"><img loading="lazy" src="${c.profile_path?IMG+"w185"+c.profile_path:`https://ui-avatars.com/api/?name=${encodeURIComponent(c.name)}&background=1a1a2e&color=fff`}" alt=""><div>${esc(c.name)}</div></div>`).join("");
+    const cast=(d.credits?.cast||[]).slice(0,12).map(c=>`<div class="cm" data-p="${c.id}"><img loading="lazy" src="${c.profile_path?IMG+"w185"+c.profile_path:`https://ui-avatars.com/api/?name=${encodeURIComponent(c.name)}&background=1a1a2e&color=fff`}" alt=""><div>${esc(c.name)}</div></div>`).join("");
     const sim=list(d.similar||{},type).slice(0,12);
     ov.innerHTML=`<button class="d-back" id="dback"><i class="fas fa-arrow-right"></i></button>
     <div class="d-hero"><img src="${esc(d.backdrop_path?IMG+"w1280"+d.backdrop_path:it.poster)}" alt=""></div>
@@ -521,6 +695,8 @@ async function openDetail(type,id,epSel){
       <div id="simBox"></div>
     </div>`;
     $("#dback").onclick=closeDetail;
+    ov.querySelectorAll(".cm").forEach(el=>el.onclick=()=>openPerson(+el.dataset.p));
+    if(link)trackVisit(it);
     const acts=$("#acts");
     if(type==="movie"){
       if(quals.length){
@@ -535,6 +711,7 @@ async function openDetail(type,id,epSel){
     }
     if(trailer){const t=document.createElement("button");t.className="btn sec";t.innerHTML=`<i class="fab fa-youtube"></i> الإعلان`;t.onclick=()=>window.open("https://www.youtube.com/watch?v="+trailer.key,"_blank");acts.appendChild(t)}
     const fb=document.createElement("button");fb.className="btn sec fav-b";fb.id="favBtn";fb.dataset.fid=favId(type,id);syncFav(fb);fb.onclick=()=>toggleFav(fb,it);acts.appendChild(fb);
+    const lb=document.createElement("button");lb.className="btn sec";lb.innerHTML=`<i class="fas fa-bookmark"></i> إضافة لقائمة`;lb.onclick=()=>openListModal(it);acts.appendChild(lb);
     if(type==="tv") renderEpisodes(d,it,epSel);
     if(sim.length){$("#simBox").innerHTML=`<div class="h2"><i class="fas fa-clone"></i>مشابه</div><div class="rowx" style="padding:0"></div>`;sim.forEach(s=>$("#simBox .rowx").appendChild(card(s)))}
   }catch(e){ov.innerHTML=`<button class="d-back" id="dback"><i class="fas fa-arrow-right"></i></button><div class="center" style="padding-top:90px">تعذر تحميل التفاصيل</div>`;$("#dback").onclick=closeDetail}
@@ -597,6 +774,7 @@ function favFor(it){
 }
 function play(o){
   if(!window.JP){toast("المشغّل غير محمّل — تأكد من رفع player.js");return}
+  if(o.rep)o.onReport=r=>addReport(o.rep,r);
   JP.open(o);
 }
 getDoc(doc(db,"settings","vast")).then(s=>{if(s.exists()&&window.JP)JP.configure({vast:s.data()})}).catch(()=>{});
@@ -613,7 +791,8 @@ async function runEmbed(type,id,se,ep){
     const name=(d.title||d.name||"")+(type==="tv"?` - الموسم ${se} الحلقة ${ep}`:"");
     const bd=d.backdrop_path?IMG+"w1280"+d.backdrop_path:(d.poster_path?IMG+"w500"+d.poster_path:"");
     if(!quals.length){document.body.insertAdjacentHTML("beforeend",`<div class="center" style="position:fixed;inset:0;z-index:500;background:#000;display:flex;align-items:center;justify-content:center">هذا المحتوى غير متوفر بعد</div>`);return}
-    JP.open({embed:true,title:name,quals,subtitle:link.subtitle,poster:bd,backdrop:bd,kind:type==="tv"?"episode":"movie"});
+    trackVisit({type,id,title:d.original_title||d.original_name||d.title||d.name,poster:d.poster_path?IMG+"w342"+d.poster_path:""});
+    play({embed:true,title:name,quals,subtitle:link.subtitle,poster:bd,backdrop:bd,kind:type==="tv"?"episode":"movie",rep:{type,tmdbId:id,title:name,season:se||0,episode:ep||0}});
   }catch(e){document.body.insertAdjacentHTML("beforeend",`<div class="center" style="position:fixed;inset:0;z-index:500;background:#000;display:flex;align-items:center;justify-content:center">تعذر تحميل الفيديو</div>`)}
 }
 {const em=location.hash.match(/^#\/embed\/(movie|tv)\/(\d+)(?:\/(\d+)\/(\d+))?/);
