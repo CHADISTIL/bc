@@ -5,7 +5,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#1a1a2e">
-<title>jawrab</title>
+<title>SP</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/favicon.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="SP">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
 :root{--primary:#ff4757;--secondary:#ff0055;--dark:#1a1a2e;--card:rgba(26,26,46,.7);--gold:#f5c518;
@@ -19,7 +25,8 @@ img{display:block}
 /* topbar */
 .top{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:10px;padding:10px 14px;
 background:rgba(22,33,62,.85);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,.06)}
-.logo{font-weight:800;font-size:1.25em;color:var(--primary);letter-spacing:.5px}
+.logo{display:flex;align-items:center;gap:7px;font-weight:900;font-size:1.3em;letter-spacing:1px;background:linear-gradient(90deg,#3d9bff,#ff3b5c);-webkit-background-clip:text;background-clip:text;color:transparent}
+.logo img{width:30px;height:30px;border-radius:50%;box-shadow:0 0 10px rgba(61,155,255,.5)}
 .search{flex:1;position:relative}
 .search input{width:100%;padding:10px 40px 10px 14px;border:none;border-radius:22px;background:rgba(255,255,255,.1);color:#fff;font-size:.9em;outline:none}
 .search input:focus{background:rgba(255,255,255,.16);box-shadow:0 0 0 2px var(--primary)}
@@ -84,7 +91,10 @@ background:rgba(22,33,62,.85);backdrop-filter:blur(12px);border-bottom:1px solid
 .d-hero img{width:100%;height:100%;object-fit:cover}
 .d-hero::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,#12142a,transparent 70%)}
 .d-body{padding:0 14px 40px;margin-top:-60px;position:relative;z-index:2;max-width:900px;margin-inline:auto}
-.jp-slot #favBtn{display:none}
+.jp-slot #favBtn,.jp-slot #listBtn{display:none}
+.card .plus{position:absolute;top:6px;left:6px;z-index:3;width:26px;height:26px;border-radius:50%;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,.3);font-size:.7em;display:flex;align-items:center;justify-content:center;color:#fff}
+.card{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+.acts .btn.on{background:rgba(255,71,87,.18);border-color:var(--primary);color:#ff8794}
 html.embed .top,html.embed #nav,html.embed #main,html.embed .page-end,html.embed #detail{display:none!important}
 html.embed body{background:#000}
 html.boot body::after{content:"";position:fixed;inset:0;background:#000;z-index:299}
@@ -164,7 +174,15 @@ html.boot body::after{content:"";position:fixed;inset:0;background:#000;z-index:
 #toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 
 /* bottom nav */
-.nav{position:fixed;bottom:0;left:0;right:0;z-index:40;display:flex;justify-content:space-around;padding:8px 0 calc(8px + env(safe-area-inset-bottom));background:rgba(22,33,62,.92);backdrop-filter:blur(12px);border-top:1px solid rgba(255,255,255,.06)}
+.nav{position:fixed;bottom:0;left:0;right:0;z-index:40;display:flex;justify-content:space-around;align-items:center;height:calc(62px + env(safe-area-inset-bottom));padding:0 0 env(safe-area-inset-bottom);background:rgba(18,26,52,.94);backdrop-filter:blur(12px);border-top:1px solid rgba(255,255,255,.07);
+-webkit-mask:radial-gradient(circle 43px at 50% 0,transparent 97%,#000 100%);mask:radial-gradient(circle 43px at 50% 0,transparent 97%,#000 100%)}
+.nav .sp-gap{flex:0 0 84px}
+.sp-fab{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:41;width:66px;height:66px;border-radius:50%;padding:3px;background:conic-gradient(from 200deg,#2d8cff,#ff2d4d,#e6ecf5,#2d8cff);box-shadow:0 0 22px rgba(45,140,255,.55),0 0 30px rgba(255,45,77,.3),0 6px 16px rgba(0,0,0,.6);transition:transform .2s}
+.sp-fab:active{transform:translateX(-50%) scale(.93)}
+.sp-fab img{width:100%;height:100%;border-radius:50%;display:block;background:#000}
+.sp-fab .dot{position:absolute;top:2px;right:2px;width:13px;height:13px;border-radius:50%;background:#ff3b5c;border:2px solid #12142a;display:none}
+.sp-fab.has .dot{display:block}
+html.embed #spFab{display:none}
 .nav button{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:.7em;color:#aaa;padding:4px 10px}
 .nav button i{font-size:1.4em}
 .nav button.on{color:var(--primary)}
@@ -173,7 +191,7 @@ html.boot body::after{content:"";position:fixed;inset:0;background:#000;z-index:
 <body>
 
 <div class="top">
-  <div class="logo">jawrab</div>
+  <div class="logo"><img src="icons/favicon.png" alt="">SP</div>
   <div class="search"><input id="q" placeholder="ابحث عن فيلم أو مسلسل أو أنمي..." autocomplete="off"><i class="fas fa-search"></i></div>
   <button class="acct" id="acct" aria-label="الحساب"><i class="fas fa-user"></i></button>
 </div>
@@ -192,9 +210,11 @@ html.boot body::after{content:"";position:fixed;inset:0;background:#000;z-index:
 <nav class="nav" id="nav">
   <button data-n="home" class="on"><i class="fas fa-house"></i>الرئيسية</button>
   <button data-n="search"><i class="fas fa-magnifying-glass"></i>بحث</button>
+  <span class="sp-gap"></span>
   <button data-n="hist"><i class="fas fa-clock-rotate-left"></i>السجل</button>
   <button data-n="fav"><i class="fas fa-bookmark"></i>مكتبتي</button>
 </nav>
+<button class="sp-fab" id="spFab" aria-label="SP — الإشعارات"><img src="icons/sp-nav.png" alt="SP"><i class="dot"></i></button>
 
 <div class="ov-page" id="detail"></div>
 <div class="ov-page" id="person" style="z-index:110"></div>
@@ -214,6 +234,7 @@ html.boot body::after{content:"";position:fixed;inset:0;background:#000;z-index:
 </div>
 <div id="toast"></div>
 
+<script src="config.js"></script>
 <script src="player.js"></script>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -263,11 +284,21 @@ const baseType=k=>k==="anime"?"tv":k;
 
 /* ───── helpers ───── */
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("on");clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove("on"),2600)}
-function card(it){
+function card(it,opt){
   const d=document.createElement("div");d.className="card";
-  d.innerHTML=`<img loading="lazy" src="${esc(it.poster)}" alt=""><div class="bd ${it.type==="tv"?"tv":""}">${it.type==="tv"?"مسلسل":"فيلم"}</div>
+  const plus=!(opt&&opt.plus===false);
+  d.innerHTML=`<img loading="lazy" src="${esc(it.poster)}" alt="" draggable="false"><div class="bd ${it.type==="tv"?"tv":""}">${it.type==="tv"?"مسلسل":"فيلم"}</div>
+  ${plus?`<button class="plus" aria-label="إضافة إلى قائمة"><i class="fas fa-plus"></i></button>`:""}
   <div class="ov"><div class="ct">${esc(it.title)}</div>${it.rating?`<div class="cr"><i class="fas fa-star"></i> ${it.rating}</div>`:""}</div>`;
-  d.onclick=()=>openDetail(it.type,it.id);return d;
+  let timer=null,lp=false,sx=0,sy=0;
+  const clear=()=>{clearTimeout(timer);timer=null};
+  d.addEventListener("pointerdown",e=>{if(e.target.closest(".plus,.rm"))return;lp=false;sx=e.clientX;sy=e.clientY;clear();timer=setTimeout(()=>{lp=true;try{navigator.vibrate&&navigator.vibrate(18)}catch(_){}openListModal(it)},520)});
+  d.addEventListener("pointermove",e=>{if(timer&&(Math.abs(e.clientX-sx)>10||Math.abs(e.clientY-sy)>10))clear()});
+  ["pointerup","pointerleave","pointercancel"].forEach(ev=>d.addEventListener(ev,clear));
+  d.addEventListener("contextmenu",e=>e.preventDefault());
+  const pb=d.querySelector(".plus");if(pb)pb.onclick=e=>{e.stopPropagation();openListModal(it)};
+  d.onclick=()=>{if(lp){lp=false;return}openDetail(it.type,it.id)};
+  return d;
 }
 function row(title,icon,items,moreKey){
   const s=document.createElement("section");s.className="sec";
@@ -609,7 +640,7 @@ async function showFavs(sel){
       const items=[...(cur.items||[])].sort((a,b)=>(b.addedAt||0)-(a.addedAt||0));
       body.innerHTML=`<div class="lhead"><b>${esc(cur.name)} <span class="sm" style="color:#888;font-weight:400">(${items.length})</span></b><button class="ib" id="l-ren" title="إعادة تسمية"><i class="fas fa-pen"></i></button><button class="ib" id="l-del" title="حذف القائمة"><i class="fas fa-trash"></i></button></div>${items.length?`<div class="grid" id="lg"></div>`:`<div class="center">القائمة فارغة — أضف أفلاماً ومسلسلات من زر «إضافة لقائمة» في صفحة العمل</div>`}`;
       items.forEach(x=>{
-        const c=card({id:x.tmdbId,type:x.type,title:x.title,poster:x.poster,rating:x.rating});
+        const c=card({id:x.tmdbId,type:x.type,title:x.title,poster:x.poster,rating:x.rating},{plus:false});
         c.insertAdjacentHTML("beforeend",`<button class="rm"><i class="fas fa-xmark"></i></button>`);
         c.querySelector(".rm").onclick=async e=>{e.stopPropagation();cur.items=cur.items.filter(y=>!(y.tmdbId===x.tmdbId&&y.type===x.type));try{await saveList(cur);showFavs(cur.id)}catch(_){toast("تعذر الحذف")}};
         $("#lg").appendChild(c);
@@ -657,6 +688,88 @@ async function openPerson(id){
     draw("all");
     pv.querySelectorAll("#pch .chip").forEach(c=>c.onclick=()=>{pv.querySelectorAll("#pch .chip").forEach(x=>x.classList.toggle("on",x===c));draw(c.dataset.f)});
   }catch(e){pv.innerHTML=`<button class="d-back" id="pback"><i class="fas fa-arrow-right"></i></button><div class="center" style="padding-top:90px">تعذر تحميل الصفحة</div>`;$("#pback").onclick=closePerson}
+}
+
+/* ───── PWA + الإشعارات ───── */
+const CFG=window.SP_CONFIG||{};
+const PUSH_OK="serviceWorker" in navigator&&"PushManager" in window&&"Notification" in window;
+if("serviceWorker" in navigator&&/^https?:$/.test(location.protocol)){
+  navigator.serviceWorker.register("sw.js").catch(()=>{});
+  navigator.serviceWorker.addEventListener("message",e=>{if(e.data&&e.data.go)goHash(e.data.go)});
+}
+function goHash(h){const m=String(h).match(/^#\/(movie|tv)\/(\d+)(?:\/(\d+)\/(\d+))?/);if(m)openDetail(m[1],+m[2],m[3]?{s:+m[3],e:+m[4]}:null)}
+const LSget=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k));return v??d}catch(e){return d}};
+const LSset=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+const getFollows=()=>LSget("sp_follows",[]);
+const getTopics=()=>({trending:true,upcoming:true,...LSget("sp_topics",{})});
+const b64u2buf=b=>{const p="=".repeat((4-b.length%4)%4),r=atob((b+p).replace(/-/g,"+").replace(/_/g,"/"));return Uint8Array.from(r,c=>c.charCodeAt(0))};
+async function curSub(){try{if(!PUSH_OK)return null;const r=await navigator.serviceWorker.ready;return await r.pushManager.getSubscription()}catch(e){return null}}
+const post=(p,b)=>fetch(CFG.push+p,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(b)});
+async function syncPush(){
+  const sub=await curSub();if(!sub||!CFG.push)return;
+  try{await post("/sub",{sub:sub.toJSON(),topics:getTopics(),follows:getFollows().map(f=>f.key)})}catch(e){}
+}
+async function enablePush(){
+  if(!PUSH_OK){toast("المتصفح لا يدعم الإشعارات — على iPhone ثبّت الموقع على الشاشة الرئيسية أولاً");return false}
+  if(!CFG.push){toast("خدمة الإشعارات لم تُفعَّل بعد (config.js)");return false}
+  try{
+    const perm=await Notification.requestPermission();
+    if(perm!=="granted"){toast("لم يتم السماح بالإشعارات");return false}
+    const reg=await navigator.serviceWorker.ready;
+    let sub=await reg.pushManager.getSubscription();
+    if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64u2buf(CFG.vapid)});
+    await syncPush();return true;
+  }catch(e){toast("تعذر تفعيل الإشعارات");return false}
+}
+async function disablePush(){
+  const sub=await curSub();
+  if(sub){try{await post("/unsub",{endpoint:sub.endpoint})}catch(e){}await sub.unsubscribe().catch(()=>{})}
+}
+function syncFollowBtn(b,key){const on=getFollows().some(f=>f.key===key);b.classList.toggle("on",on);b.innerHTML=`<i class="fa-${on?"solid":"regular"} fa-bell"></i> ${on?"تتابعه":"متابعة"}`}
+async function toggleFollow(it,btn){
+  const fs=getFollows(),key=favId(it.type,it.id),i=fs.findIndex(f=>f.key===key);
+  if(i<0){
+    if(!(await curSub())&&!(await enablePush()))return;
+    fs.push({key,type:it.type,id:it.id,title:it.title,poster:it.poster});LSset("sp_follows",fs);toast("ستصلك إشعارات "+it.title);
+  }else{fs.splice(i,1);LSset("sp_follows",fs);toast("أُلغيت المتابعة")}
+  syncPush();if(btn)syncFollowBtn(btn,key);
+}
+async function fetchRecent(){if(!CFG.push)return[];try{return await (await fetch(CFG.push+"/recent")).json()}catch(e){return[]}}
+fetchRecent().then(r=>{if(r.length&&r[0].ts>LSget("sp_seen",0))$("#spFab").classList.add("has")});
+$("#spFab").onclick=openNotif;
+async function openNotif(){
+  const m=document.createElement("div");m.className="modal on";m.style.zIndex=500;document.body.appendChild(m);
+  m.addEventListener("click",e=>{if(e.target===m)m.remove()});
+  m.innerHTML=`<div class="mbox" style="max-width:420px"><div class="center" style="padding:20px">${spinner()}</div></div>`;
+  const recent=await fetchRecent();
+  if(recent.length)LSset("sp_seen",recent[0].ts);$("#spFab").classList.remove("has");
+  const draw=async()=>{
+    const sub=await curSub(),perm=PUSH_OK?Notification.permission:"unsupported",on=!!sub&&perm==="granted",tp=getTopics(),fs=getFollows();
+    let status;
+    if(!PUSH_OK)status=`<div class="sm" style="color:#bbb;line-height:1.8;margin-bottom:10px">هذا المتصفح لا يدعم الإشعارات. على iPhone: افتح الموقع في Safari ← مشاركة ← «إضافة إلى الشاشة الرئيسية» ثم افتحه من الأيقونة.</div>`;
+    else if(!CFG.push)status=`<div class="sm" style="color:#bbb;line-height:1.8;margin-bottom:10px">خدمة الإشعارات لم تُفعَّل بعد من جهة الموقع.</div>`;
+    else if(perm==="denied")status=`<div class="sm" style="color:#ff8a96;line-height:1.8;margin-bottom:10px">الإشعارات محظورة لهذا الموقع — فعّلها من إعدادات المتصفح ثم أعد المحاولة.</div>`;
+    else status=`<button class="btn ${on?"sec":"pri"}" id="n-tg" style="width:100%;justify-content:center;margin-bottom:12px"><i class="fas fa-bell${on?"-slash":""}"></i> ${on?"إيقاف الإشعارات على هذا الجهاز":"تفعيل الإشعارات"}</button>`;
+    m.innerHTML=`<div class="mbox" style="max-width:420px;max-height:86vh;overflow:auto"><h3><i class="fas fa-bell"></i> الإشعارات</h3>${status}
+    ${on?`<button class="lrow ${tp.trending?"on":""}" data-t="trending"><i class="fas fa-${tp.trending?"square-check":"square"}"></i>🔥 عمل جديد في قائمة الأكثر مشاهدة</button>
+    <button class="lrow ${tp.upcoming?"on":""}" data-t="upcoming"><i class="fas fa-${tp.upcoming?"square-check":"square"}"></i>🎬 أفلام قادمة تُعرض على الشاشة</button>`:""}
+    <div style="font-weight:700;font-size:.85em;margin:14px 0 8px">ما تتابعه (${fs.length})</div>
+    ${fs.length?fs.map((f,i)=>`<div class="lrow" style="cursor:pointer" data-o="${i}"><i class="fas fa-bell" style="color:var(--primary)"></i>${esc(f.title)}<small data-u="${i}" style="padding:4px 8px">إلغاء</small></div>`).join(""):`<div class="sm" style="color:#888;margin-bottom:6px">اضغط «متابعة» في صفحة أي مسلسل يُعرض حالياً أو عمل قادم.</div>`}
+    <div style="font-weight:700;font-size:.85em;margin:14px 0 8px">آخر الإشعارات</div>
+    ${recent.length?recent.slice(0,12).map((r,i)=>`<div class="lrow" style="cursor:pointer;align-items:flex-start;flex-direction:column;gap:2px" data-r="${i}"><b style="font-size:.88em">${esc(r.title)}</b><span class="sm" style="color:#aaa">${esc(r.body)}</span></div>`).join(""):`<div class="sm" style="color:#888">لا توجد إشعارات بعد</div>`}
+    <button class="btn sec" id="n-x" style="width:100%;justify-content:center;margin-top:12px">إغلاق</button></div>`;
+    m.querySelector("#n-x").onclick=()=>m.remove();
+    const tg=m.querySelector("#n-tg");
+    if(tg)tg.onclick=async()=>{if(on)await disablePush();else await enablePush();draw()};
+    m.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{const t=getTopics();t[b.dataset.t]=!t[b.dataset.t];LSset("sp_topics",t);syncPush();draw()});
+    m.querySelectorAll("[data-o]").forEach(b=>b.onclick=e=>{
+      const f=fs[+b.dataset.o];
+      if(e.target.closest("[data-u]")){fs.splice(+b.dataset.o,1);LSset("sp_follows",fs);syncPush();draw();return}
+      m.remove();openDetail(f.type,f.id);
+    });
+    m.querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{const r=recent[+b.dataset.r];m.remove();goHash(r.url)});
+  };
+  draw();
 }
 
 /* ───── detail ───── */
@@ -711,7 +824,10 @@ async function openDetail(type,id,epSel){
     }
     if(trailer){const t=document.createElement("button");t.className="btn sec";t.innerHTML=`<i class="fab fa-youtube"></i> الإعلان`;t.onclick=()=>window.open("https://www.youtube.com/watch?v="+trailer.key,"_blank");acts.appendChild(t)}
     const fb=document.createElement("button");fb.className="btn sec fav-b";fb.id="favBtn";fb.dataset.fid=favId(type,id);syncFav(fb);fb.onclick=()=>toggleFav(fb,it);acts.appendChild(fb);
-    const lb=document.createElement("button");lb.className="btn sec";lb.innerHTML=`<i class="fas fa-bookmark"></i> إضافة لقائمة`;lb.onclick=()=>openListModal(it);acts.appendChild(lb);
+    const lb=document.createElement("button");lb.className="btn sec";lb.id="listBtn";lb.innerHTML=`<i class="fas fa-bookmark"></i> إضافة لقائمة`;lb.onclick=()=>openListModal(it);acts.appendChild(lb);
+    {const rel=d.release_date||d.first_air_date||"";
+     const fol=(type==="tv"&&["Returning Series","In Production","Planned","Pilot"].includes(d.status))||(rel&&rel>today())||["Planned","In Production","Post Production","Rumored"].includes(d.status);
+     if(fol){const fb2=document.createElement("button");fb2.className="btn sec";fb2.id="folBtn";syncFollowBtn(fb2,favId(type,id));fb2.onclick=()=>toggleFollow(it,fb2);acts.appendChild(fb2)}}
     if(type==="tv") renderEpisodes(d,it,epSel);
     if(sim.length){$("#simBox").innerHTML=`<div class="h2"><i class="fas fa-clone"></i>مشابه</div><div class="rowx" style="padding:0"></div>`;sim.forEach(s=>$("#simBox .rowx").appendChild(card(s)))}
   }catch(e){ov.innerHTML=`<button class="d-back" id="dback"><i class="fas fa-arrow-right"></i></button><div class="center" style="padding-top:90px">تعذر تحميل التفاصيل</div>`;$("#dback").onclick=closeDetail}
