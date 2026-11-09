@@ -36,6 +36,7 @@ self.addEventListener('notificationclick',e=>{
   e.notification.close();
   const hash=(e.notification.data&&e.notification.data.url)||'';
   e.waitUntil((async()=>{
+    if(/^https?:/i.test(hash)){await self.clients.openWindow(hash);return}
     const all=await self.clients.matchAll({type:'window',includeUncontrolled:true});
     for(const c of all){
       if(c.url.startsWith(self.registration.scope)){

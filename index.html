@@ -180,8 +180,11 @@ html.boot body::after{content:"";position:fixed;inset:0;background:#000;z-index:
 .sp-fab{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:41;width:66px;height:66px;border-radius:50%;padding:3px;background:conic-gradient(from 200deg,#2d8cff,#ff2d4d,#e6ecf5,#2d8cff);box-shadow:0 0 22px rgba(45,140,255,.55),0 0 30px rgba(255,45,77,.3),0 6px 16px rgba(0,0,0,.6);transition:transform .2s}
 .sp-fab:active{transform:translateX(-50%) scale(.93)}
 .sp-fab img{width:100%;height:100%;border-radius:50%;display:block;background:#000}
-.sp-fab .dot{position:absolute;top:2px;right:2px;width:13px;height:13px;border-radius:50%;background:#ff3b5c;border:2px solid #12142a;display:none}
+.sp-fab .dot{position:absolute;top:-6px;right:-6px;min-width:24px;height:24px;padding:0 6px;border-radius:12px;background:#ff2d4d;color:#fff;font:800 13px/20px system-ui,sans-serif;font-style:normal;text-align:center;border:2px solid #12142a;display:none;animation:spPulse 1.5s infinite}
+@keyframes spPulse{0%{box-shadow:0 0 0 0 rgba(255,45,77,.75)}70%{box-shadow:0 0 0 11px rgba(255,45,77,0)}100%{box-shadow:0 0 0 0 rgba(255,45,77,0)}}
 .sp-fab.has .dot{display:block}
+.sp-fab.has{animation:spWob 2.4s ease-in-out infinite}
+@keyframes spWob{0%,86%,100%{transform:translateX(-50%) rotate(0)}90%{transform:translateX(-50%) rotate(-7deg)}94%{transform:translateX(-50%) rotate(7deg)}98%{transform:translateX(-50%) rotate(-4deg)}}
 html.embed #spFab{display:none}
 .nav button{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:.7em;color:#aaa;padding:4px 10px}
 .nav button i{font-size:1.4em}
@@ -214,7 +217,7 @@ html.embed #spFab{display:none}
   <button data-n="hist"><i class="fas fa-clock-rotate-left"></i>السجل</button>
   <button data-n="fav"><i class="fas fa-bookmark"></i>مكتبتي</button>
 </nav>
-<button class="sp-fab" id="spFab" aria-label="SP — الإشعارات"><img src="icons/sp-nav.png" alt="SP"><i class="dot"></i></button>
+<button class="sp-fab" id="spFab" aria-label="SP — الإشعارات"><img src="icons/sp-nav.png" alt="SP"><i class="dot">1</i></button>
 
 <div class="ov-page" id="detail"></div>
 <div class="ov-page" id="person" style="z-index:110"></div>
@@ -735,14 +738,24 @@ async function toggleFollow(it,btn){
   syncPush();if(btn)syncFollowBtn(btn,key);
 }
 async function fetchRecent(){if(!CFG.push)return[];try{return await (await fetch(CFG.push+"/recent")).json()}catch(e){return[]}}
-fetchRecent().then(r=>{if(r.length&&r[0].ts>LSget("sp_seen",0))$("#spFab").classList.add("has")});
+async function checkUnread(){
+  const r=await fetchRecent(),seen=LSget("sp_seen",0),n=r.filter(x=>x.ts>seen).length,f=$("#spFab");
+  f.classList.toggle("has",n>0);f.querySelector(".dot").textContent=n>9?"9+":n;
+  try{n>0?navigator.setAppBadge&&navigator.setAppBadge(n):navigator.clearAppBadge&&navigator.clearAppBadge()}catch(e){}
+}
+checkUnread();
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)checkUnread()});
+setInterval(()=>{if(!document.hidden)checkUnread()},120000);
+let installEv=null;
+window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();installEv=e});
+window.addEventListener("appinstalled",()=>{installEv=null});
 $("#spFab").onclick=openNotif;
 async function openNotif(){
   const m=document.createElement("div");m.className="modal on";m.style.zIndex=500;document.body.appendChild(m);
   m.addEventListener("click",e=>{if(e.target===m)m.remove()});
   m.innerHTML=`<div class="mbox" style="max-width:420px"><div class="center" style="padding:20px">${spinner()}</div></div>`;
   const recent=await fetchRecent();
-  if(recent.length)LSset("sp_seen",recent[0].ts);$("#spFab").classList.remove("has");
+  if(recent.length)LSset("sp_seen",recent[0].ts);$("#spFab").classList.remove("has");try{navigator.clearAppBadge&&navigator.clearAppBadge()}catch(e){}
   const draw=async()=>{
     const sub=await curSub(),perm=PUSH_OK?Notification.permission:"unsupported",on=!!sub&&perm==="granted",tp=getTopics(),fs=getFollows();
     let status;
@@ -750,7 +763,10 @@ async function openNotif(){
     else if(!CFG.push)status=`<div class="sm" style="color:#bbb;line-height:1.8;margin-bottom:10px">خدمة الإشعارات لم تُفعَّل بعد من جهة الموقع.</div>`;
     else if(perm==="denied")status=`<div class="sm" style="color:#ff8a96;line-height:1.8;margin-bottom:10px">الإشعارات محظورة لهذا الموقع — فعّلها من إعدادات المتصفح ثم أعد المحاولة.</div>`;
     else status=`<button class="btn ${on?"sec":"pri"}" id="n-tg" style="width:100%;justify-content:center;margin-bottom:12px"><i class="fas fa-bell${on?"-slash":""}"></i> ${on?"إيقاف الإشعارات على هذا الجهاز":"تفعيل الإشعارات"}</button>`;
-    m.innerHTML=`<div class="mbox" style="max-width:420px;max-height:86vh;overflow:auto"><h3><i class="fas fa-bell"></i> الإشعارات</h3>${status}
+    const standalone=matchMedia("(display-mode: standalone)").matches||navigator.standalone;
+    const ios=/iphone|ipad|ipod/i.test(navigator.userAgent);
+    const inst=standalone?"":installEv?`<button class="btn sec" id="n-in" style="width:100%;justify-content:center;margin-bottom:12px"><i class="fas fa-download"></i> تثبيت SP كتطبيق على هاتفك</button>`:ios?`<div class="sm" style="color:#bbb;line-height:1.8;margin-bottom:12px">لتثبيت التطبيق: زر المشاركة في Safari ← «إضافة إلى الشاشة الرئيسية».</div>`:"";
+    m.innerHTML=`<div class="mbox" style="max-width:420px;max-height:86vh;overflow:auto"><h3><i class="fas fa-bell"></i> الإشعارات</h3>${inst}${status}
     ${on?`<button class="lrow ${tp.trending?"on":""}" data-t="trending"><i class="fas fa-${tp.trending?"square-check":"square"}"></i>🔥 عمل جديد في قائمة الأكثر مشاهدة</button>
     <button class="lrow ${tp.upcoming?"on":""}" data-t="upcoming"><i class="fas fa-${tp.upcoming?"square-check":"square"}"></i>🎬 أفلام قادمة تُعرض على الشاشة</button>`:""}
     <div style="font-weight:700;font-size:.85em;margin:14px 0 8px">ما تتابعه (${fs.length})</div>
@@ -759,6 +775,7 @@ async function openNotif(){
     ${recent.length?recent.slice(0,12).map((r,i)=>`<div class="lrow" style="cursor:pointer;align-items:flex-start;flex-direction:column;gap:2px" data-r="${i}"><b style="font-size:.88em">${esc(r.title)}</b><span class="sm" style="color:#aaa">${esc(r.body)}</span></div>`).join(""):`<div class="sm" style="color:#888">لا توجد إشعارات بعد</div>`}
     <button class="btn sec" id="n-x" style="width:100%;justify-content:center;margin-top:12px">إغلاق</button></div>`;
     m.querySelector("#n-x").onclick=()=>m.remove();
+    const ib=m.querySelector("#n-in");if(ib)ib.onclick=async()=>{installEv.prompt();try{await installEv.userChoice}catch(e){}installEv=null;draw()};
     const tg=m.querySelector("#n-tg");
     if(tg)tg.onclick=async()=>{if(on)await disablePush();else await enablePush();draw()};
     m.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{const t=getTopics();t[b.dataset.t]=!t[b.dataset.t];LSset("sp_topics",t);syncPush();draw()});
@@ -767,7 +784,7 @@ async function openNotif(){
       if(e.target.closest("[data-u]")){fs.splice(+b.dataset.o,1);LSset("sp_follows",fs);syncPush();draw();return}
       m.remove();openDetail(f.type,f.id);
     });
-    m.querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{const r=recent[+b.dataset.r];m.remove();goHash(r.url)});
+    m.querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{const r=recent[+b.dataset.r];m.remove();if(/^https?:/i.test(r.url||""))window.open(r.url,"_blank");else goHash(r.url)});
   };
   draw();
 }

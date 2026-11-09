@@ -70,6 +70,7 @@ label{display:block;font-size:.78em;color:#aaa;margin-bottom:5px}
     <button class="tab on" data-p="content">المحتوى</button>
     <button class="tab" data-p="reports">البلاغات <span class="badge" id="repBadge" style="display:none"></span></button>
     <button class="tab" data-p="home">الصفحة الرئيسية</button>
+    <button class="tab" data-p="push">الإشعارات</button>
     <button class="tab" data-p="ads">الإعلانات</button>
   </div>
 
@@ -143,6 +144,29 @@ label{display:block;font-size:.78em;color:#aaa;margin-bottom:5px}
     </div>
   </div>
 
+  <!-- ═════ الإشعارات ═════ -->
+  <div class="pane" id="p-push" style="display:none">
+    <div class="card">
+      <b>إرسال إشعار يدوي</b>
+      <p class="sm" style="margin:6px 0 10px">يصل لكل من فعّل الإشعارات في الموقع، بغض النظر عن اشتراكه في المواضيع أو متابعته لعمل معيّن.</p>
+      <label>اختر فيلماً أو مسلسلاً لتعبئة الحقول تلقائياً (اختياري)</label>
+      <div class="row"><input class="inp" id="nQ" placeholder="ابحث في TMDB…" style="flex:1"><button id="nSearch">بحث</button></div>
+      <select id="nPub"><option value="">… أو اختر من المنشورات</option></select>
+      <div id="nRes"></div>
+      <label>العنوان</label><input class="inp" id="nT" maxlength="100" placeholder="🎬 فيلم جديد على SP">
+      <label>التفاصيل</label><textarea id="nB" maxlength="240" style="direction:rtl;text-align:right;min-height:70px" placeholder="نص الإشعار"></textarea>
+      <label>رابط الفتح — <code>#/movie/603</code> أو <code>#/tv/1396/1/3</code> لفتح عمل داخل الموقع، أو رابط https خارجي. اتركه فارغاً لفتح الموقع فقط</label>
+      <input class="inp" id="nU" dir="ltr" placeholder="#/movie/603">
+      <label>رابط الصورة (اختياري)</label>
+      <input class="inp" id="nI" dir="ltr" placeholder="https://image.tmdb.org/...">
+      <div class="rep" id="nPrev" style="margin-top:6px"></div>
+      <label style="margin-top:10px">المستلمون</label>
+      <select id="nTo"><option value="all">كل المشتركين</option><option value="me">جهازي فقط (تجربة)</option></select>
+      <button id="nSend">إرسال الإشعار</button>
+      <div class="sm" id="nOut" style="margin-top:10px;line-height:1.8"></div>
+    </div>
+  </div>
+
   <!-- ═════ الإعلانات ═════ -->
   <div class="pane" id="p-ads" style="display:none">
     <div class="card">
@@ -173,6 +197,7 @@ label{display:block;font-size:.78em;color:#aaa;margin-bottom:5px}
   </div>
 </div>
 
+<script src="config.js"></script>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {getAuth,onAuthStateChanged,GoogleAuthProvider,signInWithPopup,signOut} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -318,7 +343,7 @@ async function loadPub(){
     const views={};if(st)st.forEach(d=>views[d.id]=d.data().views||0);
     pubs=[];s.forEach(d=>pubs.push({id:d.id,...d.data(),views:views[d.id]||0}));
     $("#pubCount").textContent=`(${pubs.length}) · ${pubs.reduce((a,x)=>a+x.views,0)} زيارة`;
-    renderPub();
+    renderPub();fillPubSelect();
   }catch(e){box.innerHTML="<div class='sm'>تعذر تحميل المنشورات ("+esc(e.code||"")+")</div>"}
 }
 const posterCache={};
@@ -453,6 +478,52 @@ $("#hSave").onclick=async()=>{
   if(!clean.length)return msg("أضف قسماً واحداً على الأقل","err");
   try{await setDoc(doc(db,"settings","home"),{hero:H.hero,sections:clean,updatedAt:Date.now()});msg("تم حفظ الصفحة الرئيسية ✓ — ستظهر التغييرات عند تحديث الموقع","ok")}
   catch(e){msg("فشل الحفظ ("+e.code+")","err")}
+};
+
+/* ───── إشعار يدوي ───── */
+const PUSH=(window.SP_CONFIG||{}).push||"";
+function nPreview(){
+  $("#nPrev").innerHTML=`<div class="sm" style="margin-bottom:6px">معاينة</div><b>${esc($("#nT").value||"العنوان")}</b><div class="sm" style="color:#ccc;margin-top:3px">${esc($("#nB").value||"التفاصيل")}</div>${$("#nI").value?`<img src="${esc($("#nI").value)}" style="width:100%;border-radius:10px;margin-top:8px;max-height:150px;object-fit:cover" onerror="this.style.display='none'">`:""}<div class="sm" dir="ltr" style="margin-top:6px;text-align:left">${esc($("#nU").value||"(يفتح الموقع)")}</div>`;
+}
+["#nT","#nB","#nU","#nI"].forEach(i=>$(i).addEventListener("input",nPreview));nPreview();
+async function nFill(type,id){
+  const d=await tmdb(`/${type}/${id}`).catch(()=>null);if(!d)return msg("تعذر جلب بيانات العمل","err");
+  const t=origTitle(d),p=d.backdrop_path||d.poster_path;
+  $("#nT").value=(type==="tv"?"📺 ":"🎬 ")+t+" — متاح الآن على SP";
+  $("#nB").value=(d.overview||"").slice(0,200);
+  $("#nU").value=`#/${type}/${id}`;
+  $("#nI").value=p?"https://image.tmdb.org/t/p/w780"+p:"";
+  nPreview();$("#nRes").innerHTML="";
+}
+$("#nSearch").onclick=async()=>{
+  const q=$("#nQ").value.trim();if(q.length<2)return;
+  const r=await tmdb("/search/multi","&query="+encodeURIComponent(q));
+  const items=(r.results||[]).filter(x=>x.media_type==="movie"||x.media_type==="tv").slice(0,6);
+  $("#nRes").innerHTML=items.map(x=>`<div class="res" data-t="${x.media_type}" data-id="${x.id}"><img src="${x.poster_path?"https://image.tmdb.org/t/p/w92"+x.poster_path:""}" alt=""><div>${esc(origTitle(x))}<div class="sm">${x.media_type==="movie"?"فيلم":"مسلسل"} · ${(x.release_date||x.first_air_date||"").slice(0,4)}</div></div></div>`).join("")||"<div class='sm'>لا نتائج</div>";
+  $("#nRes").querySelectorAll(".res").forEach(el=>el.onclick=()=>nFill(el.dataset.t,+el.dataset.id));
+};
+$("#nQ").onkeydown=e=>{if(e.key==="Enter")$("#nSearch").click()};
+function fillPubSelect(){
+  const s=$("#nPub");s.innerHTML=`<option value="">… أو اختر من المنشورات</option>`+pubs.map(p=>`<option value="${esc(p.id)}">${esc(p.title||p.id)} (${p.type==="tv"?"مسلسل":"فيلم"})</option>`).join("");
+}
+$("#nPub").onchange=e=>{const p=pubs.find(x=>x.id===e.target.value);if(p)nFill(p.type,p.tmdbId)};
+$("#nSend").onclick=async()=>{
+  const out=$("#nOut");
+  if(!PUSH)return out.innerHTML="❌ رابط الـ Worker غير مضبوط في config.js";
+  if(!$("#nT").value.trim())return out.textContent="❌ العنوان مطلوب";
+  let endpoint="";
+  if($("#nTo").value==="me"){
+    try{const reg=await navigator.serviceWorker.getRegistration("./");const sub=reg&&await reg.pushManager.getSubscription();
+      if(!sub)return out.innerHTML="❌ هذا الجهاز غير مشترك — افتح الموقع، فعّل الإشعارات من أيقونة SP، ثم عد هنا";
+      endpoint=sub.endpoint}catch(e){return out.textContent="❌ المتصفح لا يدعم الإشعارات هنا"}
+  }else if(!confirm("إرسال هذا الإشعار لجميع المشتركين؟"))return;
+  out.textContent="جاري الإرسال…";
+  try{
+    const tok=await auth.currentUser.getIdToken();
+    const r=await fetch(PUSH+"/broadcast",{method:"POST",headers:{"content-type":"application/json",authorization:"Bearer "+tok},body:JSON.stringify({title:$("#nT").value,body:$("#nB").value,url:$("#nU").value.trim(),img:$("#nI").value.trim(),endpoint})});
+    const j=await r.json();
+    out.innerHTML=j.ok?`✅ أُرسل إلى <b>${j.sent}</b> من ${j.subscribers} جهاز مشترك.${j.sent<j.subscribers?"<br>بعض الأجهزة لم تستجب (اشتراك منتهٍ) وقد أُزيلت.":""}`:`❌ ${esc(j.error||"فشل الإرسال")}`;
+  }catch(e){out.textContent="❌ تعذر الوصول إلى الـ Worker"}
 };
 
 /* ───── VAST settings ───── */
