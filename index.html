@@ -315,7 +315,9 @@ function norm(x,type){
     year:(x.release_date||x.first_air_date||"").slice(0,4),
     overview:x.overview||""};
 }
-const list=(r,type)=>(r.results||[]).filter(x=>(x.media_type||type)!=="person"&&x.poster_path).map(x=>norm(x,type));
+let hid=new Set();
+const hidP=getDoc(doc(db,"settings","hidden")).then(s=>{if(s.exists())hid=new Set(s.data().items||[])}).catch(()=>{});
+const list=(r,type,keep)=>(r.results||[]).filter(x=>(x.media_type||type)!=="person"&&x.poster_path&&(keep||!hid.has((x.media_type||type)+"_"+x.id))).map(x=>norm(x,type));
 const ANIME={with_genres:"16",with_original_language:"ja"};
 const SRC={
   movie:{pop:["/movie/popular",{}],top:["/discover/movie",{sort_by:"vote_average.desc","vote_count.gte":"1500"}]},
@@ -379,6 +381,7 @@ const DEFAULT_HOME={hero:"trend",sections:[
  {id:"atop",title:"الأنمي الأعلى تقييماً",icon:"fa-crown",source:"top",mtype:"anime",limit:20,more:true,enabled:true}]};
 let homeCfg=null;
 async function loadHomeCfg(){
+  await hidP;
   if(homeCfg)return homeCfg;
   try{const s=await getDoc(doc(db,"settings","home"));if(s.exists()&&Array.isArray(s.data().sections)&&s.data().sections.length)homeCfg=s.data()}catch(e){}
   return homeCfg||(homeCfg=DEFAULT_HOME);
@@ -495,7 +498,7 @@ async function doSearch(q){
   const m=$("#main");m.innerHTML=spinner();
   try{
     const r=await tm("/search/multi",{query:q});
-    const items=list(r);
+    const items=list(r,undefined,true);
     m.innerHTML=items.length?`<div class="sec-h" style="margin-top:12px"><div class="sec-t"><i class="fas fa-magnifying-glass"></i>نتائج البحث</div></div><div class="grid" id="sg"></div>`:`<div class="center">لا توجد نتائج</div>`;
     const g=$("#sg");if(g)items.forEach(i=>g.appendChild(card(i)));
   }catch(e){m.innerHTML=`<div class="center">تعذر البحث</div>`}
@@ -976,7 +979,7 @@ async function openDetail(type,id,epSel){
         const b=document.createElement("button");b.className="btn pri";b.innerHTML=`<i class="fas fa-play"></i> غير متوفر بعد`;b.disabled=true;acts.appendChild(b);
       }
     }
-    if(trailer){const t=document.createElement("button");t.className="btn sec";t.innerHTML=`<i class="fab fa-youtube"></i> الإعلان`;t.onclick=()=>window.open("https://www.youtube.com/watch?v="+trailer.key,"_blank");acts.appendChild(t)}
+    if(trailer){const t=document.createElement("button");t.className="btn sec";t.innerHTML=`<i class="fab fa-youtube"></i> التريلر`;t.onclick=()=>{setPres({k:"watch",label:it.title+" (Trailer)",type,tmdbId:id});play({title:it.title+" - Trailer",yt:trailer.key,poster:it.poster,backdrop:d.backdrop_path?IMG+"w1280"+d.backdrop_path:it.poster,kind:"trailer",chips:[],onClose:()=>backPres()})};acts.appendChild(t)}
     const fb=document.createElement("button");fb.className="btn sec fav-b";fb.id="favBtn";fb.dataset.fid=favId(type,id);syncFav(fb);fb.onclick=()=>toggleFav(fb,it);acts.appendChild(fb);
     const lb=document.createElement("button");lb.className="btn sec";lb.id="listBtn";lb.innerHTML=`<i class="fas fa-bookmark"></i> إضافة لقائمة`;lb.onclick=()=>openListModal(it);acts.appendChild(lb);
     {const rel=d.release_date||d.first_air_date||"";

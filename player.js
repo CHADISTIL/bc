@@ -168,6 +168,9 @@ var CSS=`
 .jp-dlc{position:fixed;top:90px;left:14px;width:58px;height:58px;border-radius:50%;background:#1a1a2e;z-index:2147483640;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.75em;color:#fff;box-shadow:0 4px 20px rgba(0,0,0,.6);cursor:pointer;border:3px solid #ff4757}
 #jpToast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:rgba(14,18,38,.97);padding:9px 20px;border-radius:22px;font-size:.82em;z-index:2147483647;border:1px solid rgba(255,255,255,.1);opacity:0;transition:opacity .25s;pointer-events:none;direction:rtl;white-space:nowrap;color:#fff;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
 #jpToast.on{opacity:1}
+.jp-yt{position:absolute;inset:0;overflow:hidden;background:#000;display:none;pointer-events:none}
+.jp-yt iframe{position:absolute;left:0;top:-60px;width:100%;height:calc(100% + 120px);border:0;pointer-events:none}
+.jp-wrap.yt .jp-yt{display:block}.jp-wrap.yt #jpVid{visibility:hidden}
 `;
 
 /* ───────────── DOM ───────────── */
@@ -178,6 +181,7 @@ root.innerHTML=`
 <div class="jp-main" id="jpMain">
  <div class="jp-wrap" id="jpWrap">
   <video id="jpVid" playsinline webkit-playsinline></video>
+  <div class="jp-yt" id="jpYT"></div>
   <div class="jp-spin" id="jpSpin"></div>
   <div class="jp-sub" id="jpSub"><span id="jpSubT"></span></div>
   <div class="jp-pulse" id="jpPulse"></div>
@@ -247,11 +251,80 @@ var S={open:false,mini:false,opts:null,quals:[],qi:0,hls:null,curUrl:'',cues:[],
   ad:{cfg:null,busy:false,fired:{},count:0},pT:0,ctrlT:0,modal:null,speed:1,fsOpen:false,nextT:0};
 var subStyle=LS.get('jp_substyle',{size:16,font:'system',shadow:'black',color:'white'});
 
+/* ───────────── YouTube (IFrame API) — يُحاكي عنصر video لتعمل كل الأزرار ───────────── */
+var Y={p:null,ready:false,st:-1,dur:0,iv:0,on:false};
+var YTP=['paused','duration','currentTime','playbackRate','muted','volume','videoWidth','play','pause'];
+function ytApi(){
+  if(window.YT&&window.YT.Player)return Promise.resolve();
+  return new Promise(function(res,rej){
+    var prev=window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady=function(){try{prev&&prev()}catch(e){}res()};
+    if(!document.querySelector('script[src*="youtube.com/iframe_api"]'))loadScript('https://www.youtube.com/iframe_api').catch(rej);
+    setTimeout(function(){window.YT&&window.YT.Player?res():rej()},10000);
+  });
+}
+function ytShim(){
+  var d=function(n,o){o.configurable=true;Object.defineProperty(vid,n,o)};
+  d('paused',{get:function(){return Y.st!==1}});
+  d('duration',{get:function(){return Y.dur||NaN}});
+  d('videoWidth',{get:function(){return 0}});
+  d('currentTime',{get:function(){try{return Y.ready?Y.p.getCurrentTime()||0:0}catch(e){return 0}},set:function(v){try{Y.p.seekTo(v,true)}catch(e){}}});
+  d('playbackRate',{get:function(){try{return Y.p.getPlaybackRate()||1}catch(e){return 1}},set:function(v){try{Y.p.setPlaybackRate(v)}catch(e){}}});
+  d('muted',{get:function(){try{return Y.p.isMuted()}catch(e){return false}},set:function(v){try{v?Y.p.mute():Y.p.unMute()}catch(e){}setTimeout(function(){vid.dispatchEvent(new Event('volumechange'))},50)}});
+  d('volume',{get:function(){try{return Y.p.getVolume()/100}catch(e){return 1}},set:function(v){try{Y.p.setVolume(v*100)}catch(e){}setTimeout(function(){vid.dispatchEvent(new Event('volumechange'))},50)}});
+  d('play',{value:function(){try{Y.p.playVideo()}catch(e){}return Promise.resolve()}});
+  d('pause',{value:function(){try{Y.p.pauseVideo()}catch(e){}}});
+}
+function ytAudioAr(p){
+  var n=0;(function t(){
+    if(n++>8)return;
+    try{
+      var tr=p.getAvailableAudioTracks&&p.getAvailableAudioTracks();
+      if(!tr||!tr.length){setTimeout(t,800);return}
+      var ar=tr.find(function(x){return (x.languageCode&&x.languageCode.indexOf('ar')===0)||x.id==='ar'||(x.displayName&&/arab|عرب/i.test(x.displayName))});
+      if(ar&&p.setAudioTrack)p.setAudioTrack(ar.id);
+    }catch(e){setTimeout(t,800)}
+  })();
+}
+function ytStart(id,t0){
+  ytStop(true);
+  Y.on=true;wrap.classList.add('yt');ytShim();
+  $('#jpSpin').style.display='block';$('#jpErr').style.display='none';
+  var box=$('#jpYT');box.innerHTML='<div id="jpYTp"></div>';
+  ytApi().then(function(){
+    if(!Y.on)return;
+    Y.p=new YT.Player('jpYTp',{videoId:id,playerVars:{autoplay:1,controls:0,modestbranding:1,rel:0,playsinline:1,hl:'ar',cc_load_policy:0,cc_lang_pref:'ar',iv_load_policy:3,disablekb:1,fs:0,start:t0||0,origin:location.origin||location.href.split('/').slice(0,3).join('/')},events:{
+      onReady:function(e){Y.ready=true;Y.dur=e.target.getDuration()||0;try{e.target.playVideo()}catch(x){}ytAudioAr(e.target)},
+      onError:function(){showErr()},
+      onStateChange:function(e){
+        var c=e.data;Y.st=c;
+        if(c===1){Y.dur=e.target.getDuration()||Y.dur;$('#jpSpin').style.display='none';vid.dispatchEvent(new Event('play'));vid.dispatchEvent(new Event('playing'));ytAudioAr(e.target)}
+        else if(c===2)vid.dispatchEvent(new Event('pause'));
+        else if(c===3)$('#jpSpin').style.display='block';
+        else if(c===0){
+          if(vid.loop){try{e.target.seekTo(0,true);e.target.playVideo()}catch(x){}}
+          else vid.dispatchEvent(new Event('ended'));
+        }
+      }}});
+    Y.iv=setInterval(function(){if(Y.ready&&Y.st===1){Y.dur=(Y.p.getDuration&&Y.p.getDuration())||Y.dur;vid.dispatchEvent(new Event('timeupdate'))}},250);
+  }).catch(function(){showErr()});
+}
+function ytStop(keep){
+  clearInterval(Y.iv);
+  if(Y.p){try{Y.p.destroy()}catch(e){}}
+  Y.p=null;Y.ready=false;Y.st=-1;Y.dur=0;
+  if(!Y.on&&!keep)return;
+  Y.on=false;wrap.classList.remove('yt');
+  YTP.forEach(function(n){try{delete vid[n]}catch(e){}});
+  $('#jpYT').innerHTML='';
+}
+
 /* ───────────── open / close ───────────── */
 function configure(o){if(o&&o.vast)S.ad.cfg=o.vast}
 
 function open(o){
   S.opts=o;
+  ytStop();
   if(!S.open){
     S.open=true;root.classList.add('on');document.body.classList.add('lock');
     if(!o.embed)try{history.pushState({jp:1},'')}catch(e){}
@@ -275,9 +348,10 @@ function open(o){
   applySubStyle();
   var cfg=S.ad.cfg;
   var first=function(){startMain()};
-  if(adAllowed()&&cfg.preroll!==false){showAd(first)}else first();
+  if(!o.yt&&adAllowed()&&cfg.preroll!==false){showAd(first)}else first();
 }
 function startMain(){
+  if(S.opts&&S.opts.yt){ytStart(S.opts.yt,0);return}
   var q=S.quals[S.qi];if(!q){showErr();return}
   loadSource(q,(S.opts&&S.opts.startAt)||0,true);
 }
@@ -286,6 +360,7 @@ function close(){
   try{if(S.opts&&S.opts.onProgress&&vid.duration&&vid.currentTime>1&&!S.ad.busy)S.opts.onProgress(vid.currentTime,vid.duration)}catch(e){}
   cancelNext();closeModal();stopAd();
   try{vid.pause()}catch(e){}
+  ytStop();
   destroyHls();vid.removeAttribute('src');vid.load();
   cancelAnimationFrame(S.subRaf);S.cues=[];
   if(isFs())exitFs();
@@ -755,6 +830,7 @@ function showAd(done){
 }
 function stopAd(){if(S.ad.stop)S.ad.stop();$('#jpAd').classList.remove('on');S.ad.busy=false}
 function checkAds(){
+  if(Y.on)return;
   if(S.ad.busy||!adAllowed())return;
   var c=S.ad.cfg,d=vid.duration;
   if(!d||!isFinite(d)||vid.paused&&vid.currentTime===0)return;
@@ -882,6 +958,7 @@ function setDl(p,txt){
   if(dl.circle)dl.circle.textContent=dl.pct+'%';
 }
 function openDownload(){
+  if(S.opts&&S.opts.yt){toast('لا يمكن تنزيل الإعلان');return}
   var base=S.curUrl||(S.opts&&S.opts.quals&&S.opts.quals[0]&&S.opts.quals[0].url);
   if(!base){toast('لا يوجد رابط للتحميل');return}
   if(isFs())exitFs();

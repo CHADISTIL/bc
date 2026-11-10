@@ -97,6 +97,7 @@ label{display:block;font-size:.78em;color:var(--mut);margin-bottom:6px}
     <div class="tabs">
     <button class="tab on" data-p="analytics"><i class="fas fa-chart-line"></i> التحليلات</button>
     <button class="tab" data-p="content"><i class="fas fa-film"></i> المحتوى</button>
+    <button class="tab" data-p="trend"><i class="fas fa-fire"></i> الرائج</button>
     <button class="tab" data-p="reports"><i class="fas fa-flag"></i> البلاغات <span class="badge" id="repBadge" style="display:none"></span></button>
     <button class="tab" data-p="home"><i class="fas fa-house"></i> الرئيسية</button>
     <button class="tab" data-p="push"><i class="fas fa-bell"></i> الإشعارات</button>
@@ -168,6 +169,25 @@ label{display:block;font-size:.78em;color:var(--mut);margin-bottom:6px}
         <select id="pubS" style="width:auto;margin:0"><option value="new">الأحدث تعديلاً</option><option value="views">الأكثر زيارة</option></select></div>
       <input class="inp" id="pubF" placeholder="بحث في المنشورات…">
       <div id="pubList"><div class="sm">…</div></div>
+    </div>
+  </div>
+
+  <!-- ═════ الرائج ═════ -->
+  <div class="pane" id="p-trend" style="display:none">
+    <div class="card">
+      <div class="ch"><span class="ci"><i class="fas fa-fire"></i></span><b>الأعمال الرائجة</b><span class="sm" id="trCount"></span></div>
+      <p class="sm" style="margin-bottom:10px;line-height:1.7">هذه أعمال شائعة من TMDB جاهزة للنشر. اضغط «نشر» لإضافة روابطها، أو «إخفاء» لإزالتها من الموقع بالكامل (الرئيسية والأقسام) دون حذفها.</p>
+      <div class="row">
+        <select id="trSrc" style="flex:1;min-width:150px">
+          <option value="trending">الأكثر رواجاً هذا الأسبوع</option>
+          <option value="pm">أفلام شائعة</option><option value="pt">مسلسلات شائعة</option><option value="pa">أنمي شائع</option>
+          <option value="tm">أفلام الأعلى تقييماً</option><option value="tt">مسلسلات الأعلى تقييماً</option>
+          <option value="now">تُعرض الآن في السينما</option><option value="up">قريباً</option>
+        </select>
+        <select id="trF" style="flex:1;min-width:130px"><option value="all">الكل</option><option value="new">غير منشورة</option><option value="pub">المنشورة</option><option value="hid">المخفية</option></select>
+      </div>
+      <div id="trList"><div class="sm">…</div></div>
+      <button class="sec" id="trMore" style="width:100%;margin-top:6px"><i class="fas fa-angles-down"></i> تحميل المزيد</button>
     </div>
   </div>
 
@@ -322,6 +342,7 @@ function showPane(p){
   document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("on",b.dataset.p===p));
   document.querySelectorAll(".pane").forEach(x=>x.style.display=x.id==="p-"+p?"":"none");
   clearInterval(anT);if(p==="analytics"){loadAnalytics();anT=setInterval(()=>{if(!document.hidden)loadAnalytics(true)},20000)}
+  if(p==="trend"&&!tr.items.length)loadTrend();
   if(p==="reports")loadReports();
   if(p==="home"&&!H.loaded)loadHome();
 }
@@ -471,6 +492,62 @@ function renderPub(){
 }
 $("#pubF").oninput=renderPub;$("#pubS").onchange=renderPub;
 
+
+/* ───── الرائج + الإخفاء ───── */
+let hidden=new Set(),hidLoaded=false,tr={items:[],page:0,busy:false};
+const TRS={trending:["/trending/all/week",""],pm:["/movie/popular",""],pt:["/tv/popular",""],pa:["/discover/tv","&with_genres=16&with_original_language=ja&sort_by=popularity.desc"],tm:["/movie/top_rated",""],tt:["/tv/top_rated",""],now:["/movie/now_playing",""],up:["/movie/upcoming",""]};
+async function loadHidden(){
+  if(hidLoaded)return;
+  try{const s=await getDoc(doc(db,"settings","hidden"));hidden=new Set(s.exists()?s.data().items||[]:[])}catch(e){}
+  hidLoaded=true;
+}
+async function saveHidden(){
+  try{await setDoc(doc(db,"settings","hidden"),{items:[...hidden],updatedAt:Date.now()});return true}
+  catch(e){msg("فشل الحفظ ("+esc(e.code||"")+")","err");return false}
+}
+async function loadTrend(more){
+  if(tr.busy)return;tr.busy=true;
+  await loadHidden();
+  const f=$("#trF").value;
+  try{
+    if(f==="hid"){
+      const r=await Promise.all([...hidden].slice(0,60).map(k=>{const [t,i]=k.split("_");return tmdb(`/${t}/${i}`).then(d=>({...d,media_type:t})).catch(()=>null)}));
+      tr.items=r.filter(x=>x&&x.id);$("#trMore").style.display="none";
+    }else{
+      if(!more){tr.items=[];tr.page=0}
+      const [p,q]=TRS[$("#trSrc").value];tr.page++;
+      const isTv=/tv/.test(p),r=await tmdb(p,`&page=${tr.page}${q}`);
+      const type=$("#trSrc").value==="pa"||isTv?"tv":"movie";
+      tr.items=tr.items.concat((r.results||[]).filter(x=>x.media_type!=="person"&&x.poster_path).map(x=>({...x,media_type:x.media_type||type})));
+      $("#trMore").style.display="";
+    }
+    renderTrend();
+  }catch(e){$("#trList").innerHTML="<div class='sm'>تعذر التحميل</div>"}
+  tr.busy=false;
+}
+function renderTrend(){
+  const f=$("#trF").value,pubIds=new Set(pubs.map(p=>p.id));
+  let arr=tr.items.filter(x=>{const k=x.media_type+"_"+x.id;return f==="all"||f==="hid"||(f==="pub"?pubIds.has(k):!pubIds.has(k)&&!hidden.has(k))});
+  $("#trCount").textContent=`(${hidden.size} مخفي)`;
+  $("#trList").innerHTML=arr.map(x=>{
+    const k=x.media_type+"_"+x.id,pb=pubIds.has(k),hd=hidden.has(k);
+    return `<div class="pub" data-k="${k}" style="${hd?"opacity:.55":""}"><img src="${"https://image.tmdb.org/t/p/w92"+x.poster_path}" alt=""><div class="t"><b>${esc(origTitle(x))}</b>
+      <div class="sm">${x.media_type==="tv"?"مسلسل / أنمي":"فيلم"} · ${(x.release_date||x.first_air_date||"").slice(0,4)}${x.vote_average?` · <i class="fas fa-star" style="color:#ffc107"></i> ${Math.round(x.vote_average*10)/10}`:""}</div>
+      <div style="margin-top:4px">${pb?'<span class="tag" style="background:rgba(46,212,122,.18);color:var(--ok)">منشور</span> ':""}${hd?'<span class="tag new">مخفي</span>':""}</div></div>
+      <button class="sm2" data-a="pub"><i class="fas fa-${pb?"pen":"plus"}"></i> ${pb?"تعديل":"نشر"}</button>
+      <button class="sec ic" data-a="hide" title="${hd?"إظهار":"إخفاء"}"><i class="fas fa-eye${hd?"":"-slash"}"></i></button></div>`}).join("")||"<div class='sm'>لا نتائج</div>";
+  $("#trList").querySelectorAll(".pub").forEach(el=>{
+    const [t,i]=el.dataset.k.split("_"),x=tr.items.find(y=>y.media_type===t&&String(y.id)===i);
+    el.querySelector('[data-a="pub"]').onclick=()=>pick(t,+i,origTitle(x));
+    el.querySelector('[data-a="hide"]').onclick=async()=>{
+      const k=el.dataset.k,was=hidden.has(k);
+      was?hidden.delete(k):hidden.add(k);
+      if(!await saveHidden()){was?hidden.add(k):hidden.delete(k);return}
+      msg(was?"أُظهر العمل في الموقع":"أُخفي العمل من الموقع","ok");renderTrend();
+    };
+  });
+}
+$("#trSrc").onchange=()=>loadTrend();$("#trF").onchange=()=>loadTrend();$("#trMore").onclick=()=>loadTrend(true);
 /* ───── البلاغات ───── */
 let reps=[];
 async function countReports(){
