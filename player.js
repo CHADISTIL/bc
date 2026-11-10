@@ -803,7 +803,7 @@ wrap.addEventListener('pointerup',function(){
   wrap.style.left=((left+w/2<W/2)?8:W-w-8)+'px';
 });
 
-/* swipe down → mini */
+/* swipe down - mini */
 var sw=null;
 wrap.addEventListener('touchstart',function(e){
   if(S.mini||S.locked||isFs()||S.ad.busy)return;
@@ -887,7 +887,7 @@ function openDownload(){
   if(isFs())exitFs();
   var safe=((S.opts&&S.opts.title)||'video').replace(/[\/\\:*?"<>|]/g,'_');
   modal('تحميل','fa-download',function(b){
-    b.innerHTML='<button class="jp-opt" id="dlV"><i class="fas fa-film" style="color:#ff4757"></i>تحميل الفيديو<span class="v">'+(isHls(base)?'HLS → TS':'MP4')+'</span></button>'
+    b.innerHTML='<button class="jp-opt" id="dlV"><i class="fas fa-film" style="color:#ff4757"></i>تحميل الفيديو<span class="v">'+(isHls(base)?'HLS - TS':'MP4')+'</span></button>'
       +(S.subText?'<button class="jp-opt" id="dlSub"><i class="fas fa-closed-captioning" style="color:#5352ed"></i>تحميل الترجمة<span class="v">VTT</span></button>':'')
       +'<div id="dlPr" style="display:none"><div class="jp-pg"><div id="dlB"></div></div><div class="jp-line" style="margin:8px 0"><b id="dlT">0%</b><button class="jp-opt" id="dlMin" style="width:auto;padding:6px 14px">تصغير</button></div><div class="jp-st" id="dlS2"></div><button class="jp-opt" id="dlX" style="justify-content:center;margin-top:8px">إلغاء</button></div>';
     var sub=$('#dlSub',b);
@@ -906,12 +906,12 @@ function openDownload(){
       try{
         var hls=isHls(base);
         var blob=hls?await dlHls(base,dl.ctl.signal,function(p){setDl(p,'جاري تحميل المقاطع...')}):await dlFile(base,dl.ctl.signal,function(p,l){setDl(p,(l/1048576).toFixed(1)+' MB')});
-        setDl(1,'✓ اكتمل التحميل');triggerSave(blob,safe+(hls?'.ts':'.mp4'));toast('اكتمل التحميل');
+        setDl(1,'اكتمل التحميل');triggerSave(blob,safe+(hls?'.ts':'.mp4'));toast('اكتمل التحميل');
         if(dl.circle){dl.circle.remove();dl.circle=null}
         setTimeout(closeModal,2500);
       }catch(e){
         if(e.name==='AbortError')return;
-        var s=$('#dlS2');if(s)s.textContent='⚠ تعذر التحميل: '+e.message;toast('تعذر التحميل');
+        var s=$('#dlS2');if(s)s.textContent='تعذر التحميل: '+e.message;toast('تعذر التحميل');
         if(dl.circle){dl.circle.remove();dl.circle=null}
       }
     };
