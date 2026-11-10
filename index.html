@@ -134,6 +134,21 @@ html.boot body::after{content:"";position:fixed;inset:0;background:#000;z-index:
 .nc-sw.on .tg{background:var(--primary)}.nc-sw.on .tg:after{right:20px}
 .nc-un{border:0;border-radius:99px;background:rgba(255,255,255,.1);color:#ccc;padding:6px 12px;font-size:.75em;cursor:pointer}
 .nc-em{text-align:center;color:#777;font-size:.85em;padding:16px;border-radius:18px;border:1px dashed rgba(255,255,255,.12);line-height:1.8}.nc-em i{display:block;font-size:1.5em;margin-bottom:6px;opacity:.6}
+.ac-hero{padding:70px 16px 22px;text-align:center;background:linear-gradient(#1d2040,#12142a)}
+.ac-av{width:96px;height:96px;border-radius:50%;margin:0 auto 12px;background:var(--primary);display:grid;place-items:center;font-size:2.4em;font-weight:800;overflow:hidden;border:3px solid rgba(255,255,255,.15)}.ac-av img{width:100%;height:100%;object-fit:cover}
+.ac-hero h2{font-size:1.25em;margin-bottom:4px}.ac-hero .em{color:#9aa;font-size:.85em;direction:ltr}
+.ac-tags{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px}.ac-tags span{background:rgba(255,255,255,.08);border-radius:99px;padding:5px 13px;font-size:.74em;color:#ccc}.ac-tags i{margin-left:5px;color:var(--primary)}
+.ac-st{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:14px}
+.ac-s{background:rgba(255,255,255,.06);border-radius:20px;padding:14px;display:flex;gap:12px;align-items:center;cursor:pointer}
+.ac-s .ic{width:42px;height:42px;border-radius:50%;background:rgba(255,71,87,.15);color:var(--primary);display:grid;place-items:center;flex:none}
+.ac-s b{display:block;font-size:1.4em;line-height:1.1}.ac-s span{font-size:.74em;color:#9aa}
+.ac-card{margin:0 14px 14px;background:rgba(255,255,255,.05);border-radius:24px;padding:6px}
+.ac-row{display:flex;align-items:center;gap:12px;width:100%;padding:13px 12px;border-radius:18px;font-size:.9em;text-align:right;color:#fff}
+.ac-row:active{background:rgba(255,255,255,.06)}
+.ac-row .ic{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.08);display:grid;place-items:center;flex:none;color:#bbb}
+.ac-row small{margin-right:auto;color:#8a8fa8;font-size:.78em}.ac-row.red{color:#ff6b7a}.ac-row.red .ic{background:rgba(255,71,87,.15);color:#ff6b7a}
+.ac-cap{padding:0 18px;margin:6px 0 8px;font-weight:700;font-size:.85em;color:#9aa}
+.ac-nm{display:flex;gap:8px;padding:8px 12px 12px}.ac-nm .inp{flex:1;margin:0}
 .lrow{display:flex;align-items:center;gap:10px;width:100%;padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.07);margin-bottom:8px;font-size:.9em;text-align:right}
 .lrow i{color:#888;font-size:1.1em}.lrow.on i{color:var(--primary)}.lrow small{margin-right:auto;color:#999;font-size:.75em}
 .lrow.sug{border:1px dashed rgba(255,255,255,.3);background:none}
@@ -244,6 +259,7 @@ html.embed #spFab{display:none}
 
 <div class="ov-page" id="detail"></div>
 <div class="ov-page" id="person" style="z-index:110"></div>
+<div class="ov-page" id="acctPage" style="z-index:105"></div>
 
 <div class="modal" id="authModal">
   <div class="mbox">
@@ -264,7 +280,7 @@ html.embed #spFab{display:none}
 <script src="player.js"></script>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import {getAuth,onAuthStateChanged,GoogleAuthProvider,signInWithPopup,signInWithEmailAndPassword,createUserWithEmailAndPassword,signOut}
+import {getAuth,onAuthStateChanged,GoogleAuthProvider,signInWithPopup,signInWithEmailAndPassword,createUserWithEmailAndPassword,signOut,updateProfile,sendPasswordResetEmail,deleteUser}
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {getFirestore,doc,getDoc,setDoc,deleteDoc,updateDoc,addDoc,increment,collection,getDocs,query,orderBy,limit}
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -502,7 +518,8 @@ $("#acct").onclick=e=>{
   e.stopPropagation();
   if(!user){openAuth();return}
   const m=$("#menu");
-  m.innerHTML=`<div><b>${esc(user.displayName||"حسابي")}</b></div><div class="em">${esc(user.email||"")}</div><button id="lo"><i class="fas fa-right-from-bracket"></i> تسجيل الخروج</button>`;
+  m.innerHTML=`<div><b>${esc(user.displayName||"حسابي")}</b></div><div class="em">${esc(user.email||"")}</div><button id="mp" style="color:#fff"><i class="fas fa-user"></i> صفحة حسابي</button><button id="lo"><i class="fas fa-right-from-bracket"></i> تسجيل الخروج</button>`;
+  $("#mp").onclick=()=>{m.classList.remove("on");openAccount()};
   m.classList.toggle("on");
   $("#lo").onclick=async()=>{await signOut(auth);m.classList.remove("on");toast("تم تسجيل الخروج")};
 };
@@ -586,6 +603,77 @@ async function showHist(){
   };
 }
 
+
+/* ───── صفحة الحساب ───── */
+const fdate=t=>t?new Date(t).toLocaleDateString("ar",{year:"numeric",month:"long",day:"numeric"}):"-";
+function closeAccount(){$("#acctPage").classList.remove("on");document.body.classList.remove("lock");backPres()}
+async function openAccount(){
+  if(!user){openAuth("سجّل الدخول لعرض حسابك");return}
+  const ov=$("#acctPage");ov.innerHTML=`<button class="d-back" id="acback"><i class="fas fa-arrow-right"></i></button>${spinner()}`;
+  ov.classList.add("on");document.body.classList.add("lock");ov.scrollTop=0;$("#acback").onclick=closeAccount;
+  setPres({k:"tab",label:"account"});
+  const u=user;
+  const [ps,fs]=await Promise.all([getDoc(doc(db,"profiles",u.uid)).catch(()=>null),getDocs(collection(db,"users",u.uid,"favorites")).catch(()=>null),loadLists(),loadHist()]);
+  const pr=ps&&ps.exists()?ps.data():{};
+  const favs=[];fs&&fs.forEach(d=>{const x=d.data();favs.push({id:x.tmdbId,type:x.type,title:x.title,poster:x.poster,rating:x.rating,addedAt:x.addedAt||0})});
+  favs.sort((a,b)=>b.addedAt-a.addedAt);
+  const hist=histList(),mv=hist.filter(x=>x.type==="movie").length,tv=hist.length-mv;
+  const items=lists.reduce((a,l)=>a+(l.items||[]).length,0);
+  const pwd=(u.providerData[0]&&u.providerData[0].providerId)==="password";
+  const sub=await curSub().catch(()=>null),pOn=!!sub&&PUSH_OK&&Notification.permission==="granted";
+  const fl=getFollows().length;
+  const name=u.displayName||"";
+  ov.innerHTML=`<button class="d-back" id="acback"><i class="fas fa-arrow-right"></i></button>
+  <div class="ac-hero"><div class="ac-av">${u.photoURL?`<img src="${esc(u.photoURL)}" referrerpolicy="no-referrer" alt="">`:esc((name||u.email||"U")[0].toUpperCase())}</div>
+    <h2>${esc(name||"حسابي")}</h2><div class="em">${esc(u.email||"")}</div>
+    <div class="ac-tags"><span><i class="fab fa-${pwd?"envelope":"google"}"></i>${pwd?"بريد إلكتروني":"Google"}</span><span><i class="fas fa-calendar-plus"></i>انضممت ${fdate(pr.createdAt||(u.metadata&&Date.parse(u.metadata.creationTime)))}</span><span><i class="fas fa-clock"></i>آخر دخول ${fdate(Date.parse(u.metadata&&u.metadata.lastSignInTime)||pr.lastSeen)}</span></div></div>
+  <div class="ac-st">
+    <div class="ac-s" data-g="hist"><span class="ic"><i class="fas fa-clock-rotate-left"></i></span><div><b>${hist.length}</b><span>في السجل (${mv} فيلم، ${tv} مسلسل)</span></div></div>
+    <div class="ac-s" data-g="fav"><span class="ic"><i class="fas fa-heart"></i></span><div><b>${favs.length}</b><span>في المفضلة</span></div></div>
+    <div class="ac-s" data-g="fav"><span class="ic"><i class="fas fa-layer-group"></i></span><div><b>${lists.length}</b><span>قوائم (${items} عنصر)</span></div></div>
+    <div class="ac-s" data-g="notif"><span class="ic"><i class="fas fa-bell"></i></span><div><b>${fl}</b><span>مسلسل أتابعه</span></div></div>
+  </div>
+  ${hist.length?`<div class="ac-cap">تابع المشاهدة</div><div class="rowx" id="ac-h" style="padding:0 14px 14px"></div>`:""}
+  ${favs.length?`<div class="ac-cap">المفضلة</div><div class="rowx" id="ac-f" style="padding:0 14px 14px"></div>`:""}
+  ${lists.length?`<div class="ac-cap">قوائمي</div><div class="ac-card">${lists.map(l=>`<button class="ac-row" data-l="${esc(l.id)}"><span class="ic"><i class="fas fa-list"></i></span>${esc(l.name)}<small>${(l.items||[]).length}</small></button>`).join("")}</div>`:""}
+  <div class="ac-cap">الملف الشخصي</div>
+  <div class="ac-card"><div class="ac-nm"><input class="inp" id="ac-n" maxlength="40" placeholder="الاسم الظاهر" value="${esc(name)}"><button class="btn pri" id="ac-sn"><i class="fas fa-check"></i> حفظ</button></div>
+    ${pwd?`<button class="ac-row" id="ac-pw"><span class="ic"><i class="fas fa-key"></i></span>تغيير كلمة المرور<small>رابط عبر البريد</small></button>`:""}
+    <button class="ac-row" id="ac-nt"><span class="ic"><i class="fas fa-bell"></i></span>الإشعارات<small>${pOn?"مفعلة":"متوقفة"}</small></button></div>
+  <div class="ac-cap">الحساب</div>
+  <div class="ac-card">
+    <button class="ac-row" id="ac-ch"><span class="ic"><i class="fas fa-eraser"></i></span>مسح سجل المشاهدة</button>
+    <button class="ac-row" id="ac-lo"><span class="ic"><i class="fas fa-right-from-bracket"></i></span>تسجيل الخروج</button>
+    <button class="ac-row red" id="ac-del"><span class="ic"><i class="fas fa-user-xmark"></i></span>حذف الحساب وكل بياناتي</button></div>
+  <div style="height:40px"></div>`;
+  $("#acback").onclick=closeAccount;
+  hist.slice(0,15).forEach(x=>$("#ac-h")&&$("#ac-h").appendChild(histCard(x)));
+  favs.slice(0,15).forEach(i=>$("#ac-f")&&$("#ac-f").appendChild(card(i)));
+  const go=f=>{closeAccount();f()};
+  ov.querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>{const g=b.dataset.g;go(g==="hist"?showHist:g==="fav"?()=>showFavs():openNotif)});
+  ov.querySelectorAll("[data-l]").forEach(b=>b.onclick=()=>go(()=>showFavs(b.dataset.l)));
+  $("#ac-nt").onclick=()=>openNotif();
+  $("#ac-sn").onclick=async()=>{
+    const n=$("#ac-n").value.trim().slice(0,40);if(!n)return toast("أدخل اسماً");
+    try{await updateProfile(u,{displayName:n});setDoc(doc(db,"profiles",u.uid),{name:n},{merge:true}).catch(()=>{});toast("تم حفظ الاسم");openAccount()}catch(e){toast("تعذر الحفظ")}
+  };
+  const pw=$("#ac-pw");if(pw)pw.onclick=async()=>{try{await sendPasswordResetEmail(auth,u.email);toast("أُرسل رابط تغيير كلمة المرور إلى بريدك")}catch(e){toast("تعذر الإرسال")}};
+  $("#ac-ch").onclick=async()=>{
+    if(!confirm("مسح كل سجل المشاهدة؟"))return;
+    const keys=[...histCache.keys()];histCache=new Map();
+    await Promise.all(keys.map(k=>deleteDoc(doc(db,"users",u.uid,"history",k)).catch(()=>{})));
+    toast("تم مسح السجل");updateHistRow();openAccount();
+  };
+  $("#ac-lo").onclick=async()=>{await signOut(auth);closeAccount();toast("تم تسجيل الخروج")};
+  $("#ac-del").onclick=async()=>{
+    if(!confirm("سيتم حذف حسابك نهائياً مع المفضلة والقوائم والسجل. لا يمكن التراجع. متابعة؟"))return;
+    try{
+      const wipe=async c=>{const s=await getDocs(collection(db,"users",u.uid,c));await Promise.all(s.docs.map(d=>deleteDoc(d.ref)))};
+      await Promise.all([wipe("favorites"),wipe("history"),wipe("lists"),deleteDoc(doc(db,"profiles",u.uid)).catch(()=>{})]);
+      await deleteUser(u);closeAccount();toast("تم حذف الحساب");
+    }catch(e){toast(e.code==="auth/requires-recent-login"?"سجّل الخروج ثم الدخول من جديد ثم أعد المحاولة":"تعذر حذف الحساب")}
+  };
+}
 /* ───── favorites ───── */
 const favId=(t,id)=>`${t}_${id}`;
 function syncFav(btn){const on=favSet.has(btn.dataset.fid);btn.classList.toggle("on",on);btn.innerHTML=`<i class="fas fa-heart"></i> ${on?"في المفضلة":"أضف للمفضلة"}`}
@@ -859,7 +947,7 @@ async function openDetail(type,id,epSel){
     const trailer=(en.videos?.results||[]).find(v=>v.site==="YouTube"&&v.type==="Trailer");
     const cast=(d.credits?.cast||[]).slice(0,12).map(c=>`<div class="cm" data-p="${c.id}"><img loading="lazy" src="${c.profile_path?IMG+"w185"+c.profile_path:`https://ui-avatars.com/api/?name=${encodeURIComponent(c.name)}&background=1a1a2e&color=fff`}" alt=""><div>${esc(c.name)}</div></div>`).join("");
     const sim=list(simR,type).slice(0,12);
-    ov.innerHTML=`<button class="d-back" id="dback"><i class="fas fa-arrow-right"></i></button>
+    ov.innerHTML=`<button class="d-back" id="dback"><i class="fas fa-arrow-right"></i></button><button class="d-back" id="dshare" style="right:auto;left:12px"><i class="fas fa-share-nodes"></i></button>
     <div class="d-hero"><img src="${esc(d.backdrop_path?IMG+"w1280"+d.backdrop_path:it.poster)}" alt=""></div>
     <div class="d-body">
       <div class="d-top"><img class="d-poster" src="${esc(it.poster)}" alt="">
@@ -872,7 +960,8 @@ async function openDetail(type,id,epSel){
       ${cast?`<div class="h2"><i class="fas fa-users"></i>طاقم العمل</div><div class="cast">${cast}</div>`:""}
       <div id="simBox"></div>
     </div>`;
-    $("#dback").onclick=closeDetail;
+    {const sb=$("#dshare");if(sb)sb.onclick=()=>{const u=shareLink(type,id,epSel&&epSel.s,epSel&&epSel.e);if(navigator.share)navigator.share({title:it.title,url:u}).catch(()=>{});else{try{navigator.clipboard.writeText(u);toast("تم نسخ الرابط")}catch(e){prompt("انسخ الرابط",u)}}}}
+  $("#dback").onclick=closeDetail;
     ov.querySelectorAll(".cm").forEach(el=>el.onclick=()=>openPerson(+el.dataset.p));
     if(link)trackVisit(it);
     const acts=$("#acts");
