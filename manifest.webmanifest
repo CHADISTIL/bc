@@ -12,19 +12,19 @@
   "theme_color": "#1a1a2e",
   "icons": [
     {
-      "src": "sp_ap.png",
+      "src": "pip.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "sp_ap.png",
+      "src": "pip.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "sp_ap.png",
+      "src": "pip.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
