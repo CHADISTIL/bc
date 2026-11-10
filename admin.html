@@ -436,7 +436,7 @@ async function saveEp(){
   if(!s||!e)return msg("حدد الموسم والحلقة","err");
   if(!qualities.length)return msg("أدخل رابطاً صالحاً","err");
   try{
-    await setDoc(doc(db,"titles",tid()),{type:"tv",tmdbId:sel.id,title:sel.name,updatedAt:Date.now()},{merge:true});
+    await setDoc(doc(db,"titles",tid()),{type:"tv",tmdbId:sel.id,title:sel.name,lastSeason:s,lastEpisode:e,updatedAt:Date.now()},{merge:true});
     await setDoc(doc(db,"titles",tid(),"episodes",`s${s}e${e}`),{season:s,episode:e,qualities,url:qualities[0].url,subtitle:$("#esub").value.trim(),updatedAt:Date.now()});
     msg(`تم حفظ S${s} E${e}`,"ok");loadEps();loadPub();return true;
   }catch(x){msg("فشل الحفظ — تأكد أن حسابك ضمن admins ("+x.code+")","err")}
