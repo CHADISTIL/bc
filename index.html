@@ -1097,7 +1097,7 @@ async function resolveV(o){
   for(const q of o.quals){
     const m=/^vcdn:([\w-]+)$/i.exec(q.url);
     if(!m){out.push(q);continue}
-    try{const j=await(await fetch(base+"/vcdn-play?id="+m[1])).json();embed=j.embed||embed;if(j.streamUrl)out.push({...q,url:j.streamUrl})}catch(e){}
+    try{const j=await(await fetch(base+"/vcdn-play?id="+m[1])).json();embed=j.embed||embed;if(j.streamUrl)out.push({...q,url:j.streamUrl});else console.warn("vcdn",j)}catch(e){}
   }
   if(out.length){o.quals=out;return true}
   if(embed){
