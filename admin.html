@@ -82,6 +82,8 @@ label{display:block;font-size:.78em;color:var(--mut);margin-bottom:6px}
 .wh span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .usr small{color:var(--mut);font-size:.72em;text-align:left;flex:none;line-height:1.7}
 .sub{display:flex;gap:6px;margin-bottom:12px}.sub button{flex:1;background:var(--card2);color:#b9bcd2}.sub button.on{background:rgba(255,71,87,.18);color:#ff8a96}
+.vbar{height:8px;border-radius:99px;background:rgba(255,255,255,.1);overflow:hidden;margin:6px 0}.vbar i{display:block;height:100%;width:0;background:var(--p);transition:width .2s}
+.vup{margin-bottom:8px}
 </style>
 </head>
 <body>
@@ -141,7 +143,9 @@ label{display:block;font-size:.78em;color:var(--mut);margin-bottom:6px}
 
       <div id="movieBox">
         <label>روابط الفيلم — سطر لكل جودة بصيغة <code>1080p|https://...</code> أو الرابط فقط</label>
-        <textarea id="mq" placeholder="1080p|https://example.com/movie-1080.mp4&#10;720p|https://example.com/movie-720.mp4"></textarea>
+        <textarea id="mq" placeholder="1080p|https://example.com/movie-1080.mp4&#10;أو ارفع الفيديو بالزر أدناه"></textarea>
+        <div class="vup" data-t="m"><label class="file"><i class="fas fa-cloud-arrow-up"></i> رفع فيديو إلى vcdn<input type="file" accept="video/*"></label><div class="row" style="margin-top:4px"><input class="inp vurl" dir="ltr" placeholder="أو الصق رابط فيديو مباشر (mp4) للرفع منه" style="flex:1;margin:0"><button class="sec sm2 vgo"><i class="fas fa-link"></i> رفع من الرابط</button></div>
+        <div class="vbar" style="display:none"><i></i></div><div class="sm vst"></div></div>
         <label>ترجمة (VTT أو SRT) — اختياري</label>
         <label class="file"><input type="file" id="msubF" accept=".srt,.vtt,.txt"><i class="fas fa-paperclip"></i> رفع ملف ترجمة</label> <span class="sm" id="msubI"></span>
         <textarea id="msub" placeholder="WEBVTT ..."></textarea>
@@ -155,6 +159,8 @@ label{display:block;font-size:.78em;color:var(--mut);margin-bottom:6px}
         </div>
         <label>روابط الحلقة — سطر لكل جودة</label>
         <textarea id="eq" placeholder="720p|https://..."></textarea>
+        <div class="vup" data-t="e"><label class="file"><i class="fas fa-cloud-arrow-up"></i> رفع فيديو إلى vcdn<input type="file" accept="video/*"></label><div class="row" style="margin-top:4px"><input class="inp vurl" dir="ltr" placeholder="أو الصق رابط فيديو مباشر (mp4) للرفع منه" style="flex:1;margin:0"><button class="sec sm2 vgo"><i class="fas fa-link"></i> رفع من الرابط</button></div>
+        <div class="vbar" style="display:none"><i></i></div><div class="sm vst"></div></div>
         <label>ترجمة الحلقة — اختياري</label>
         <label class="file"><input type="file" id="esubF" accept=".srt,.vtt,.txt"><i class="fas fa-paperclip"></i> رفع ملف ترجمة</label> <span class="sm" id="esubI"></span>
         <textarea id="esub"></textarea>
@@ -374,7 +380,7 @@ function parseQ(txt){
     const i=l.indexOf("|");
     if(i>0&&!/^https?:/i.test(l.slice(0,i)))return{label:l.slice(0,i).trim(),url:l.slice(i+1).trim()};
     return{label:"تلقائي",url:l};
-  }).filter(q=>/^https?:\/\//i.test(q.url));
+  }).filter(q=>/^(https?:\/\/|vcdn:)/i.test(q.url));
 }
 const fmtQ=a=>(a||[]).map(q=>`${q.label}|${q.url}`).join("\n");
 
@@ -548,6 +554,76 @@ function renderTrend(){
   });
 }
 $("#trSrc").onchange=()=>loadTrend();$("#trF").onchange=()=>loadTrend();$("#trMore").onclick=()=>loadTrend(true);
+
+/* ───── رفع إلى vcdn عبر الـ Worker (المفتاح سرّي في Cloudflare) ───── */
+async function vApi(path,opt){
+  const tok=await auth.currentUser.getIdToken();
+  const r=await fetch(PUSH+"/vcdn/"+path,{...opt,headers:{...(opt&&opt.headers),Authorization:"Bearer "+tok}});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(j.message||j.error||("HTTP "+r.status));
+  return j;
+}
+async function vRun(src,title,ta,box){
+  const bar=box.querySelector(".vbar"),fill=bar.firstElementChild,st=box.querySelector(".vst");
+  if(!PUSH){st.textContent="ضع رابط الـ Worker في config.js أولاً";return}
+  bar.style.display="";fill.style.width="0";
+  const lock=v=>box.querySelectorAll("input,button").forEach(x=>x.disabled=v);lock(true);
+  try{
+    st.textContent="بدء الرفع...";
+    const j=await vApi("upload/init",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({filename:src.name,size:src.size,contentType:src.type||"video/mp4",title,ladderProfile:"standard"})});
+    const id=j.uploadId||j.videoId||j.id;if(!id)throw new Error("لم يُرجع الخادم معرّف الرفع");
+    const CH=+(j.chunkSize||j.chunk_size)||8*1024*1024;
+    let off=0;
+    while(off<src.size){
+      const len=Math.min(CH,src.size-off);
+      for(let t=1;;t++){
+        try{await src.send(id,off,len);break}
+        catch(e){if(t>=3)throw e;await new Promise(r=>setTimeout(r,1500*t))}
+      }
+      off+=len;const pc=Math.round(off/src.size*100);fill.style.width=pc+"%";
+      st.textContent=`جارٍ الرفع ${pc}% (${(off/1048576).toFixed(0)} / ${(src.size/1048576).toFixed(0)} MB)`;
+    }
+    await vApi("upload/complete",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({uploadId:id})});
+    const line="vcdn:"+id;
+    ta.value=ta.value.trim()?ta.value.trim()+"\n"+line:line;
+    st.innerHTML=`<i class="fas fa-gear fa-spin"></i> اكتمل الرفع وأُضيف الرابط تلقائياً، جارٍ المعالجة... يمكنك الحفظ الآن`;
+    for(let i=0;i<450;i++){
+      await new Promise(r=>setTimeout(r,4000));
+      let v;try{v=await vApi("videos/"+id)}catch(e){continue}
+      if(v.status==="ready"){fill.style.width="100%";st.innerHTML=`<i class="fas fa-circle-check" style="color:var(--ok)"></i> الفيديو جاهز على vcdn`;return}
+      if(v.status==="failed"){st.innerHTML=`<i class="fas fa-circle-xmark" style="color:var(--p)"></i> فشلت المعالجة على vcdn`;return}
+      st.innerHTML=`<i class="fas fa-gear fa-spin"></i> معالجة ${v.transcode_progress||0}%`;
+    }
+  }catch(e){st.innerHTML=`<i class="fas fa-circle-xmark" style="color:var(--p)"></i> ${esc(e.message)}`}
+  finally{lock(false)}
+}
+const vFile=(file)=>({name:file.name,size:file.size,type:file.type,send:(id,off,len)=>vApi(`upload/${id}/chunk`,{method:"POST",headers:{"Content-Type":"application/octet-stream"},body:file.slice(off,off+len)})});
+async function vPost(path,body){
+  const tok=await auth.currentUser.getIdToken();
+  const r=await fetch(PUSH+path,{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+tok},body:JSON.stringify(body)});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(j.message||j.error||("HTTP "+r.status));return j;
+}
+const vTitle=box=>box.dataset.t==="m"?sel.name:`${sel.name} S${+$("#eS").value||1} E${+$("#eE").value||1}`;
+document.querySelectorAll(".vup").forEach(box=>{
+  const ta=()=>box.dataset.t==="m"?$("#mq"):$("#eq"),st=box.querySelector(".vst");
+  box.querySelector('input[type="file"]').onchange=e=>{
+    const f=e.target.files[0];if(!f)return;
+    if(!sel){msg("اختر العمل أولاً","err");return}
+    vRun(vFile(f),vTitle(box),ta(),box);e.target.value="";
+  };
+  box.querySelector(".vgo").onclick=async()=>{
+    const url=box.querySelector(".vurl").value.trim();
+    if(!sel)return msg("اختر العمل أولاً","err");
+    if(!/^https?:\/\//i.test(url))return msg("أدخل رابطاً مباشراً يبدأ بـ http","err");
+    if(!PUSH)return msg("ضع رابط الـ Worker في config.js أولاً","err");
+    st.textContent="فحص الرابط...";
+    try{
+      const p=await vPost("/vcdn-probe",{src:url});
+      vRun({name:/\.\w{2,4}$/.test(p.name)?p.name:p.name+".mp4",size:p.size,type:p.type,send:(id,off,len)=>vPost("/vcdn-pull",{src:url,uploadId:id,start:off,end:off+len-1})},vTitle(box),ta(),box);
+    }catch(e){st.innerHTML=`<i class="fas fa-circle-xmark" style="color:var(--p)"></i> ${esc(e.message)}`}
+  };
+});
 /* ───── البلاغات ───── */
 let reps=[];
 async function countReports(){

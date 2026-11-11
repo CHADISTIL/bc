@@ -1091,8 +1091,26 @@ function favFor(it){
     if(!user){openAuth("سجّل الدخول لحفظ المفضلة");return null}
     const b=document.createElement("button");b.dataset.fid=id;await toggleFav(b,it);return favSet.has(id)}};
 }
-function play(o){
+async function resolveV(o){
+  if(!o.quals||!o.quals.some(q=>/^vcdn:/i.test(q.url)))return true;
+  const base=window.SP_CONFIG&&SP_CONFIG.push;let embed="";const out=[];
+  for(const q of o.quals){
+    const m=/^vcdn:([\w-]+)$/i.exec(q.url);
+    if(!m){out.push(q);continue}
+    try{const j=await(await fetch(base+"/vcdn-play?id="+m[1])).json();embed=j.embed||embed;if(j.streamUrl)out.push({...q,url:j.streamUrl})}catch(e){}
+  }
+  if(out.length){o.quals=out;return true}
+  if(embed){
+    const d=document.createElement("div");d.style.cssText="position:fixed;inset:0;z-index:600;background:#000";
+    d.innerHTML=`<button style="position:absolute;top:12px;right:12px;z-index:2;width:42px;height:42px;border-radius:50%;border:0;background:rgba(255,255,255,.15);color:#fff"><i class="fas fa-xmark"></i></button><iframe src="${esc(embed)}" style="width:100%;height:100%;border:0" allow="autoplay;fullscreen;picture-in-picture" allowfullscreen></iframe>`;
+    d.querySelector("button").onclick=()=>{d.remove();try{o.onClose&&o.onClose()}catch(e){}};
+    document.body.appendChild(d);return false;
+  }
+  toast("تعذر تشغيل الفيديو");return false;
+}
+async function play(o){
   if(!window.JP){toast("المشغّل غير محمّل — تأكد من رفع player.js");return}
+  if(!await resolveV(o))return;
   if(o.rep){
     o.onReport=r=>addReport(o.rep,r);
     const R=o.rep,oc=o.onClose;
