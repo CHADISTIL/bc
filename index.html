@@ -288,7 +288,7 @@ html.embed #spFab{display:none}
 <div id="toast"></div>
 
 <script src="config.js"></script>
-<script src="player.js"></script>
+<script src="player.js?v=4"></script>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {getAuth,onAuthStateChanged,GoogleAuthProvider,signInWithPopup,signInWithEmailAndPassword,createUserWithEmailAndPassword,signOut,updateProfile,sendPasswordResetEmail,deleteUser}
@@ -1080,7 +1080,7 @@ async function openDetail(type,id,epSel){
       setT(false);
       t.onclick=()=>{
       if(t.dataset.back){JP.endTrailer();setT(false);return}
-      if(JP.isOpen()&&JP.trailer(trailer.key)){setT(true);window.addEventListener("jp-close",()=>setT(false),{once:true});return}
+      if(JP.isOpen()&&JP.trailer&&JP.trailer(trailer.key)){setT(true);window.addEventListener("jp-close",()=>setT(false),{once:true});return}
 
       const bodyEl=$("#acts").closest(".d-body"),dt=$("#detail");
       setPres({k:"watch",label:it.title+" (Trailer)",type,tmdbId:id});

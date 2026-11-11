@@ -1076,11 +1076,8 @@ function openDownload(){
       triggerSave(new Blob(['﻿'+v],{type:'text/vtt;charset=utf-8'}),safe+'.vtt');closeModal();toast('تم تحميل الترجمة');
     };
     $('#dlV',b).onclick=function(){
-      $('#dlV',b).style.display='none';if(sub)sub.style.display='none';$('#dlPr',b).style.display='block';
-      setDl(0,'جاري التحميل...');
-      var e=startDl(base,safe,isHls(base));
-      $('#dlX',b).onclick=function(){e.ctl.abort();closeModal()};
-      $('#dlMin',b).onclick=function(){closeModal();showDlCircle()};
+      startDl(base,safe,isHls(base));
+      closeModal();showDlCircle();toast('أُضيف إلى التنزيلات الحالية');
     };
   });
 }
