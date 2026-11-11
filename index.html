@@ -39,8 +39,17 @@ background:rgba(22,33,62,.85);backdrop-filter:blur(12px);border-bottom:1px solid
 .search input{width:100%;padding:10px 40px 10px 14px;border:none;border-radius:22px;background:rgba(255,255,255,.1);color:#fff;font-size:.9em;outline:none}
 .search input:focus{background:rgba(255,255,255,.16);box-shadow:0 0 0 2px var(--primary)}
 .search i{position:absolute;right:14px;top:50%;transform:translateY(-50%);color:#aaa;font-size:.9em}
-.acct{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;font-weight:700}
-.acct img{width:100%;height:100%;object-fit:cover}
+.acct{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:700;position:relative}
+.acct img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.dlb{position:absolute;top:-4px;left:-4px;min-width:18px;height:18px;border-radius:99px;background:var(--primary);color:#fff;font-size:.62em;display:flex;align-items:center;justify-content:center;gap:2px;padding:0 4px;border:2px solid var(--bg,#0f0f1a);font-weight:800}
+.dlb i{animation:dlsp 1.2s linear infinite}@keyframes dlsp{to{transform:translateY(2px)}}
+.dl-pulse{animation:dlpl .6s ease 2}@keyframes dlpl{50%{transform:scale(1.25);box-shadow:0 0 0 8px rgba(255,71,87,.3)}}
+.dl-it{display:flex;align-items:center;gap:12px;padding:12px;border-radius:18px;background:rgba(255,255,255,.06);margin-bottom:8px}
+.dl-it .ic{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;flex:none;background:rgba(255,71,87,.15);color:var(--primary)}
+.dl-it .ic.ok{background:rgba(46,213,115,.15);color:#2ed573}.dl-it .ic.er{background:rgba(255,255,255,.08);color:#999}
+.dl-it .tx{flex:1;min-width:0}.dl-it .tx b{display:block;font-size:.88em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.dl-it .tx span{font-size:.74em;color:#8f93aa}
+.dl-bar{height:6px;border-radius:99px;background:rgba(255,255,255,.1);overflow:hidden;margin:7px 0 3px}.dl-bar i{display:block;height:100%;background:var(--primary);width:0;transition:width .3s}
+.dl-it button{border:0;border-radius:50%;width:34px;height:34px;background:rgba(255,255,255,.1);color:#ccc;cursor:pointer;flex:none}
 
 /* tabs */
 .tabs{display:flex;gap:8px;padding:10px 14px;overflow-x:auto;scrollbar-width:none}
@@ -235,7 +244,7 @@ html.embed #spFab{display:none}
 <div class="top">
   <div class="logo"><img src="icons/favicon.png" alt="">SP</div>
   <div class="search"><input id="q" placeholder="ابحث عن فيلم أو مسلسل أو أنمي..." autocomplete="off"><i class="fas fa-search"></i></div>
-  <button class="acct" id="acct" aria-label="الحساب"><i class="fas fa-user"></i></button>
+  <button class="acct" id="acct" data-dl-target aria-label="الحساب"><i class="fas fa-user"></i></button>
 </div>
 <div class="menu" id="menu"></div>
 
@@ -261,6 +270,7 @@ html.embed #spFab{display:none}
 <div class="ov-page" id="detail"></div>
 <div class="ov-page" id="person" style="z-index:110"></div>
 <div class="ov-page" id="acctPage" style="z-index:105"></div>
+<div class="ov-page" id="dlPage" style="z-index:106"></div>
 
 <div class="modal" id="authModal">
   <div class="mbox">
@@ -517,6 +527,42 @@ async function doSearch(q){
   }catch(e){m.innerHTML=`<div class="center">تعذر البحث</div>`}
 }
 
+
+/* ───── التحميلات ───── */
+const fmtSz=b=>!b?"":b>=1073741824?(b/1073741824).toFixed(2)+" GB":(b/1048576).toFixed(1)+" MB";
+const dAgo=t=>{const d=(Date.now()-t)/1000;return d<60?"الآن":d<3600?Math.floor(d/60)+" د":d<86400?Math.floor(d/3600)+" س":Math.floor(d/86400)+" ي"};
+function updDlBadge(){
+  const a=$("#acct");if(!a||!window.JP||!JP.dlList)return;
+  const n=JP.dlList().active.length;let b=a.querySelector(".dlb");
+  if(!n){if(b)b.remove();return}
+  if(!b){b=document.createElement("span");b.className="dlb";a.appendChild(b)}
+  b.innerHTML=`<i class="fas fa-arrow-down"></i>${n}`;
+}
+function drawDownloads(){
+  const ov=$("#dlPage");if(!ov.classList.contains("on"))return;
+  const L=JP.dlList();
+  const keep=ov.scrollTop;
+  ov.innerHTML=`<button class="d-back" id="dlback"><i class="fas fa-arrow-right"></i></button>
+  <div class="ac-hero" style="padding-bottom:16px"><div class="ac-av" style="font-size:1.8em;width:72px;height:72px"><i class="fas fa-download"></i></div><h2>التحميلات</h2><div class="em" style="direction:rtl">${L.active.length} جارية · ${L.past.length} سابقة</div></div>
+  <div style="padding:0 14px 30px">
+  ${L.active.length?`<div class="ac-cap" style="padding:0 4px">جارية الآن</div>`+L.active.map(e=>`<div class="dl-it"><span class="ic"><i class="fas fa-arrow-down"></i></span><div class="tx"><b>${esc(e.title)}</b><div class="dl-bar"><i style="width:${e.pct}%"></i></div><span>${e.pct}%${e.bytes?" · "+fmtSz(e.bytes):""}</span></div><button data-c="${e.id}" title="إلغاء"><i class="fas fa-xmark"></i></button></div>`).join(""):""}
+  <div class="ac-cap" style="padding:0 4px;display:flex;align-items:center">السجل السابق${L.past.length?`<button id="dlclr" style="margin-right:auto;border:0;background:none;color:#ff7a88;font-size:.9em;cursor:pointer">مسح الكل</button>`:""}</div>
+  ${L.past.length?L.past.map(e=>`<div class="dl-it"><span class="ic ${e.status==="done"?"ok":"er"}"><i class="fas fa-${e.status==="done"?"circle-check":"circle-exclamation"}"></i></span><div class="tx"><b>${esc(e.title)}</b><span>${e.status==="done"?"اكتمل":"فشل"}${e.size?" · "+fmtSz(e.size):""} · ${dAgo(e.ts)}</span></div><button data-r="${e.id}" title="حذف"><i class="fas fa-trash"></i></button></div>`).join(""):`<div class="nc-em" style="text-align:center;color:#777;padding:18px"><i class="fas fa-inbox" style="display:block;font-size:1.5em;margin-bottom:6px;opacity:.6"></i>لا توجد تحميلات سابقة</div>`}
+  </div>`;
+  ov.scrollTop=keep;
+  $("#dlback").onclick=closeDownloads;
+  ov.querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>JP.dlCancel(b.dataset.c));
+  ov.querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>JP.dlRemove(b.dataset.r));
+  const cl=$("#dlclr");if(cl)cl.onclick=()=>{if(confirm("مسح سجل التحميلات؟"))JP.dlClear()};
+}
+function openDownloads(){
+  if(!window.JP||!JP.dlList){toast("المشغّل غير محمّل");return}
+  $("#dlPage").classList.add("on");document.body.classList.add("lock");drawDownloads();
+  if(JP.dlShow)JP.dlShow();
+}
+function closeDownloads(){$("#dlPage").classList.remove("on");document.body.classList.remove("lock")}
+window.addEventListener("jp-dl",()=>{updDlBadge();drawDownloads()});
+window.addEventListener("jp-dl-open",openDownloads);
 /* ───── auth ───── */
 let user=null,favSet=new Set(),actors=new Map();
 onAuthStateChanged(auth,async u=>{
@@ -527,6 +573,7 @@ onAuthStateChanged(auth,async u=>{
     try{const s=await getDocs(collection(db,"users",u.uid,"favorites"));s.forEach(d=>favSet.add(d.id))}catch(e){}
     try{const s=await getDocs(collection(db,"users",u.uid,"actors"));s.forEach(d=>actors.set(d.id,d.data()))}catch(e){}
   }else a.innerHTML=`<i class="fas fa-user"></i>`;
+  updDlBadge();
   if(u){const pr=doc(db,"profiles",u.uid);getDoc(pr).then(sn=>setDoc(pr,{name:String(u.displayName||"").slice(0,80),email:String(u.email||"").slice(0,120),photo:String(u.photoURL||"").slice(0,300),provider:(u.providerData[0]&&u.providerData[0].providerId)||"",lastSeen:Date.now(),...(sn.exists()&&sn.data().createdAt?{}:{createdAt:Date.now()})},{merge:true})).catch(()=>{});pushPres()}
   const fb=$("#favBtn");if(fb)syncFav(fb);
   await loadHist();updateHistRow();updateActRow();if(curTab==="hist")showHist();if(curTab==="lib")showFavs();
@@ -535,8 +582,9 @@ $("#acct").onclick=e=>{
   e.stopPropagation();
   if(!user){openAuth();return}
   const m=$("#menu");
-  m.innerHTML=`<div><b>${esc(user.displayName||"حسابي")}</b></div><div class="em">${esc(user.email||"")}</div><button id="mp" style="color:#fff"><i class="fas fa-user"></i> صفحة حسابي</button><button id="lo"><i class="fas fa-right-from-bracket"></i> تسجيل الخروج</button>`;
+  m.innerHTML=`<div><b>${esc(user.displayName||"حسابي")}</b></div><div class="em">${esc(user.email||"")}</div><button id="mp" style="color:#fff"><i class="fas fa-user"></i> صفحة حسابي</button><button id="md" style="color:#fff"><i class="fas fa-download"></i> التحميلات</button><button id="lo"><i class="fas fa-right-from-bracket"></i> تسجيل الخروج</button>`;
   $("#mp").onclick=()=>{m.classList.remove("on");openAccount()};
+  $("#md").onclick=()=>{m.classList.remove("on");openDownloads()};
   m.classList.toggle("on");
   $("#lo").onclick=async()=>{await signOut(auth);m.classList.remove("on");toast("تم تسجيل الخروج")};
 };
@@ -660,6 +708,7 @@ async function openAccount(){
     <button class="ac-row" id="ac-nt"><span class="ic"><i class="fas fa-bell"></i></span>الإشعارات<small>${pOn?"مفعلة":"متوقفة"}</small></button></div>
   <div class="ac-cap">الحساب</div>
   <div class="ac-card">
+    <button class="ac-row" id="ac-dl"><span class="ic"><i class="fas fa-download"></i></span>التحميلات<small>${(window.JP&&JP.dlList?JP.dlList().past.length+JP.dlList().active.length:0)}</small></button>
     <button class="ac-row" id="ac-ch"><span class="ic"><i class="fas fa-eraser"></i></span>مسح سجل المشاهدة</button>
     <button class="ac-row" id="ac-lo"><span class="ic"><i class="fas fa-right-from-bracket"></i></span>تسجيل الخروج</button>
     <button class="ac-row red" id="ac-del"><span class="ic"><i class="fas fa-user-xmark"></i></span>حذف الحساب وكل بياناتي</button></div>
@@ -677,6 +726,7 @@ async function openAccount(){
     try{await updateProfile(u,{displayName:n});setDoc(doc(db,"profiles",u.uid),{name:n},{merge:true}).catch(()=>{});toast("تم حفظ الاسم");openAccount()}catch(e){toast("تعذر الحفظ")}
   };
   const pw=$("#ac-pw");if(pw)pw.onclick=async()=>{try{await sendPasswordResetEmail(auth,u.email);toast("أُرسل رابط تغيير كلمة المرور إلى بريدك")}catch(e){toast("تعذر الإرسال")}};
+  $("#ac-dl").onclick=()=>openDownloads();
   $("#ac-ch").onclick=async()=>{
     if(!confirm("مسح كل سجل المشاهدة؟"))return;
     const keys=[...histCache.keys()];histCache=new Map();
@@ -1014,15 +1064,24 @@ async function openDetail(type,id,epSel){
     if(type==="movie"){
       if(quals.length){
         const bodyEl=ov.querySelector(".d-body");
+        const pre={quals};
+        if(quals.some(q=>/^vcdn:/i.test(q.url)))toast("جارٍ تحضير الفيديو...");
+        if(!await resolveV(pre))return;
         closeDetail();
         const h=histTrack(it,0,0);
-        play({...h,title:it.title,quals,subtitle:link.subtitle,poster:it.poster,backdrop:d.backdrop_path?IMG+"w1280"+d.backdrop_path:it.poster,chips:[it.year,"فيلم"].filter(Boolean),kind:"movie",fav:favFor(it),slot:bodyEl,shareUrl:shareLink("movie",id),embedUrl:embedLink("movie",id),onClose:()=>setHash("")});
+        play({...h,title:it.title,quals:pre.quals,refresh:pre.refresh,subtitle:link.subtitle,poster:it.poster,backdrop:d.backdrop_path?IMG+"w1280"+d.backdrop_path:it.poster,chips:[it.year,"فيلم"].filter(Boolean),kind:"movie",fav:favFor(it),slot:bodyEl,shareUrl:shareLink("movie",id),embedUrl:embedLink("movie",id),onClose:()=>setHash("")});
         setHash(`#/movie/${id}`);
       }else{
         const b=document.createElement("button");b.className="btn sec";b.innerHTML=`<i class="fas fa-clock"></i> غير متوفر بعد`;b.style.cssText="opacity:.6;cursor:default";b.onclick=()=>toast("لم يُضف رابط المشاهدة بعد");acts.appendChild(b);
       }
     }
-    if(trailer){const t=document.createElement("button");t.className="btn sec";t.innerHTML=`<i class="fab fa-youtube"></i> التريلر`;t.onclick=()=>{
+    if(trailer){const t=document.createElement("button");t.className="btn sec";
+      const setT=b=>{t.dataset.back=b?"1":"";t.innerHTML=b?`<i class="fas fa-rotate-left"></i> العودة لمشاهدة الفيلم`:`<i class="fab fa-youtube"></i> التريلر`};
+      setT(false);
+      t.onclick=()=>{
+      if(t.dataset.back){JP.endTrailer();setT(false);return}
+      if(JP.isOpen()&&JP.trailer(trailer.key)){setT(true);window.addEventListener("jp-close",()=>setT(false),{once:true});return}
+
       const bodyEl=$("#acts").closest(".d-body"),dt=$("#detail");
       setPres({k:"watch",label:it.title+" (Trailer)",type,tmdbId:id});
       play({title:it.title+" - Trailer",yt:trailer.key,poster:it.poster,backdrop:d.backdrop_path?IMG+"w1280"+d.backdrop_path:it.poster,kind:"trailer",chips:[],slot:bodyEl,fav:favFor(it),shareUrl:shareLink(type,id),onClose:()=>{if(dt.classList.contains("on")&&bodyEl.parentNode!==dt)dt.appendChild(bodyEl);backPres()}})};acts.appendChild(t)}
