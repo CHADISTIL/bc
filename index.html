@@ -288,7 +288,7 @@ html.embed #spFab{display:none}
 <div id="toast"></div>
 
 <script src="config.js"></script>
-<script src="player.js?v=6"></script>
+<script src="player.js?v=7"></script>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {getAuth,onAuthStateChanged,GoogleAuthProvider,signInWithPopup,signInWithEmailAndPassword,createUserWithEmailAndPassword,signOut,updateProfile,sendPasswordResetEmail,deleteUser}
@@ -547,12 +547,13 @@ function drawDownloads(){
   <div style="padding:0 14px 30px">
   ${L.active.length?`<div class="ac-cap" style="padding:0 4px">جارية الآن</div>`+L.active.map(e=>`<div class="dl-it"><span class="ic"><i class="fas fa-arrow-down"></i></span><div class="tx"><b>${esc(e.title)}</b><div class="dl-bar"><i style="width:${e.pct}%"></i></div><span>${e.status==="paused"?`<i class="fas fa-pause"></i> ${esc(e.err||"متوقف مؤقتاً")} · `:""}${e.pct}%${e.bytes?" · "+fmtSz(e.bytes):""}</span></div><button data-p="${e.id}" data-s="${e.status}" title="${e.status==="paused"?"استئناف":"إيقاف مؤقت"}"><i class="fas fa-${e.status==="paused"?"play":"pause"}"></i></button><button data-c="${e.id}" title="إلغاء"><i class="fas fa-xmark"></i></button></div>`).join(""):""}
   <div class="ac-cap" style="padding:0 4px;display:flex;align-items:center">السجل السابق${L.past.length?`<button id="dlclr" style="margin-right:auto;border:0;background:none;color:#ff7a88;font-size:.9em;cursor:pointer">مسح الكل</button>`:""}</div>
-  ${L.past.length?L.past.map(e=>`<div class="dl-it"><span class="ic ${e.status==="done"?"ok":"er"}"><i class="fas fa-${e.status==="done"?"circle-check":"circle-exclamation"}"></i></span><div class="tx"><b>${esc(e.title)}</b><span>${e.status==="done"?"اكتمل":"فشل"}${e.size?" · "+fmtSz(e.size):""} · ${dAgo(e.ts)}</span></div><button data-r="${e.id}" title="حذف"><i class="fas fa-trash"></i></button></div>`).join(""):`<div class="nc-em" style="text-align:center;color:#777;padding:18px"><i class="fas fa-inbox" style="display:block;font-size:1.5em;margin-bottom:6px;opacity:.6"></i>لا توجد تحميلات سابقة</div>`}
+  ${L.past.length?L.past.map(e=>`<div class="dl-it"><span class="ic ${e.status==="done"?"ok":"er"}"><i class="fas fa-${e.status==="done"?"circle-check":"circle-exclamation"}"></i></span><div class="tx"><b>${esc(e.title)}</b><span>${e.status==="done"?"اكتمل":"فشل"}${e.size?" · "+fmtSz(e.size):""} · ${dAgo(e.ts)}${e.key&&JP.hasLocal(e.key)?" · محفوظ":""}</span></div>${e.status==="done"&&e.rep?`<button data-o="${e.id}" title="تشغيل"><i class="fas fa-play"></i></button>`:""}<button data-r="${e.id}" title="حذف"><i class="fas fa-trash"></i></button></div>`).join(""):`<div class="nc-em" style="text-align:center;color:#777;padding:18px"><i class="fas fa-inbox" style="display:block;font-size:1.5em;margin-bottom:6px;opacity:.6"></i>لا توجد تحميلات سابقة</div>`}
   </div>`;
   ov.scrollTop=keep;
   $("#dlback").onclick=closeDownloads;
   ov.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>b.dataset.s==="paused"?JP.dlResume(b.dataset.p):JP.dlPause(b.dataset.p));
   ov.querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>JP.dlCancel(b.dataset.c));
+  ov.querySelectorAll("[data-o]").forEach(b=>b.onclick=()=>{const x=JP.dlList().past.find(z=>z.id===b.dataset.o);if(!x||!x.rep)return;const r=x.rep;closeDownloads();location.hash=r.type==="tv"?`#/tv/${r.tmdbId}/${r.season||1}/${r.episode||1}`:`#/movie/${r.tmdbId}`});
   ov.querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>JP.dlRemove(b.dataset.r));
   const cl=$("#dlclr");if(cl)cl.onclick=()=>{if(confirm("مسح سجل التحميلات؟"))JP.dlClear()};
 }
