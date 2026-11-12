@@ -1035,11 +1035,14 @@ async function runMp4(e,sig){
   var buf=[],bl=0;
   var flush=async function(){if(!bl)return;var b=new Blob(buf,{type:'video/mp4'});buf=[];bl=0;await pStore(e,e.parts,b);e.parts++;dlMeta()};
   var r=await getRes(e.url,sig,false,e.bytes?{Range:'bytes='+e.bytes+'-'}:null);
-  if(e.bytes&&r.status!==206){e.bytes=0;e.total=0;await pClear(e);e.parts=0}
+  var skip=0;
+  if(e.bytes&&r.status!==206){skip=e.bytes}
   var cr=/\/(\d+)/.exec(r.headers.get('content-range')||'');
   if(!e.total)e.total=cr?+cr[1]:(+r.headers.get('content-length')||0);
   var rd=r.body.getReader();
-  try{for(;;){var x=await rd.read();if(x.done)break;buf.push(x.value);bl+=x.value.length;e.bytes+=x.value.length;if(bl>=4194304)await flush();upd(e)}}
+  try{for(;;){var x=await rd.read();if(x.done)break;var v=x.value;
+    if(skip>0){if(v.length<=skip){skip-=v.length;continue}v=v.subarray(skip);skip=0}
+    buf.push(v);bl+=v.length;e.bytes+=v.length;if(bl>=4194304)await flush();upd(e)}}
   catch(err){await flush();throw err}
   await flush();
   return pAssemble(e,'video/mp4');
@@ -1097,7 +1100,7 @@ function dlRestore(){
 window.addEventListener('online',function(){DLS.forEach(function(e){if(e.status==='paused'&&!e.userPaused&&!e.running)dlRun(e)})});
 dlRestore();
 function dlPause(id){DLS.forEach(function(e){if(e.id===id){e.userPaused=true;clearTimeout(e.timer);if(e.running)e.ctl.abort();else{e.status='paused';e.err='';dlEmit();updDlCircle()}}})}
-function dlResume(id){DLS.forEach(function(e){if(e.id===id){e.retries=0;e.userPaused=false;dlRun(e)}})}
+function dlResume(id){DLS.forEach(function(e){if(e.id===id){e.retries=0;e.userPaused=false;var go=function(){if(e.running)setTimeout(go,100);else dlRun(e)};go()}})}
 function dlCancelId(id){DLS.forEach(function(e){if(e.id===id){e.cancelled=true;clearTimeout(e.timer);try{e.ctl&&e.ctl.abort()}catch(x){}pClear(e);dlFinish(e,'canceled')}})}
 /* الدائرة الصغيرة (مثل Messenger): تُسحب، وتُرمى على علامة × بالأسفل لإخفائها */
 function showDlCircle(){
@@ -1121,9 +1124,9 @@ function showDlCircle(){
     c.style.top=Math.max(4,Math.min(window.innerHeight-c.offsetHeight-4,d.t+dy))+'px';
     tg.classList.toggle('hot',near());
   });
-  var end=function(){
-    if(!d)return;var m=d.m;d=null;
-    if(!m){window.dispatchEvent(new CustomEvent('jp-dl-open'));return}
+  var end=function(ev){
+    if(!d)return;if(ev&&ev.type==='pointercancel'){d.m=true}var m=d.m;d=null;
+    if(!m){if(S.open){if(S.mini)exitMini();openDownload(true)}else window.dispatchEvent(new CustomEvent('jp-dl-open'));return}
     var hit=tg&&near(),t=tg;tg=null;
     if(hit){
       var b=t.getBoundingClientRect();
@@ -1142,21 +1145,30 @@ function updDlCircle(){
 }
 function removeDlCircle(){if(dl.circle){dl.circle.remove();dl.circle=null}}
 function hideDlCircle(){dl.hidden=true;removeDlCircle();dlEmit()}
-function openDownload(){
+function openDownload(fromCircle){
   if(S.opts&&S.opts.yt){toast('لا يمكن تنزيل الإعلان');return}
   var base=S.curUrl||(S.opts&&S.opts.quals&&S.opts.quals[0]&&S.opts.quals[0].url);
   if(!base){toast('لا يوجد رابط للتحميل');return}
   if(isFs())exitFs();
   var safe=((S.opts&&S.opts.title)||'video').replace(/[\/\\:*?"<>|]/g,'_');
   modal('تحميل','fa-download',function(b){
-    b.innerHTML='<button class="jp-opt" id="dlV"><i class="fas fa-film" style="color:#ff4757"></i>تحميل الفيديو<span class="v">'+(isHls(base)?'HLS - TS':'MP4')+'</span></button>'
+    var act=document.createElement('div');b.appendChild(act);
+    var draw=function(){
+      if(S.modal&&!b.isConnected){window.removeEventListener('jp-dl',draw);return}
+      act.innerHTML=DLS.map(function(e){return '<div class="jp-opt" style="cursor:default;gap:10px"><i class="fas fa-arrow-down" style="color:#ff4757"></i><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(e.title||'')+'</span><span class="v">'+(e.status==='paused'?'متوقف · ':'')+e.pct+'%</span><button data-p="'+e.id+'" style="border:0;background:rgba(255,255,255,.1);color:#fff;border-radius:50%;width:30px;height:30px"><i class="fas fa-'+(e.status==='paused'?'play':'pause')+'"></i></button><button data-c="'+e.id+'" style="border:0;background:rgba(255,255,255,.1);color:#fff;border-radius:50%;width:30px;height:30px"><i class="fas fa-xmark"></i></button></div>'}).join('');
+      [].forEach.call(act.querySelectorAll('[data-p]'),function(x){x.onclick=function(){var e=DLS.filter(function(z){return z.id===x.dataset.p})[0];if(e)e.status==='paused'?dlResume(e.id):dlPause(e.id)}});
+      [].forEach.call(act.querySelectorAll('[data-c]'),function(x){x.onclick=function(){dlCancelId(x.dataset.c)}});
+    };
+    draw();window.addEventListener('jp-dl',draw);
+    var box=document.createElement('div');b.appendChild(box);
+    box.innerHTML='<button class="jp-opt" id="dlV"><i class="fas fa-film" style="color:#ff4757"></i>تحميل الفيديو<span class="v">'+(isHls(base)?'HLS - TS':'MP4')+'</span></button>'
       +(S.subText?'<button class="jp-opt" id="dlSub"><i class="fas fa-closed-captioning" style="color:#5352ed"></i>تحميل الترجمة<span class="v">VTT</span></button>':'');
-    var sub=$('#dlSub',b);
+    var sub=$('#dlSub',box);
     if(sub)sub.onclick=function(){
       var v=S.subText.trim().indexOf('WEBVTT')===0?S.subText:'WEBVTT\n\n'+S.subText.replace(/\r/g,'').replace(/(\d+:\d+:\d+),(\d+)/g,'$1.$2');
       triggerSave(new Blob(['﻿'+v],{type:'text/vtt;charset=utf-8'}),safe+'.vtt');closeModal();toast('تم تحميل الترجمة');
     };
-    $('#dlV',b).onclick=function(){
+    $('#dlV',box).onclick=function(){
       startDl(base,safe,isHls(base));
       closeModal();showDlCircle();toast('أُضيف إلى التنزيلات الحالية');
     };

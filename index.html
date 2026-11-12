@@ -288,7 +288,7 @@ html.embed #spFab{display:none}
 <div id="toast"></div>
 
 <script src="config.js"></script>
-<script src="player.js?v=5"></script>
+<script src="player.js?v=6"></script>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {getAuth,onAuthStateChanged,GoogleAuthProvider,signInWithPopup,signInWithEmailAndPassword,createUserWithEmailAndPassword,signOut,updateProfile,sendPasswordResetEmail,deleteUser}
@@ -860,7 +860,7 @@ function actorChip(a){
 const actList=()=>[...actors.values()].sort((a,b)=>(b.addedAt||0)-(a.addedAt||0));
 function updateActRow(){
   const old=$("#actSec");if(old)old.remove();
-  if(curTab!=="home"||!actors.size)return;
+  return;
   const m=$("#main");if(!m||!m.querySelector(".sec"))return;
   const s=document.createElement("section");s.className="sec";s.id="actSec";
   s.innerHTML=`<div class="sec-h"><div class="sec-t"><i class="fas fa-star"></i>ممثلوني المفضلون</div></div><div class="cast" style="padding:0 14px"></div>`;
