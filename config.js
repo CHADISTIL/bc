@@ -1,5 +1,6 @@
-// إعدادات الإشعارات — عدّل السطر الأول فقط بعد إنشاء الـ Worker
+// إعدادات التطبيق
 self.SP_CONFIG={
-  push: "https://sp-push.chadi-fot.workers.dev",   // ← ضع هنا رابط الـ Worker مثل: https://sp-push.اسمك.workers.dev  (بدون / في النهاية)
+  push: "https://sp-push.chadi-fot.workers.dev",   // رابط الـ Worker (بدون / في النهاية)
+  cloudinary: { cloud: "cbp0wt4g", preset: "sp_avatars" },   // رفع صور الحسابات (Unsigned preset) — لا تضع API Secret هنا أبداً
   vapid: "BORERBhsRVaw5hgQTA--bAHRyxdsWVH_cX2hcb8qYjaMsFVD7xg7X25BufRLTkOLnIUJ_JkJsB_7llTLt0zitu4"
 };
