@@ -288,7 +288,7 @@ html.embed #spFab{display:none}
 <div id="toast"></div>
 
 <script src="config.js"></script>
-<script src="player.js?v=4"></script>
+<script src="player.js?v=5"></script>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {getAuth,onAuthStateChanged,GoogleAuthProvider,signInWithPopup,signInWithEmailAndPassword,createUserWithEmailAndPassword,signOut,updateProfile,sendPasswordResetEmail,deleteUser}
@@ -543,14 +543,15 @@ function drawDownloads(){
   const L=JP.dlList();
   const keep=ov.scrollTop;
   ov.innerHTML=`<button class="d-back" id="dlback"><i class="fas fa-arrow-right"></i></button>
-  <div class="ac-hero" style="padding-bottom:16px"><div class="ac-av" style="font-size:1.8em;width:72px;height:72px"><i class="fas fa-download"></i></div><h2>التحميلات</h2><div class="em" style="direction:rtl">${L.active.length} جارية · ${L.past.length} سابقة</div></div>
+  <div class="ac-hero" style="padding-bottom:16px"><div class="ac-av" style="font-size:1.8em;width:72px;height:72px"><i class="fas fa-download"></i></div><h2>التحميلات</h2><div class="em" style="direction:rtl">${L.active.length} حالية · ${L.past.length} سابقة</div></div>
   <div style="padding:0 14px 30px">
-  ${L.active.length?`<div class="ac-cap" style="padding:0 4px">جارية الآن</div>`+L.active.map(e=>`<div class="dl-it"><span class="ic"><i class="fas fa-arrow-down"></i></span><div class="tx"><b>${esc(e.title)}</b><div class="dl-bar"><i style="width:${e.pct}%"></i></div><span>${e.pct}%${e.bytes?" · "+fmtSz(e.bytes):""}</span></div><button data-c="${e.id}" title="إلغاء"><i class="fas fa-xmark"></i></button></div>`).join(""):""}
+  ${L.active.length?`<div class="ac-cap" style="padding:0 4px">جارية الآن</div>`+L.active.map(e=>`<div class="dl-it"><span class="ic"><i class="fas fa-arrow-down"></i></span><div class="tx"><b>${esc(e.title)}</b><div class="dl-bar"><i style="width:${e.pct}%"></i></div><span>${e.status==="paused"?`<i class="fas fa-pause"></i> ${esc(e.err||"متوقف مؤقتاً")} · `:""}${e.pct}%${e.bytes?" · "+fmtSz(e.bytes):""}</span></div><button data-p="${e.id}" data-s="${e.status}" title="${e.status==="paused"?"استئناف":"إيقاف مؤقت"}"><i class="fas fa-${e.status==="paused"?"play":"pause"}"></i></button><button data-c="${e.id}" title="إلغاء"><i class="fas fa-xmark"></i></button></div>`).join(""):""}
   <div class="ac-cap" style="padding:0 4px;display:flex;align-items:center">السجل السابق${L.past.length?`<button id="dlclr" style="margin-right:auto;border:0;background:none;color:#ff7a88;font-size:.9em;cursor:pointer">مسح الكل</button>`:""}</div>
   ${L.past.length?L.past.map(e=>`<div class="dl-it"><span class="ic ${e.status==="done"?"ok":"er"}"><i class="fas fa-${e.status==="done"?"circle-check":"circle-exclamation"}"></i></span><div class="tx"><b>${esc(e.title)}</b><span>${e.status==="done"?"اكتمل":"فشل"}${e.size?" · "+fmtSz(e.size):""} · ${dAgo(e.ts)}</span></div><button data-r="${e.id}" title="حذف"><i class="fas fa-trash"></i></button></div>`).join(""):`<div class="nc-em" style="text-align:center;color:#777;padding:18px"><i class="fas fa-inbox" style="display:block;font-size:1.5em;margin-bottom:6px;opacity:.6"></i>لا توجد تحميلات سابقة</div>`}
   </div>`;
   ov.scrollTop=keep;
   $("#dlback").onclick=closeDownloads;
+  ov.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>b.dataset.s==="paused"?JP.dlResume(b.dataset.p):JP.dlPause(b.dataset.p));
   ov.querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>JP.dlCancel(b.dataset.c));
   ov.querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>JP.dlRemove(b.dataset.r));
   const cl=$("#dlclr");if(cl)cl.onclick=()=>{if(confirm("مسح سجل التحميلات؟"))JP.dlClear()};
@@ -558,7 +559,6 @@ function drawDownloads(){
 function openDownloads(){
   if(!window.JP||!JP.dlList){toast("المشغّل غير محمّل");return}
   $("#dlPage").classList.add("on");document.body.classList.add("lock");drawDownloads();
-  if(JP.dlShow)JP.dlShow();
 }
 function closeDownloads(){$("#dlPage").classList.remove("on");document.body.classList.remove("lock")}
 window.addEventListener("jp-dl",()=>{updDlBadge();drawDownloads()});
@@ -1064,12 +1064,9 @@ async function openDetail(type,id,epSel){
     if(type==="movie"){
       if(quals.length){
         const bodyEl=ov.querySelector(".d-body");
-        const pre={quals};
-        if(quals.some(q=>/^vcdn:/i.test(q.url)))toast("جارٍ تحضير الفيديو...");
-        if(!await resolveV(pre))return;
         closeDetail();
         const h=histTrack(it,0,0);
-        play({...h,title:it.title,quals:pre.quals,refresh:pre.refresh,subtitle:link.subtitle,poster:it.poster,backdrop:d.backdrop_path?IMG+"w1280"+d.backdrop_path:it.poster,chips:[it.year,"فيلم"].filter(Boolean),kind:"movie",fav:favFor(it),slot:bodyEl,shareUrl:shareLink("movie",id),embedUrl:embedLink("movie",id),onClose:()=>setHash("")});
+        play({...h,title:it.title,quals,subtitle:link.subtitle,poster:it.poster,backdrop:d.backdrop_path?IMG+"w1280"+d.backdrop_path:it.poster,chips:[it.year,"فيلم"].filter(Boolean),kind:"movie",fav:favFor(it),slot:bodyEl,shareUrl:shareLink("movie",id),embedUrl:embedLink("movie",id),onClose:()=>setHash("")});
         setHash(`#/movie/${id}`);
       }else{
         const b=document.createElement("button");b.className="btn sec";b.innerHTML=`<i class="fas fa-clock"></i> غير متوفر بعد`;b.style.cssText="opacity:.6;cursor:default";b.onclick=()=>toast("لم يُضف رابط المشاهدة بعد");acts.appendChild(b);
@@ -1150,26 +1147,32 @@ function favFor(it){
     if(!user){openAuth("سجّل الدخول لحفظ المفضلة");return null}
     const b=document.createElement("button");b.dataset.fid=id;await toggleFav(b,it);return favSet.has(id)}};
 }
-async function resolveV(o){
-  if(!o.quals||!o.quals.some(q=>/^vcdn:/i.test(q.url)))return true;
+async function resolveQ(quals){
   const base=window.SP_CONFIG&&SP_CONFIG.push;let embed="";const out=[];
-  for(const q of o.quals){
+  for(const q of quals){
     const m=/^vcdn:([\w-]+)$/i.exec(q.url);
     if(!m){out.push(q);continue}
     try{const j=await(await fetch(base+"/vcdn-play?id="+m[1])).json();embed=j.embed||embed;if(j.streamUrl)out.push({...q,url:j.streamUrl,vid:m[1]});else console.warn("vcdn",j)}catch(e){}
   }
-  if(out.length){o.quals=out;o.refresh=async q=>{try{const j=await(await fetch(base+"/vcdn-play?id="+q.vid)).json();return j.streamUrl||""}catch(e){return""}};return true}
-  if(embed){
-    const d=document.createElement("div");d.style.cssText="position:fixed;inset:0;z-index:600;background:#000";
-    d.innerHTML=`<button style="position:absolute;top:12px;right:12px;z-index:2;width:42px;height:42px;border-radius:50%;border:0;background:rgba(255,255,255,.15);color:#fff"><i class="fas fa-xmark"></i></button><iframe src="${esc(embed)}" style="width:100%;height:100%;border:0" allow="autoplay;fullscreen;picture-in-picture" allowfullscreen></iframe>`;
-    d.querySelector("button").onclick=()=>{d.remove();try{o.onClose&&o.onClose()}catch(e){}};
-    document.body.appendChild(d);return false;
-  }
-  toast("تعذر تشغيل الفيديو");return false;
+  return{quals:out,embed,refresh:async q=>{try{const j=await(await fetch(base+"/vcdn-play?id="+q.vid)).json();return j.streamUrl||""}catch(e){return""}}};
+}
+function showEmbed(embed,o){
+  const d=document.createElement("div");d.style.cssText="position:fixed;inset:0;z-index:600;background:#000";
+  d.innerHTML=`<button style="position:absolute;top:12px;right:12px;z-index:2;width:42px;height:42px;border-radius:50%;border:0;background:rgba(255,255,255,.15);color:#fff"><i class="fas fa-xmark"></i></button><iframe src="${esc(embed)}" style="width:100%;height:100%;border:0" allow="autoplay;fullscreen;picture-in-picture" allowfullscreen></iframe>`;
+  d.querySelector("button").onclick=()=>{d.remove();try{o.onClose&&o.onClose()}catch(e){}};
+  document.body.appendChild(d);
 }
 async function play(o){
   if(!window.JP){toast("المشغّل غير محمّل — تأكد من رفع player.js");return}
-  if(!await resolveV(o))return;
+  if(o.quals&&o.quals.some(q=>/^vcdn:/i.test(q.url))){
+    const q0=o.quals;
+    o.resolve=async()=>{
+      const r=await resolveQ(q0);
+      if(r.quals.length)return{quals:r.quals,refresh:r.refresh};
+      if(r.embed){try{JP.close()}catch(e){}showEmbed(r.embed,o);return null}
+      toast("تعذر تشغيل الفيديو");try{JP.close()}catch(e){}return null;
+    };
+  }
   if(o.rep){
     o.onReport=r=>addReport(o.rep,r);
     const R=o.rep,oc=o.onClose;
@@ -1178,6 +1181,7 @@ async function play(o){
   }
   JP.open(o);
 }
+(function(){const f=()=>{if(window.JP&&JP.setRefresher)JP.setRefresher(async v=>{try{const j=await(await fetch(SP_CONFIG.push+"/vcdn-play?id="+v)).json();return j.streamUrl||""}catch(e){return""}});else setTimeout(f,500)};f()})();
 getDoc(doc(db,"settings","vast")).then(s=>{if(s.exists()&&window.JP)JP.configure({vast:s.data()})}).catch(()=>{});
 
 async function runEmbed(type,id,se,ep){
