@@ -210,7 +210,7 @@ html.boot body::after{content:"";position:fixed;inset:0;background:#000;z-index:
 .g-btn{width:100%;background:#fff;color:#222;border-radius:10px;padding:11px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:12px}
 .sep{text-align:center;color:#777;font-size:.75em;margin:6px 0 10px}
 .err{color:#ff6b7a;font-size:.78em;min-height:1.2em;margin-bottom:8px;text-align:center}
-.menu{position:absolute;top:56px;left:12px;background:#1a1a2e;border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:6px;min-width:180px;z-index:60;display:none;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+.menu{position:fixed;top:56px;left:12px;max-width:calc(100vw - 16px);max-height:calc(100vh - 80px);overflow:auto;background:#1a1a2e;border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:6px;min-width:180px;z-index:80;display:none;box-shadow:0 10px 30px rgba(0,0,0,.5)}
 .menu.on{display:block}
 .menu div{padding:10px 12px;font-size:.85em;border-radius:8px}
 .menu .em{color:#aaa;font-size:.75em;word-break:break-all}
@@ -237,6 +237,7 @@ html.embed #spFab{display:none}
 .nav button{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:.7em;color:#aaa;padding:4px 10px}
 .nav button i{font-size:1.4em}
 .nav button.on{color:var(--primary)}
+.skr{display:flex;gap:10px;padding:0 14px;overflow:hidden}.skr i,.skh{background:linear-gradient(90deg,#1b1b2b,#26263a,#1b1b2b);background-size:200% 100%;animation:skm 1.2s infinite}.skr i{flex:none;width:112px;height:168px;border-radius:12px}.skh{height:230px;margin:0 14px 14px;border-radius:18px}@keyframes skm{to{background-position:-200% 0}}
 </style>
 </head>
 <body>
@@ -287,13 +288,13 @@ html.embed #spFab{display:none}
 </div>
 <div id="toast"></div>
 
-<script src="config.js"></script>
-<script src="player.js?v=7"></script>
+<link rel="preconnect" href="https://api.themoviedb.org"><link rel="preconnect" href="https://image.tmdb.org"><link rel="preconnect" href="https://firestore.googleapis.com"><script src="config.js"></script>
+<script src="player.js?v=8"></script>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {getAuth,onAuthStateChanged,GoogleAuthProvider,signInWithPopup,signInWithEmailAndPassword,createUserWithEmailAndPassword,signOut,updateProfile,sendPasswordResetEmail,deleteUser}
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import {getFirestore,doc,getDoc,setDoc,deleteDoc,updateDoc,addDoc,increment,collection,getDocs,query,orderBy,limit}
+import {initializeFirestore,persistentLocalCache,persistentMultipleTabManager,getFirestore,doc,getDoc,setDoc,deleteDoc,updateDoc,addDoc,increment,collection,getDocs,query,orderBy,limit}
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const app=initializeApp({
@@ -304,7 +305,7 @@ const app=initializeApp({
   messagingSenderId:"882928806115",
   appId:"1:882928806115:web:e73f9dc43ed6f4d1e67dd6"
 });
-const auth=getAuth(app), db=getFirestore(app);
+const auth=getAuth(app), db=(()=>{try{return initializeFirestore(app,{localCache:persistentLocalCache({tabManager:persistentMultipleTabManager()})})}catch(e){return getFirestore(app)}})();
 
 /* ───── TMDB ───── */
 const KEY="1427d0e123035564137327f27f47c86c", API="https://api.themoviedb.org/3", IMG="https://image.tmdb.org/t/p/";
@@ -327,6 +328,7 @@ function norm(x,type){
     overview:x.overview||""};
 }
 let hid=new Set();
+const cfgP=getDoc(doc(db,"settings","home")).catch(()=>null);
 const hidP=getDoc(doc(db,"settings","hidden")).then(s=>{if(s.exists())hid=new Set(s.data().items||[])}).catch(()=>{});
 const list=(r,type,keep)=>(r.results||[]).filter(x=>(x.media_type||type)!=="person"&&x.poster_path&&(keep||!hid.has((x.media_type||type)+"_"+x.id))).map(x=>norm(x,type));
 const ANIME={with_genres:"16",with_original_language:"ja"};
@@ -404,9 +406,9 @@ const DEFAULT_HOME={hero:"trend",sections:[
  {id:"atop",title:"الأنمي الأعلى تقييماً",icon:"fa-crown",source:"top",mtype:"anime",limit:20,more:true,enabled:true}]};
 let homeCfg=null;
 async function loadHomeCfg(){
-  await hidP;
+  const [,s]=await Promise.all([hidP,cfgP]);
   if(homeCfg)return homeCfg;
-  try{const s=await getDoc(doc(db,"settings","home"));if(s.exists()&&Array.isArray(s.data().sections)&&s.data().sections.length)homeCfg=s.data()}catch(e){}
+  try{if(s&&s.exists()&&Array.isArray(s.data().sections)&&s.data().sections.length)homeCfg=s.data()}catch(e){}
   return homeCfg||(homeCfg=DEFAULT_HOME);
 }
 const today=()=>new Date().toISOString().slice(0,10);
@@ -448,26 +450,49 @@ async function fetchSection(sc){
 }
 let heroTimer;
 async function renderHome(){
-  const m=$("#main");m.innerHTML=spinner();clearInterval(heroTimer);
-  try{
-    const cfg=await loadHomeCfg();
-    const secs=cfg.sections.filter(x=>x.enabled!==false);
-    const res=await Promise.all(secs.map(x=>fetchSection(x).catch(()=>[])));
+  const m=$("#main");clearInterval(heroTimer);
+  let snap=null;try{snap=JSON.parse(localStorage.getItem("sp_home")||"null")}catch(e){}
+  const heroOf=(cfg,secs,res)=>{if(cfg.hero==="")return[];let hi=secs.findIndex(x=>x.id===cfg.hero);if(hi<0)hi=0;return(res[hi]||[]).filter(x=>x.backdrop).slice(0,5)};
+  const arabic=items=>Promise.all(items.map(async x=>{try{const a=await tm(`/${x.type}/${x.id}`,{language:"ar"});if(a.overview)x.overview=a.overview}catch(e){}}));
+  const mkHero=async items=>{if(!items.length)return null;await Promise.race([arabic(items),new Promise(r=>setTimeout(r,700))]);return buildHero(items)};
+  const mkRow=(x,items)=>{const more=x.more&&(x.source==="popular"||x.source==="top")&&SRC[x.mtype]?[x.mtype,x.source==="top"?"top":"pop"]:null;return row(x.title,x.icon||"fa-film",items,more)};
+  const mount=async(cfg,secs,res)=>{
+    const hr=await mkHero(heroOf(cfg,secs,res));
     if(curTab!=="home")return;
-    m.innerHTML="";
-    if(cfg.hero!==""){
-      let hi=secs.findIndex(x=>x.id===cfg.hero);if(hi<0)hi=0;
-      const heroItems=(res[hi]||[]).filter(x=>x.backdrop).slice(0,5);
-      await Promise.all(heroItems.map(async x=>{try{const a=await tm(`/${x.type}/${x.id}`,{language:"ar"});if(a.overview)x.overview=a.overview}catch(e){}}));
-      if(heroItems.length)m.appendChild(buildHero(heroItems));
-    }
-    secs.forEach((x,i)=>{
-      if(!res[i].length)return;
-      const more=x.more&&(x.source==="popular"||x.source==="top")&&SRC[x.mtype]?[x.mtype,x.source==="top"?"top":"pop"]:null;
-      m.appendChild(row(x.title,x.icon||"fa-film",res[i],more));
-    });
+    m.innerHTML="";if(hr)m.appendChild(hr);
+    secs.forEach((x,i)=>{if(res[i]&&res[i].length)m.appendChild(mkRow(x,res[i]))});
     updateHistRow();updateActRow();
-  }catch(e){m.innerHTML=`<div class="center">تعذر تحميل المحتوى، تحقق من الاتصال</div>`}
+  };
+  const en=c=>c.sections.filter(x=>x.enabled!==false);
+  try{
+    if(snap&&snap.cfg&&snap.res)await mount(snap.cfg,en(snap.cfg),snap.res);
+    else m.innerHTML="";
+    const cfg=await loadHomeCfg();
+    const secs=en(cfg);
+    const res=new Array(secs.length).fill(null);
+    const ph=[];
+    if(!(snap&&snap.res)){
+      const hh=document.createElement("div");hh.id="heroPh";hh.className="skh";m.appendChild(hh);
+      secs.forEach((x,i)=>{const s=document.createElement("section");s.className="sec";s.innerHTML=`<div class="sec-h"><div class="sec-t"><i class="fas ${x.icon||"fa-film"}"></i>${esc(x.title)}</div></div><div class="skr"><i></i><i></i><i></i><i></i></div>`;m.appendChild(s);ph[i]=s});
+    }
+    let heroDone=false;
+    await Promise.all(secs.map(async(x,i)=>{
+      res[i]=await fetchSection(x).catch(()=>[]);
+      if(ph[i]&&curTab==="home"){
+        if(!res[i].length)ph[i].remove();else ph[i].replaceWith(mkRow(x,res[i]));
+        if(!heroDone&&cfg.hero!==""){
+          const hid=secs.findIndex(y=>y.id===cfg.hero);const hi=hid<0?0:hid;
+          if(i===hi){heroDone=true;const items=heroOf(cfg,secs,res);const hr=await mkHero(items);const p=$("#heroPh");if(p){if(hr&&curTab==="home")p.replaceWith(hr);else p.remove()}}
+        }
+      }
+    }));
+    const p=$("#heroPh");if(p)p.remove();
+    if(curTab!=="home")return;
+    const j=JSON.stringify({cfg,res});
+    if(snap&&snap.res&&JSON.stringify({cfg:snap.cfg,res:snap.res})!==j&&window.scrollY<150&&m.scrollTop<150)await mount(cfg,secs,res);
+    else if(!(snap&&snap.res)){updateHistRow();updateActRow()}
+    try{localStorage.setItem("sp_home",j)}catch(e){}
+  }catch(e){if(!m.children.length)m.innerHTML=`<div class="center">تعذر تحميل المحتوى، تحقق من الاتصال</div>`}
 }
 function buildHero(items){
   const h=document.createElement("div");h.className="hero";let i=0;
@@ -587,9 +612,12 @@ $("#acct").onclick=e=>{
   $("#mp").onclick=()=>{m.classList.remove("on");openAccount()};
   $("#md").onclick=()=>{m.classList.remove("on");openDownloads()};
   m.classList.toggle("on");
+  if(m.classList.contains("on")){const r=$("#acct").getBoundingClientRect(),w=m.offsetWidth;m.style.top=(r.bottom+8)+"px";m.style.left=Math.max(8,Math.min(r.left,innerWidth-w-8))+"px";m.style.right="auto"}
   $("#lo").onclick=async()=>{await signOut(auth);m.classList.remove("on");toast("تم تسجيل الخروج")};
 };
 document.addEventListener("click",()=>$("#menu").classList.remove("on"));
+window.addEventListener("scroll",()=>$("#menu").classList.remove("on"),{passive:true});
+window.addEventListener("resize",()=>$("#menu").classList.remove("on"));
 let aMode="in";
 function openAuth(msg){$("#aerr").textContent=msg||"";$("#authModal").classList.add("on")}
 document.querySelectorAll(".mtabs button").forEach(b=>b.onclick=()=>{
@@ -690,7 +718,7 @@ async function openAccount(){
   const fl=getFollows().length;
   const name=u.displayName||"";
   ov.innerHTML=`<button class="d-back" id="acback"><i class="fas fa-arrow-right"></i></button>
-  <div class="ac-hero"><div class="ac-av">${u.photoURL?`<img src="${esc(u.photoURL)}" referrerpolicy="no-referrer" alt="">`:esc((name||u.email||"U")[0].toUpperCase())}</div>
+  <div class="ac-hero"><div class="ac-av" id="ac-pic" style="position:relative;cursor:pointer">${u.photoURL?`<img src="${esc(u.photoURL)}" referrerpolicy="no-referrer" alt="">`:esc((name||u.email||"U")[0].toUpperCase())}<span style="position:absolute;bottom:0;left:0;right:0;height:26px;background:rgba(0,0,0,.55);display:grid;place-items:center;font-size:.4em"><i class="fas fa-camera"></i></span><input type="file" id="ac-file" accept="image/*" hidden></div>
     <h2>${esc(name||"حسابي")}</h2><div class="em">${esc(u.email||"")}</div>
     <div class="ac-tags"><span><i class="fab fa-${pwd?"envelope":"google"}"></i>${pwd?"بريد إلكتروني":"Google"}</span><span><i class="fas fa-calendar-plus"></i>انضممت ${fdate(pr.createdAt||(u.metadata&&Date.parse(u.metadata.creationTime)))}</span><span><i class="fas fa-clock"></i>آخر دخول ${fdate(Date.parse(u.metadata&&u.metadata.lastSignInTime)||pr.lastSeen)}</span></div></div>
   <div class="ac-st">
@@ -722,6 +750,26 @@ async function openAccount(){
   ov.querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>{const g=b.dataset.g;go(g==="hist"?showHist:g==="fav"?()=>showFavs():openNotif)});
   ov.querySelectorAll("[data-l]").forEach(b=>b.onclick=()=>go(()=>showFavs(b.dataset.l)));
   $("#ac-nt").onclick=()=>openNotif();
+  $("#ac-pic").onclick=()=>$("#ac-file").click();
+  $("#ac-file").onchange=async ev=>{
+    const f=ev.target.files[0];if(!f)return;
+    const C=window.SP_CONFIG&&SP_CONFIG.cloudinary;if(!C||!C.cloud||!C.preset){toast("خدمة الصور غير مفعّلة");return}
+    if(!/^image\//.test(f.type)){toast("اختر صورة");return}
+    toast("جارٍ رفع الصورة...");
+    try{
+      const bm=await createImageBitmap(f),s=Math.min(1,480/Math.min(bm.width,bm.height)),w=Math.round(bm.width*s),hh=Math.round(bm.height*s);
+      const cv=document.createElement("canvas");cv.width=w;cv.height=hh;cv.getContext("2d").drawImage(bm,0,0,w,hh);
+      const blob=await new Promise(r=>cv.toBlob(r,"image/jpeg",.85));
+      const fd=new FormData();fd.append("file",blob);fd.append("upload_preset",C.preset);fd.append("folder","avatars");fd.append("tags","uid_"+u.uid);
+      const r=await fetch("https://api.cloudinary.com/v1_1/"+C.cloud+"/image/upload",{method:"POST",body:fd});
+      const j=await r.json();if(!j.secure_url)throw new Error((j.error&&j.error.message)||"upload");
+      const url=j.secure_url.replace("/upload/","/upload/c_fill,g_face,w_300,h_300,q_auto,f_auto/");
+      await updateProfile(u,{photoURL:url});
+      setDoc(doc(db,"profiles",u.uid),{photo:url},{merge:true}).catch(()=>{});
+      $("#acct").innerHTML=`<img src="${esc(url)}" alt="">`;
+      toast("تم تحديث الصورة");openAccount();
+    }catch(e){console.warn(e);toast("تعذر رفع الصورة")}
+  };
   $("#ac-sn").onclick=async()=>{
     const n=$("#ac-n").value.trim().slice(0,40);if(!n)return toast("أدخل اسماً");
     try{await updateProfile(u,{displayName:n});setDoc(doc(db,"profiles",u.uid),{name:n},{merge:true}).catch(()=>{});toast("تم حفظ الاسم");openAccount()}catch(e){toast("تعذر الحفظ")}

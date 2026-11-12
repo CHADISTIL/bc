@@ -751,10 +751,10 @@ function closeModal(toCircle){
   var c=dl.circle;
   if((toCircle===true||m.dataset.morph)&&c&&!m.dataset.closing){
     m.dataset.closing=1;m.style.animation='none';
-    morph(m,circleCenter(),true,function(){m.remove();c.classList.remove('hid');c.classList.add('pop');setTimeout(function(){c.classList.remove('pop')},350)});
+    morph(m,circleCenter(),true,function(){m.remove();try{showCtrls()}catch(e){}c.classList.remove('hid');c.classList.add('pop');setTimeout(function(){c.classList.remove('pop')},350)});
     return;
   }
-  m.remove();if(c)c.classList.remove('hid');
+  m.remove();if(c)c.classList.remove('hid');try{showCtrls()}catch(e){}
 }
 function modal(title,icon,build){
   closeModal();
@@ -1190,6 +1190,7 @@ function showDlCircle(){
   };
   c.addEventListener('pointerup',end);c.addEventListener('pointercancel',end);
 }
+window.addEventListener('resize',function(){var c=dl.circle;if(!c)return;var r=c.getBoundingClientRect();c.style.left=Math.max(4,Math.min(r.left,innerWidth-c.offsetWidth-4))+'px';c.style.top=Math.max(4,Math.min(r.top,innerHeight-c.offsetHeight-4))+'px'});
 function updDlCircle(){
   if(!dl.circle)return;var n=dl.circle.querySelector('.n'),run=DLS.some(function(e){return e.status==='active'});
   n.innerHTML=run?dlAvg()+'%':'<i class="fas fa-pause"></i>';dl.circle.style.setProperty('--p',dlAvg()+'%');
@@ -1227,6 +1228,12 @@ function openDownload(fromCircle){
       toast('أُضيف إلى التنزيلات الحالية');
     };
   });
+  (function(){var hd=$('.jp-bh',mo),x=$('.jp-x',mo);if(!hd||!x)return;
+    var g=document.createElement('span');g.style.cssText='display:flex;gap:8px';
+    var mb=document.createElement('button');mb.className='jp-x';mb.title='تصغير';mb.innerHTML='<i class="fas fa-minus" style="margin:0;color:#fff"></i>';
+    mb.onclick=function(){if(S.modal===mo&&dl.circle&&!dl.hidden){mo.dataset.morph=1;closeModal(true)}else closeModal()};
+    hd.appendChild(g);g.appendChild(mb);g.appendChild(x);
+  })();
   if(cc&&dl.circle){dl.circle.classList.add('hid');mo.dataset.morph=1;mo.style.animation='none';morph(mo,cc,false)}
 }
 window.addEventListener('jp-dl-open',function(){});
