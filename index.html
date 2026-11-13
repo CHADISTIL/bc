@@ -299,7 +299,7 @@ html.embed #spFab{display:none}
 <div id="toast"></div>
 
 <link rel="preconnect" href="https://api.themoviedb.org"><link rel="preconnect" href="https://image.tmdb.org"><link rel="preconnect" href="https://firestore.googleapis.com"><script src="config.js"></script>
-<script src="player.js?v=14"></script>
+<script src="player.js?v=15"></script>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {getAuth,onAuthStateChanged,GoogleAuthProvider,signInWithPopup,signInWithEmailAndPassword,createUserWithEmailAndPassword,signOut,updateProfile,sendPasswordResetEmail,deleteUser}
@@ -446,7 +446,7 @@ window.SPC={
     const r=await tm("/search/multi",{query:q,include_adult:"false"});
     return (r.results||[]).filter(x=>(x.media_type==="movie"||x.media_type==="tv")&&x.poster_path).slice(0,8).map(x=>({type:x.media_type,id:x.id,title:x.title||x.name||"",poster:IMG+"w185"+x.poster_path,year:String(x.release_date||x.first_air_date||"").slice(0,4)}));
   },
-  open(r){try{JP.close()}catch(e){}setTimeout(()=>{location.hash="#/"+r.type+"/"+r.id},100)},
+  open(r){try{JP.close()}catch(e){}setTimeout(()=>goHash("#/"+r.type+"/"+r.id),120)},
   async notifs(){
     if(!user)return[];
     try{const s=await getDocs(query(collection(db,"users",user.uid,"notifs"),orderBy("ts","desc"),limit(30)));const a=[];s.forEach(d=>a.push({id:d.id,...d.data()}));notifC=a;return a}catch(e){return[]}
@@ -707,7 +707,7 @@ function drawDownloads(){
   $("#dlback").onclick=closeDownloads;
   ov.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>b.dataset.s==="paused"?JP.dlResume(b.dataset.p):JP.dlPause(b.dataset.p));
   ov.querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>JP.dlCancel(b.dataset.c));
-  ov.querySelectorAll("[data-o]").forEach(b=>b.onclick=()=>{const x=JP.dlList().past.find(z=>z.id===b.dataset.o);if(!x||!x.rep)return;const r=x.rep;closeDownloads();location.hash=r.type==="tv"?`#/tv/${r.tmdbId}/${r.season||1}/${r.episode||1}`:`#/movie/${r.tmdbId}`});
+  ov.querySelectorAll("[data-o]").forEach(b=>b.onclick=()=>{const x=JP.dlList().past.find(z=>z.id===b.dataset.o);if(!x||!x.rep)return;const r=x.rep;closeDownloads();goHash(r.type==="tv"?`#/tv/${r.tmdbId}/${r.season||1}/${r.episode||1}`:`#/movie/${r.tmdbId}`)});
   ov.querySelectorAll("[data-sv]").forEach(b=>b.onclick=()=>{const x=JP.dlList().past.find(z=>z.id===b.dataset.sv);if(x)JP.dlSave(x.key,x.kind==="sub"?"sub":"v")});
   ov.querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>JP.dlRemove(b.dataset.r));
   const cl=$("#dlclr");if(cl)cl.onclick=()=>{if(confirm("مسح سجل التحميلات؟"))JP.dlClear()};
@@ -719,7 +719,7 @@ function openDownloads(){
 function closeDownloads(){$("#dlPage").classList.remove("on");document.body.classList.remove("lock")}
 window.addEventListener("jp-dl",()=>{updDlBadge();drawDownloads()});
 window.addEventListener("jp-dl-open",openDownloads);
-window.addEventListener("jp-dl-play",ev=>{const r=ev.detail;if(!r)return;closeDownloads();try{JP.close()}catch(e){}setTimeout(()=>{location.hash=r.type==="tv"?`#/tv/${r.tmdbId}/${r.season||1}/${r.episode||1}`:`#/movie/${r.tmdbId}`},120)});
+window.addEventListener("jp-dl-play",ev=>{const r=ev.detail;if(!r)return;closeDownloads();try{JP.close()}catch(e){}setTimeout(()=>goHash(r.type==="tv"?`#/tv/${r.tmdbId}/${r.season||1}/${r.episode||1}`:`#/movie/${r.tmdbId}`),150)});
 /* ───── auth ───── */
 let user=null,favSet=new Set(),actors=new Map();
 onAuthStateChanged(auth,async u=>{
@@ -1111,8 +1111,11 @@ const CFG=window.SP_CONFIG||{};
 const PUSH_OK="serviceWorker" in navigator&&"PushManager" in window&&"Notification" in window;
 if("serviceWorker" in navigator&&/^https?:$/.test(location.protocol)){
   navigator.serviceWorker.register("sw.js").catch(()=>{});
-  navigator.serviceWorker.addEventListener("message",e=>{if(e.data&&e.data.go)goHash(e.data.go)});
+  navigator.serviceWorker.addEventListener("message",e=>{if(e.data&&e.data.go)goHash(e.data.go);if(e.data&&e.data.sound)playNotif()});
 }
+let _ns=null;
+function playNotif(){try{if(LSget("sp_snd",true)===false)return;if(!_ns){_ns=new Audio("NotifSound.mp3");_ns.preload="auto"}_ns.currentTime=0;_ns.play().catch(()=>{})}catch(e){}}
+window.playNotif=playNotif;
 function goHash(h){const m=String(h).match(/^#\/(movie|tv)\/(\d+)(?:\/(\d+)\/(\d+))?/);if(m)openDetail(m[1],+m[2],m[3]?{s:+m[3],e:+m[4]}:null)}
 const LSget=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k));return v??d}catch(e){return d}};
 const LSset=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};

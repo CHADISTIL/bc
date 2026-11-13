@@ -1,5 +1,5 @@
 importScripts('config.js');
-const CACHE='sp-v15';
+const CACHE='sp-v16';
 const SHELL=['./','index.html','player.js','config.js','manifest.webmanifest','icons/icon-192.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL).catch(()=>{})).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
@@ -24,10 +24,12 @@ self.addEventListener('push',e=>{
       }
     }catch(_){}
     if(!items.length)items=[{title:'SP',body:'لديك تحديث جديد',url:'',tag:'sp-generic'}];
+    try{const cl=await self.clients.matchAll({type:'window',includeUncontrolled:true});cl.forEach(c=>c.postMessage({sound:1}))}catch(_){}
     for(const n of items.slice(0,6)){
+      const base=self.registration.scope;
       await self.registration.showNotification(n.title||'SP',{
-        body:n.body||'',icon:'icons/icon-192.png',badge:'icons/badge-96.png',image:n.img||undefined,
-        tag:n.tag||undefined,lang:'ar',dir:'rtl',data:{url:n.url||''}
+        body:n.body||'',icon:base+'icons/icon-192.png',badge:base+'icons/badge-96.png',image:n.img||undefined,
+        tag:n.tag||undefined,renotify:!!n.tag,vibrate:[120,60,120],lang:'ar',dir:'rtl',data:{url:n.url||''}
       });
     }
   })());
