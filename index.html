@@ -141,12 +141,13 @@ html.boot body::after{content:"";position:fixed;inset:0;background:#000;z-index:
 .nc-it small{color:#777;font-size:.72em;flex:none}
 .nc-sw .tg{width:40px;height:23px;border-radius:99px;background:#3a3a44;position:relative;flex:none;transition:.2s}.nc-sw .tg:after{content:"";position:absolute;top:3px;right:3px;width:17px;height:17px;border-radius:50%;background:#fff;transition:.2s}
 .nc-sw.on .tg{background:var(--primary)}.nc-sw.on .tg:after{right:20px}
- .nc-it.un{background:linear-gradient(90deg,rgba(255,71,87,.14),rgba(255,255,255,.05));box-shadow:inset 3px 0 0 var(--primary)}
+ .nc-it.un{background:linear-gradient(90deg,rgba(255,71,87,.14),rgba(255,255,255,.05));}
 .nc-it .th{width:38px;height:56px;border-radius:9px;object-fit:cover;background:#222;flex:none}
 .nc-nw{align-items:stretch;padding:9px;gap:12px}.nc-nw .pic{width:88px;height:56px;border-radius:12px;object-fit:cover;background:#1f1f2c;flex:none;display:block}
 .nc-nw .pic.ph{display:grid;place-items:center;color:var(--primary);font-size:1.2em;background:linear-gradient(135deg,rgba(255,71,87,.2),rgba(255,255,255,.05))}
 .nc .tx .q{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:#b9bcce}
 .nc-nw small{display:block;margin-top:auto}
+.nc-ac{display:flex;gap:6px;margin-top:7px;flex-wrap:wrap}.nc-ac button{border:0;border-radius:99px;padding:5px 11px;font:inherit;font-size:.74em;background:rgba(255,255,255,.09);color:#d6d8e6;cursor:pointer}.nc-ac button.on{background:rgba(255,71,87,.2);color:#ff8a96}.nc-ac button:disabled{opacity:.5}
 .nc-rp .av{position:relative;width:42px;height:42px;border-radius:50%;background:var(--primary);display:grid;place-items:center;font-weight:800;flex:none}.nc-rp .av img{width:100%;height:100%;border-radius:50%;object-fit:cover}
 .nc-rp .av i{position:absolute;bottom:-3px;left:-3px;width:18px;height:18px;border-radius:50%;background:#2e86ff;color:#fff;font-size:.55em;display:grid;place-items:center;border:2px solid #15151c}
 .nc-rp .tx b em{font-style:normal;font-weight:500;color:#9a9aa5;font-size:.9em}
@@ -955,6 +956,15 @@ async function newList(name){
   if(!l.name)return null;
   await saveList(l);lists.push(l);return l;
 }
+const PLAN="أخطط للمشاهدة";
+const inPlan=(t,id)=>{const l=lists.find(x=>x.name===PLAN);return !!l&&(l.items||[]).some(x=>x.type===t&&x.tmdbId===id)};
+async function planToggle(it){
+  if(!lists.length)await loadLists();
+  let l=lists.find(x=>x.name===PLAN);if(!l)l=await newList(PLAN);
+  if(inList(l,it)){l.items=l.items.filter(x=>!(x.tmdbId===it.id&&x.type===it.type));toast("أُزيل من مشاهدة لاحقاً")}
+  else{l.items=[...(l.items||[]),{type:it.type,tmdbId:it.id,title:it.title,poster:it.poster,rating:it.rating||0,addedAt:Date.now()}];toast("أُضيف إلى مشاهدة لاحقاً")}
+  await saveList(l);
+}
 function openListModal(it){
   if(!user){openAuth("سجّل الدخول لإنشاء قوائمك");return}
   const m=document.createElement("div");m.className="modal on";m.style.zIndex=500;document.body.appendChild(m);
@@ -1111,7 +1121,7 @@ const CFG=window.SP_CONFIG||{};
 const PUSH_OK="serviceWorker" in navigator&&"PushManager" in window&&"Notification" in window;
 if("serviceWorker" in navigator&&/^https?:$/.test(location.protocol)){
   navigator.serviceWorker.register("sw.js").catch(()=>{});
-  navigator.serviceWorker.addEventListener("message",e=>{if(e.data&&e.data.go)goHash(e.data.go);if(e.data&&e.data.sound)playNotif()});
+  navigator.serviceWorker.addEventListener("message",e=>{if(e.data&&e.data.act){spAct(e.data.act,e.data.url);return}if(e.data&&e.data.go)goHash(e.data.go);if(e.data&&e.data.sound)playNotif()});
 }
 let _ns=null;
 function playNotif(){try{if(LSget("sp_snd",true)===false)return;if(!_ns){_ns=new Audio("NotifSound.mp3");_ns.preload="auto"}_ns.currentTime=0;_ns.play().catch(()=>{})}catch(e){}}
@@ -1166,6 +1176,22 @@ let installEv=null;
 window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();installEv=e});
 window.addEventListener("appinstalled",()=>{installEv=null});
 $("#spFab").onclick=openNotif;
+async function spAct(act,hash){
+  const mm=/#\/(movie|tv)\/(\d+)/.exec(hash||"");if(!mm||(act!=="fav"&&act!=="later"))return;
+  const type=mm[1],id=+mm[2];
+  for(let i=0;i<34&&!user;i++)await new Promise(r=>setTimeout(r,300));
+  if(!user){openAuth("سجّل الدخول للحفظ");return}
+  try{
+    const d=await tm(`/${type}/${id}`),it=norm({...d,media_type:type},type);
+    if(act==="fav"){
+      if(favSet.has(favId(type,id)))toast("موجود في المفضلة مسبقاً");
+      else{const t=document.createElement("button");t.dataset.fid=favId(type,id);await toggleFav(t,it)}
+    }else{
+      if(!lists.length)await loadLists();
+      if(inPlan(type,id))toast("موجود في مشاهدة لاحقاً مسبقاً");else await planToggle(it);
+    }
+  }catch(e){toast("تعذر الحفظ")}
+}
 async function openNotif(){
   const m=document.createElement("div");m.className="modal on";m.style.zIndex=500;document.body.appendChild(m);
   m.addEventListener("click",e=>{if(e.target===m)m.remove()});
@@ -1186,13 +1212,15 @@ async function openNotif(){
     const inst=standalone?"":installEv?`<button class="btn sec" id="n-in" style="width:100%;justify-content:center;margin-bottom:12px"><i class="fas fa-download"></i> تثبيت SP كتطبيق على هاتفك</button>`:ios?`<div class="sm" style="color:#bbb;line-height:1.8;margin-bottom:12px">لتثبيت التطبيق: زر المشاركة في Safari، ثم «إضافة إلى الشاشة الرئيسية».</div>`:"";
     const ago=t=>{const d=(Date.now()-t)/1000;return d<60?"الآن":d<3600?Math.floor(d/60)+" د":d<86400?Math.floor(d/3600)+" س":Math.floor(d/86400)+" ي"};
     const KI={trending:"fa-fire",upcoming:"fa-calendar-days",follow:"fa-tv",broadcast:"fa-bullhorn"};
+    const nAct=r=>{const mm=/#\/(movie|tv)\/(\d+)/.exec(r.url||"");if(!mm)return"";const f=favSet.has(favId(mm[1],mm[2])),l=inPlan(mm[1],+mm[2]);
+      return `<div class="nc-ac"><button type="button" data-a="l" class="${l?"on":""}"><i class="fas fa-${l?"check":"clock"}"></i> ${l?"في القائمة":"مشاهدة لاحقاً"}</button><button type="button" data-a="f" class="${f?"on":""}"><i class="fas fa-heart"></i> ${f?"في المفضلة":"للمفضلة"}</button></div>`};
     const sw=(t,ic,lb)=>`<button class="nc-sw ${tp[t]?"on":""}" data-t="${t}"><span class="ic"><i class="fas ${ic}"></i></span><span class="tx">${lb}</span><span class="tg"></span></button>`;
     m.innerHTML=`<div class="mbox nc"><div class="nc-h"><span class="nc-ic"><i class="fas fa-bell"></i></span><h3>الإشعارات</h3><button class="nc-x" id="n-x" aria-label="إغلاق"><i class="fas fa-xmark"></i></button></div>
     <div class="nc-b">${inst}${status}
     ${on?`<div class="nc-t">التنبيهات</div>${sw("trending","fa-fire","عمل جديد في الأكثر مشاهدة")}${sw("upcoming","fa-calendar-days","أفلام قادمة")}${sw("replies","fa-comments","ردود وإعجابات تعليقاتي")}`:""}
     ${reps.length?`<div class="nc-t">الردود على تعليقاتك <em>${reps.filter(x=>!x.read).length||reps.length}</em></div>`+reps.slice(0,10).map((n,i)=>`<div class="nc-it nc-rp ${n.read?"":"un"}" data-p="${i}"><span class="av">${n.fromPhoto?`<img src="${esc(n.fromPhoto)}" referrerpolicy="no-referrer" alt="">`:esc((n.fromName||"U")[0].toUpperCase())}<i class="fas fa-${n.type==="like"?"heart":"reply"}"></i></span><div class="tx"><b>${n.type==="like"?"إعجاب بتعليقك":`${esc(n.fromName||"مستخدم")} <em>ردّ على تعليقك</em>`}</b><span class="q">${esc(n.text)}</span><span>${esc(n.title||"")}</span></div>${n.poster?`<img class="th" src="${esc(n.poster)}" alt="">`:""}<small>${ago(n.ts)}</small></div>`).join(""):""}
     <div class="nc-t">آخر الإشعارات</div>
-    ${recent.length?recent.slice(0,12).map((r,i)=>`<div class="nc-it nc-nw ${r.ts>seenPrev?"un":""}" data-r="${i}">${r.img?`<img class="pic" loading="lazy" src="${esc(r.img)}" alt="">`:`<span class="pic ph"><i class="fas ${KI[r.kind]||"fa-bell"}"></i></span>`}<div class="tx"><b>${esc(r.title)}</b><span class="q">${esc(r.body)}</span><small>${ago(r.ts)}</small></div></div>`).join(""):`<div class="nc-em"><i class="fas fa-inbox"></i>لا توجد إشعارات بعد</div>`}
+    ${recent.length?recent.slice(0,12).map((r,i)=>`<div class="nc-it nc-nw ${r.ts>seenPrev?"un":""}" data-r="${i}">${r.img?`<img class="pic" loading="lazy" src="${esc(r.img)}" alt="">`:`<span class="pic ph"><i class="fas ${KI[r.kind]||"fa-bell"}"></i></span>`}<div class="tx"><b>${esc(r.title)}</b><span class="q">${esc(r.body)}</span><small>${ago(r.ts)}</small>${nAct(r)}</div></div>`).join(""):`<div class="nc-em"><i class="fas fa-inbox"></i>لا توجد إشعارات بعد</div>`}
     <div class="nc-t">ما تتابعه <em>${fs.length}</em></div>
     ${fs.length?fs.map((f,i)=>`<div class="nc-it nc-fl" data-o="${i}">${f.poster?`<img class="th" loading="lazy" src="${esc(f.poster)}" alt="">`:`<span class="ic"><i class="fas fa-tv"></i></span>`}<div class="tx"><b>${esc(f.title)}</b><span>${f.type==="tv"?"مسلسل":"فيلم"}</span></div><button class="nc-un" data-u="${i}">إلغاء</button></div>`).join(""):`<div class="nc-em"><i class="fas fa-bell-slash"></i>اضغط «متابعة» في صفحة أي مسلسل يُعرض حالياً أو عمل قادم</div>`}
     </div></div>`;
@@ -1207,9 +1235,22 @@ async function openNotif(){
       m.remove();openDetail(f.type,f.id);
     });
     m.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{const n=reps[+b.dataset.p],k=String(n.key||"").split(":");m.remove();if(k[0]==="tv")openDetail("tv",+k[1],+k[2]?{s:+k[2],e:+k[3]||1}:null);else if(k[0]==="movie")openDetail("movie",+k[1])});
-    m.querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{const r=recent[+b.dataset.r];m.remove();if(/^https?:/i.test(r.url||""))window.open(r.url,"_blank");else goHash(r.url)});
+    m.querySelectorAll("[data-a]").forEach(b=>b.onclick=async e=>{
+      e.stopPropagation();
+      if(!user){m.remove();openAuth("سجّل الدخول للحفظ");return}
+      const r=recent[+b.closest("[data-r]").dataset.r],mm=/#\/(movie|tv)\/(\d+)/.exec(r.url||"");if(!mm)return;
+      const type=mm[1],id=+mm[2];b.disabled=true;
+      try{
+        const d=await tm(`/${type}/${id}`),it=norm({...d,media_type:type},type);
+        if(b.dataset.a==="f"){const t=document.createElement("button");t.dataset.fid=favId(type,id);await toggleFav(t,it)}
+        else await planToggle(it);
+      }catch(er){toast("تعذر الحفظ")}
+      draw();
+    });
+    m.querySelectorAll("[data-r]").forEach(b=>b.onclick=e=>{if(e.target.closest("[data-a]"))return;const r=recent[+b.dataset.r];m.remove();if(/^https?:/i.test(r.url||""))window.open(r.url,"_blank");else goHash(r.url)});
   };
   draw();
+  if(user&&!lists.length)loadLists().then(()=>{if(m.isConnected)draw()});
 }
 
 /* ───── detail ───── */
@@ -1399,6 +1440,7 @@ async function runEmbed(type,id,se,ep){
     play({embed:true,title:name,quals,subtitle:link.subtitle,poster:bd,backdrop:bd,kind:type==="tv"?"episode":"movie",rep:{type,tmdbId:id,title:name,season:se||0,episode:ep||0}});
   }catch(e){document.body.insertAdjacentHTML("beforeend",`<div class="center" style="position:fixed;inset:0;z-index:500;background:#000;display:flex;align-items:center;justify-content:center">تعذر تحميل الفيديو</div>`)}
 }
+{const a=new URLSearchParams(location.search).get("act");if(a){const h=location.hash;try{history.replaceState(history.state,"",location.pathname)}catch(e){}setTimeout(()=>spAct(a,h),0)}}
 {const em=location.hash.match(/^#\/embed\/(movie|tv)\/(\d+)(?:\/(\d+)\/(\d+))?/);
  if(em)runEmbed(em[1],+em[2],em[3]?+em[3]:0,em[3]?+em[4]:0);
  else{
