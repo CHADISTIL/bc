@@ -104,6 +104,16 @@ background:rgba(22,33,62,.85);backdrop-filter:blur(12px);border-bottom:1px solid
 .ov-page{position:fixed;inset:0;z-index:100;background:#12142a;overflow-y:auto;display:none;-webkit-overflow-scrolling:touch}
 .ov-page.on{display:block}
 .d-back{position:fixed;top:12px;right:12px;z-index:5;width:40px;height:40px;border-radius:50%;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center}
+#detail .d-back,#detail .d-trl{transition:opacity .4s cubic-bezier(.4,0,.2,1),transform .4s cubic-bezier(.4,0,.2,1),background .2s}
+#detail .d-back{animation:ctlInT .5s cubic-bezier(.2,.8,.2,1) backwards}
+.d-trl{position:absolute;z-index:3;right:14px;bottom:72px;display:flex;align-items:center;gap:7px;border:1px solid rgba(255,255,255,.28);border-radius:99px;padding:9px 16px;font:inherit;font-size:.85em;font-weight:600;color:#fff;background:rgba(0,0,0,.5);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);cursor:pointer;animation:ctlIn .5s .25s cubic-bezier(.2,.8,.2,1) backwards}
+.d-trl:active{transform:scale(.94)}
+#detail.ctl-off .d-back{opacity:0;transform:translateY(-12px) scale(.85);pointer-events:none}
+#detail.ctl-off .d-trl{opacity:0;transform:translateY(14px) scale(.92);pointer-events:none}
+@keyframes ctlIn{from{opacity:0;transform:translateY(14px) scale(.92)}to{opacity:1;transform:none}}
+@keyframes ctlInT{from{opacity:0;transform:translateY(-12px) scale(.85)}to{opacity:1;transform:none}}
+#detail .d-body .acts .trl{display:none}
+@media (prefers-reduced-motion:reduce){#detail .d-back,#detail .d-trl,.d-trl{animation:none;transition:opacity .01s}}
 .d-hero{position:relative;aspect-ratio:16/9;max-height:50vh;width:100%;background:#000}
 .d-hero img{width:100%;height:100%;object-fit:cover}
 .d-hero::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,#12142a,transparent 70%)}
@@ -1262,6 +1272,7 @@ async function openDetail(type,id,epSel){
   if(window.JP&&JP.isOpen())JP.close();
   setHash(`#/${type}/${id}`);
   const ov=$("#detail");ov.innerHTML=`<button class="d-back" id="dback"><i class="fas fa-arrow-right"></i></button>${spinner()}`;
+  clearTimeout(ov._ctl);ov.onscroll=null;ov.classList.remove("ctl-off");
   ov.classList.add("on");document.body.classList.add("lock");ov.scrollTop=0;
   $("#dback").onclick=closeDetail;
   try{
@@ -1293,6 +1304,13 @@ async function openDetail(type,id,epSel){
     </div>`;
     {const sb=$("#dshare");if(sb)sb.onclick=()=>{const u=shareLink(type,id,epSel&&epSel.s,epSel&&epSel.e);if(navigator.share)navigator.share({title:it.title,url:u}).catch(()=>{});else{try{navigator.clipboard.writeText(u);toast("تم نسخ الرابط")}catch(e){prompt("انسخ الرابط",u)}}}}
   $("#dback").onclick=closeDetail;
+    {const hero=ov.querySelector(".d-hero");
+     const far=()=>ov.scrollTop>(hero?hero.offsetHeight:300)*.55;
+     const arm=()=>{clearTimeout(ov._ctl);if(!far())ov._ctl=setTimeout(()=>ov.classList.add("ctl-off"),3200)};
+     const show=()=>{ov.classList.remove("ctl-off");arm()};
+     if(hero)hero.addEventListener("click",()=>{if(ov.classList.contains("ctl-off"))show();else{clearTimeout(ov._ctl);ov.classList.add("ctl-off")}});
+     ov.onscroll=()=>{if(far()){clearTimeout(ov._ctl);ov.classList.remove("ctl-off")}else if(!ov.classList.contains("ctl-off")&&!ov._ctlOn){ov._ctlOn=1;arm();setTimeout(()=>{ov._ctlOn=0},400)}};
+     arm()}
     ov.querySelectorAll(".cm").forEach(el=>el.onclick=()=>openPerson(+el.dataset.p));
     if(link)trackVisit(it);
     const acts=$("#acts");
@@ -1307,8 +1325,10 @@ async function openDetail(type,id,epSel){
         const b=document.createElement("button");b.className="btn sec";b.innerHTML=`<i class="fas fa-clock"></i> غير متوفر بعد`;b.style.cssText="opacity:.6;cursor:default";b.onclick=()=>toast("لم يُضف رابط المشاهدة بعد");acts.appendChild(b);
       }
     }
-    if(trailer){const t=document.createElement("button");t.className="btn sec";
-      const setT=b=>{t.dataset.back=b?"1":"";t.innerHTML=b?`<i class="fas fa-rotate-left"></i> العودة لمشاهدة الفيلم`:`<i class="fab fa-youtube"></i> التريلر`};
+    if(trailer){const t=document.createElement("button");t.className="btn sec trl";
+      const cv=document.createElement("button");cv.type="button";cv.className="d-trl";{const hr=ov.querySelector(".d-hero");if(hr)hr.appendChild(cv)}
+      const setT=b=>{t.dataset.back=b?"1":"";const h=b?`<i class="fas fa-rotate-left"></i> العودة لمشاهدة الفيلم`:`<i class="fab fa-youtube"></i> التريلر`;t.innerHTML=h;cv.innerHTML=h};
+      cv.onclick=e=>{e.stopPropagation();t.onclick()};
       setT(false);
       t.onclick=()=>{
       if(t.dataset.back){JP.endTrailer();setT(false);return}
