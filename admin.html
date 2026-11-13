@@ -217,7 +217,7 @@ button:not(.sec):not(.del):not(.tab):not(.x):hover{box-shadow:0 6px 18px rgba(25
       <div id="movieBox">
         <label>روابط الفيلم — سطر لكل جودة بصيغة <code>1080p|https://...</code> أو الرابط فقط</label>
         <textarea id="mq" placeholder="1080p|https://example.com/movie-1080.mp4&#10;أو ارفع الفيديو بالزر أدناه"></textarea>
-        <div class="vup" data-t="m"><label class="file"><i class="fas fa-cloud-arrow-up"></i> رفع فيديو إلى vcdn<input type="file" accept="video/*"></label><div class="row vrow" style="margin-top:4px"><div class="vin"><input class="inp vurl" dir="ltr" placeholder="رابط فيديو مباشر"><button type="button" class="vx" title="مسح" style="display:none"><i class="fas fa-xmark"></i></button></div><button type="button" class="sec sm2 vps"><i class="fas fa-paste"></i> لصق</button><button type="button" class="sm2 vgo"><i class="fas fa-cloud-arrow-up"></i> رفع</button></div>
+        <div class="vup" data-t="m"><select class="inp vprov" style="margin:0 0 6px"><option value="vcdn">الوجهة: vcdn</option><option value="pd">الوجهة: PixelDrain (رابط مباشر)</option><option value="ia">الوجهة: Internet Archive (رابط مباشر)</option></select><label class="file"><i class="fas fa-cloud-arrow-up"></i> رفع ملف من الجهاز<input type="file" accept="video/*"></label><div class="row vrow" style="margin-top:4px"><div class="vin"><input class="inp vurl" dir="ltr" placeholder="رابط فيديو مباشر"><button type="button" class="vx" title="مسح" style="display:none"><i class="fas fa-xmark"></i></button></div><button type="button" class="sec sm2 vps"><i class="fas fa-paste"></i> لصق</button><button type="button" class="sm2 vgo"><i class="fas fa-cloud-arrow-up"></i> رفع</button></div>
         <div class="vbar" style="display:none"><i></i></div><div class="sm vst"></div></div>
         <label>ترجمة (VTT أو SRT) — اختياري</label>
         <label class="file"><input type="file" id="msubF" accept=".srt,.vtt,.txt"><i class="fas fa-paperclip"></i> رفع ملف ترجمة</label> <span class="sm" id="msubI"></span>
@@ -232,7 +232,7 @@ button:not(.sec):not(.del):not(.tab):not(.x):hover{box-shadow:0 6px 18px rgba(25
         </div>
         <label>روابط الحلقة — سطر لكل جودة</label>
         <textarea id="eq" placeholder="720p|https://..."></textarea>
-        <div class="vup" data-t="e"><label class="file"><i class="fas fa-cloud-arrow-up"></i> رفع فيديو إلى vcdn<input type="file" accept="video/*"></label><div class="row vrow" style="margin-top:4px"><div class="vin"><input class="inp vurl" dir="ltr" placeholder="رابط فيديو مباشر"><button type="button" class="vx" title="مسح" style="display:none"><i class="fas fa-xmark"></i></button></div><button type="button" class="sec sm2 vps"><i class="fas fa-paste"></i> لصق</button><button type="button" class="sm2 vgo"><i class="fas fa-cloud-arrow-up"></i> رفع</button></div>
+        <div class="vup" data-t="e"><select class="inp vprov" style="margin:0 0 6px"><option value="vcdn">الوجهة: vcdn</option><option value="pd">الوجهة: PixelDrain (رابط مباشر)</option><option value="ia">الوجهة: Internet Archive (رابط مباشر)</option></select><label class="file"><i class="fas fa-cloud-arrow-up"></i> رفع ملف من الجهاز<input type="file" accept="video/*"></label><div class="row vrow" style="margin-top:4px"><div class="vin"><input class="inp vurl" dir="ltr" placeholder="رابط فيديو مباشر"><button type="button" class="vx" title="مسح" style="display:none"><i class="fas fa-xmark"></i></button></div><button type="button" class="sec sm2 vps"><i class="fas fa-paste"></i> لصق</button><button type="button" class="sm2 vgo"><i class="fas fa-cloud-arrow-up"></i> رفع</button></div>
         <div class="vbar" style="display:none"><i></i></div><div class="sm vst"></div></div>
         <label>ترجمة الحلقة — اختياري</label>
         <label class="file"><input type="file" id="esubF" accept=".srt,.vtt,.txt"><i class="fas fa-paperclip"></i> رفع ملف ترجمة</label> <span class="sm" id="esubI"></span>
@@ -763,6 +763,7 @@ const vMsg=m=>{m=String(m||"");
   if(/Range|الجزئي/.test(m))return "المصدر لا يدعم التحميل الجزئي";
   if(/MIME|mime/.test(m))return "نوع الملف غير مفعّل في حساب vcdn";
   if(/forbidden/i.test(m))return "غير مصرّح، سجّل الدخول كأدمين";
+  if(/PD_KEY|IA_ACCESS/.test(m))return "مفاتيح المزود غير مضبوطة في Worker";
   if(/VCDN_KEY/.test(m))return "مفتاح vcdn غير مضبوط في Worker";
   if(/Failed to fetch|NetworkError|unreachable|Load failed/i.test(m))return "تعذر الاتصال بالخادم";
   if(/HTTP 4(01|03)|401|403/.test(m))return "الرابط منتهي أو غير مسموح";
@@ -822,6 +823,8 @@ document.querySelectorAll(".vup").forEach(box=>{
   box.querySelector('input[type="file"]').onchange=e=>{
     const f=e.target.files[0];if(!f)return;
     if(!sel){msg("اختر العمل أولاً","err");return}
+    const pv=box.querySelector(".vprov").value;
+    if(pv!=="vcdn"){hRun(box,pv,ta(),vTitle(box),f,null);e.target.value="";return}
     vRun(vFile(f),vTitle(box),ta(),box);e.target.value="";
   };
   const ui=box.querySelector(".vurl"),xb=box.querySelector(".vx");
@@ -837,6 +840,8 @@ document.querySelectorAll(".vup").forEach(box=>{
     if(!sel)return msg("اختر العمل أولاً","err");
     if(!/^https?:\/\//i.test(url)){st.textContent="الصق رابطاً يبدأ بـ http";return}
     if(!PUSH){st.textContent="ضع رابط الـ Worker في config.js";return}
+    const pv=box.querySelector(".vprov").value;
+    if(pv!=="vcdn"){hRun(box,pv,ta(),vTitle(box),null,url);return}
     st.textContent="فحص الرابط...";
     try{
       const p=await vPost("/vcdn-probe",{src:url});
@@ -844,6 +849,40 @@ document.querySelectorAll(".vup").forEach(box=>{
     }catch(e){st.innerHTML=`<i class="fas fa-circle-xmark" style="color:var(--p)"></i> ${esc(vMsg(e.message))}`}
   };
 });
+
+/* ───── رفع إلى PixelDrain / Internet Archive ───── */
+const HN={pd:"PixelDrain",ia:"Internet Archive"};
+const hNm=(box,ext)=>box.dataset.t==="m"?`${sel.id}.${ext}`:`${sel.id}_S${+$("#eS").value||1}E${+$("#eE").value||1}.${ext}`;
+const hItem=()=>`sp-${sel.type==="tv"?"tv":"movie"}-${sel.id}`;
+async function hRun(box,p,ta,title,file,url){
+  const bar=box.querySelector(".vbar"),fill=bar.firstElementChild,st=box.querySelector(".vst");
+  bar.style.display="";fill.style.width="0";
+  const lock=v=>box.querySelectorAll("input,button,select").forEach(x=>x.disabled=v);lock(true);
+  try{
+    if(!MEDIA)throw new Error("ضع رابط media في config.js");
+    const tok=await auth.currentUser.getIdToken();let j;
+    if(file){
+      if(file.size>95*1048576)throw new Error("الملف أكبر من 95MB، استخدم الرفع من رابط");
+      j=await new Promise((res,rej)=>{
+        const x=new XMLHttpRequest();x.open("PUT",MEDIA+"/host-up?p="+p+"&item="+hItem()+"&name="+encodeURIComponent(hNm(box,((file.name.match(/\.(mp4|mkv|mov|webm|avi|m4v|ts)$/i)||[])[1]||"mp4").toLowerCase()))+"&title="+encodeURIComponent(title));
+        x.setRequestHeader("Authorization","Bearer "+tok);
+        x.upload.onprogress=e=>{if(e.lengthComputable){const pc=Math.round(e.loaded/e.total*100);fill.style.width=pc+"%";st.textContent=`جارٍ الرفع إلى ${HN[p]} ${pc}% (${(e.loaded/1048576).toFixed(0)} / ${(e.total/1048576).toFixed(0)} MB)`}};
+        x.onload=()=>{let r={};try{r=JSON.parse(x.responseText)}catch(e){}x.status>=200&&x.status<300&&r.url?res(r):rej(new Error(r.error||("HTTP "+x.status)))};
+        x.onerror=()=>rej(new Error("Failed to fetch"));x.send(file);
+      });
+    }else{
+      st.innerHTML=`<i class="fas fa-gear fa-spin"></i> جارٍ نقل الملف إلى ${HN[p]} عبر الخادم... قد يستغرق عدة دقائق، أبقِ الصفحة مفتوحة`;
+      fill.style.width="35%";
+      const r=await fetch(MEDIA+"/host-pull",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+tok},body:JSON.stringify({p,src:url,title,item:hItem(),name:hNm(box,"")})});
+      j=await r.json().catch(()=>({}));
+      if(!r.ok||!j.url)throw new Error(j.error||("HTTP "+r.status));
+    }
+    fill.style.width="100%";
+    ta.value=ta.value.trim()?ta.value.trim()+"\n"+j.url:j.url;
+    st.innerHTML=`<i class="fas fa-circle-check" style="color:var(--ok)"></i> تم الرفع وأُضيف الرابط تلقائياً`+(p==="ia"?" (قد يحتاج Internet Archive دقائق قبل أن يصبح الملف متاحاً للتشغيل)":"");
+  }catch(e){st.innerHTML=`<i class="fas fa-circle-xmark" style="color:var(--p)"></i> ${esc(vMsg(e.message))}`}
+  finally{lock(false)}
+}
 /* ───── البلاغات ───── */
 let reps=[];
 async function countReports(){
@@ -960,6 +999,7 @@ $("#hSave").onclick=async()=>{
 
 /* ───── إشعار يدوي ───── */
 const PUSH=(window.SP_CONFIG||{}).push||"";
+const MEDIA=(m=>/REPLACE/.test(m)?"":m)((window.SP_CONFIG||{}).media||"");
 function nPreview(){
   $("#nPrev").innerHTML=`<div class="sm" style="margin-bottom:6px">معاينة</div><b>${esc($("#nT").value||"العنوان")}</b><div class="sm" style="color:#ccc;margin-top:3px">${esc($("#nB").value||"التفاصيل")}</div>${$("#nI").value?`<img src="${esc($("#nI").value)}" style="width:100%;border-radius:10px;margin-top:8px;max-height:150px;object-fit:cover" onerror="this.style.display='none'">`:""}<div class="sm" dir="ltr" style="margin-top:6px;text-align:left">${esc($("#nU").value||"(يفتح الموقع)")}</div>`;
 }

@@ -1358,6 +1358,11 @@ function showEmbed(embed,o){
 }
 async function play(o){
   if(!window.JP){toast("المشغّل غير محمّل — تأكد من رفع player.js");return}
+  if(o.quals&&window.SP_CONFIG&&SP_CONFIG.media&&!/REPLACE/.test(SP_CONFIG.media)){
+    const hostedUrl=u=>{try{const t=new URL(u);const h=t.hostname.toLowerCase();
+      if(t.protocol==="https:"&&((h==="pixeldrain.com"&&/^\/api\/file\//.test(t.pathname))||h==="archive.org"||h.endsWith(".archive.org")))return SP_CONFIG.media+"/pass?u="+encodeURIComponent(t.href)}catch(e){}return u};
+    o.quals=o.quals.map(q=>({...q,url:hostedUrl(q.url)}));
+  }
   if(o.quals&&o.quals.some(q=>/^vcdn:/i.test(q.url))){
     const q0=o.quals;
     o.resolve=async()=>{
