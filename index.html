@@ -141,6 +141,16 @@ html.boot body::after{content:"";position:fixed;inset:0;background:#000;z-index:
 .nc-it small{color:#777;font-size:.72em;flex:none}
 .nc-sw .tg{width:40px;height:23px;border-radius:99px;background:#3a3a44;position:relative;flex:none;transition:.2s}.nc-sw .tg:after{content:"";position:absolute;top:3px;right:3px;width:17px;height:17px;border-radius:50%;background:#fff;transition:.2s}
 .nc-sw.on .tg{background:var(--primary)}.nc-sw.on .tg:after{right:20px}
+ .nc-it.un{background:linear-gradient(90deg,rgba(255,71,87,.14),rgba(255,255,255,.05));box-shadow:inset 3px 0 0 var(--primary)}
+.nc-it .th{width:38px;height:56px;border-radius:9px;object-fit:cover;background:#222;flex:none}
+.nc-nw{align-items:stretch;padding:9px;gap:12px}.nc-nw .pic{width:88px;height:56px;border-radius:12px;object-fit:cover;background:#1f1f2c;flex:none;display:block}
+.nc-nw .pic.ph{display:grid;place-items:center;color:var(--primary);font-size:1.2em;background:linear-gradient(135deg,rgba(255,71,87,.2),rgba(255,255,255,.05))}
+.nc .tx .q{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:#b9bcce}
+.nc-nw small{display:block;margin-top:auto}
+.nc-rp .av{position:relative;width:42px;height:42px;border-radius:50%;background:var(--primary);display:grid;place-items:center;font-weight:800;flex:none}.nc-rp .av img{width:100%;height:100%;border-radius:50%;object-fit:cover}
+.nc-rp .av i{position:absolute;bottom:-3px;left:-3px;width:18px;height:18px;border-radius:50%;background:#2e86ff;color:#fff;font-size:.55em;display:grid;place-items:center;border:2px solid #15151c}
+.nc-rp .tx b em{font-style:normal;font-weight:500;color:#9a9aa5;font-size:.9em}
+.nc-it{cursor:pointer}
 .nc-un{border:0;border-radius:99px;background:rgba(255,255,255,.1);color:#ccc;padding:6px 12px;font-size:.75em;cursor:pointer}
 .nc-em{text-align:center;color:#777;font-size:.85em;padding:16px;border-radius:18px;border:1px dashed rgba(255,255,255,.12);line-height:1.8}.nc-em i{display:block;font-size:1.5em;margin-bottom:6px;opacity:.6}
 .ac-hero{padding:70px 16px 22px;text-align:center;background:linear-gradient(#1d2040,#12142a)}
@@ -289,7 +299,7 @@ html.embed #spFab{display:none}
 <div id="toast"></div>
 
 <link rel="preconnect" href="https://api.themoviedb.org"><link rel="preconnect" href="https://image.tmdb.org"><link rel="preconnect" href="https://firestore.googleapis.com"><script src="config.js"></script>
-<script src="player.js?v=11"></script>
+<script src="player.js?v=14"></script>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {getAuth,onAuthStateChanged,GoogleAuthProvider,signInWithPopup,signInWithEmailAndPassword,createUserWithEmailAndPassword,signOut,updateProfile,sendPasswordResetEmail,deleteUser}
@@ -344,22 +354,107 @@ async function cloudUp(blob,folder){
   const j=await r.json();if(!j.secure_url)throw new Error((j.error&&j.error.message)||"upload");
   return j.secure_url.replace("/upload/","/upload/q_auto,f_auto/");
 }
+/* ───── فلتر التعليقات (عربي / فرنسي / إنجليزي) ───── */
+const MOD=(()=>{
+  const ar=s=>s.replace(/[ً-ٰٟـ]/g,"").replace(/[أإآٱ]/g,"ا").replace(/ى/g,"ي").replace(/ة/g,"ه").replace(/ؤ/g,"و").replace(/ئ/g,"ي");
+  const dg=s=>s.replace(/[٠-٩]/g,c=>c.charCodeAt(0)-1632).replace(/[۰-۹]/g,c=>c.charCodeAt(0)-1776);
+  const nrm=s=>ar(dg(String(s).normalize("NFKD").replace(/[̀-ͯ]/g,"").toLowerCase()));
+  const leet=s=>s.replace(/@/g,"a").replace(/\$/g,"s").replace(/0/g,"o").replace(/1/g,"i").replace(/3/g,"e").replace(/4/g,"a").replace(/5/g,"s").replace(/7/g,"t");
+  const set=str=>new Set(str.split(/\s+/).filter(Boolean).map(nrm));
+  const STRONG=set(`نيك ينيك تنيك نيكه نيكني نيكمك نيكم نحويك نحوك نكمك نكتك نكني منيوك منيك منيكه متناك متناكه قحبه قحاب قحبات قحبتك شرموطه شرموط شراميط عاهره عواهر زب زبي زبك زبر زبره طيز طيزك طيزه كس كسمك كسختك كسامك كسك كسها عرص عرصه ديوث ديوثه سكس سيكس بزاز بزازك لحس مص
+    fuck fucking fucker fuk fck motherfucker shit bullshit bitch bitches pussy dick dicks cock cocks asshole arsehole cunt whore slut sluts porn porno pornhub xxx sex sexe nude nudes horny blowjob handjob anal dildo cum jizz boobs tits titties nigger nigga faggot rape masturbate masturbation orgasm penis vagina anus clitoris testicles
+    pute putes putain salope salopes encule enculer nique niquer ntm fdp connard connasse bite bites couille couilles chatte chattes merde sucer suce branler branlette zob zebi zeb tapette foutre nichons cul
+    9a7ba 9ahba qahba kahba nikmok nikomok nik`);
+  const PHR=["ابن الكلب","ابن القحبه","ولد القحبه","ولد الحرام","fils de pute","son of a bitch","va te faire","nique ta mere","nik omek","nik mok"].map(nrm);
+  const WEAK=set(`خاص تعالي سخنت واتساب واتس وتساب وتس واتسب واتسابي تلغرام تيليجرام تليجرام سناب سنابي انستا انستغرام انستقرام ضيفني ضيفيني كلمني كلميني راسلني راسليني ابعثلي رقمي نمرتي رقمك انبوكس
+    whatsapp watsap whatsap wtsp telegram snap snapchat insta instagram dm inbox`);
+  const PRE=["ال","و","ف","ب","ل","ك","س","وال","بال","فال","كال","لل"],SUF=["ك","ي","ه","ها","هم","نا","ني","كم"];
+  const runs=t=>[t,t.replace(/(.)\1{2,}/g,"$1"),t.replace(/(.)\1{2,}/g,"$1$1")];
+  const forms=(t,suf)=>{
+    const out=new Set();
+    runs(t).forEach(r=>{
+      const pre=[r];PRE.forEach(p=>{if(r.startsWith(p)&&r.length>p.length+1)pre.push(r.slice(p.length))});
+      pre.forEach(x=>{out.add(x);if(suf)SUF.forEach(s=>{if(x.endsWith(s)&&x.length>s.length+1)out.add(x.slice(0,-s.length))})});
+    });
+    return out;
+  };
+  const tokens=s=>{
+    const raw=s.split(/[^\p{L}\p{N}@$]+/u).filter(Boolean),out=[];let acc=[];
+    const flush=()=>{if(acc.length>=3)out.push(acc.join(""));acc=[]};
+    raw.forEach(t=>{if(t.length===1&&/\p{L}/u.test(t))acc.push(t);else{flush();out.push(t)}});flush();return out;
+  };
+  let ex=null;
+  return{
+    load(w){ex={words:new Set(),sub:[],solicit:w&&w.solicit!==false};((w&&w.words)||[]).forEach(x=>{x=String(x||"").trim();if(!x)return;if(x[0]==="*"){const y=nrm(x.slice(1)).replace(/\s+/g,"");if(y.length>=3)ex.sub.push(y)}else ex.words.add(nrm(x))})},
+    check(text){
+      const s=String(text||""),raw=dg(s);
+      if(/(https?:\/\/|www\.|t\.me|wa\.me|bit\.ly)/i.test(raw)||/\b[a-z0-9][a-z0-9-]{1,}\s?(\.|\(dot\)|\[dot\]|\sdot\s)\s?(com|net|org|info|me|io|ly|co|tv|xyz|top|site|online|club|vip|link|app|cc|ru|fr|dz|ma|tn|eg|sa|shop|store|live)\b/i.test(raw))return"روابط";
+      if(/[a-z0-9._%+\-]+\s?(@|\(at\)|\[at\])\s?[a-z0-9.\-]+\s?(\.|\(dot\))\s?[a-z]{2,}/i.test(raw))return"بريد إلكتروني";
+      if(/@[\p{L}\d_.]{3,}/u.test(raw))return"معرّفات حسابات";
+      if(/(?:\+?\d[\s.\-_()\/]*){7,}/.test(raw))return"أرقام هواتف";
+      const t1=nrm(s);
+      if(PHR.some(p=>(" "+t1+" ").indexOf(" "+p+" ")>-1))return"ألفاظ غير لائقة";
+      const compact=t1.replace(/[^\p{L}\p{N}]+/gu,"");
+      if(ex&&ex.sub.some(w=>compact.indexOf(w)>-1))return"كلمات محظورة";
+      for(const tk of tokens(t1)){
+        for(const v of [tk,leet(tk)]){
+          for(const f of forms(v,true))if(STRONG.has(f))return"ألفاظ غير لائقة";
+          if(ex)for(const f of forms(v,false))if(ex.words.has(f))return"كلمات محظورة";
+          if(!ex||ex.solicit)for(const f of forms(v,false))if(WEAK.has(f))return"عبارات ترويجية (خاص / واتساب / تواصل)";
+        }
+      }
+      return null;
+    }
+  };
+})();
+let bwP=null;
+const loadBW=()=>bwP||(bwP=getDoc(doc(db,"settings","banwords")).then(s=>MOD.load(s.exists()?s.data():null)).catch(()=>MOD.load(null)));
+window.MOD=MOD;
+let notifC=[];
 window.SPC={
   user:()=>user,
   login:()=>{try{JP.minimize()}catch(e){}openAuth("سجّل الدخول للتعليق والإعجاب")},
   upload:cloudUp,
+  async check(t){await loadBW();return MOD.check(t)},
   async list(key){
-    const [s]=await Promise.all([getDocs(query(collection(db,"comments"),where("key","==",key),limit(80))),loadLiked()]);
+    const [s]=await Promise.all([getDocs(query(collection(db,"comments"),where("key","==",key),limit(150))),loadLiked()]);
     const a=[];s.forEach(d=>a.push({id:d.id,...d.data(),liked:likedC.has(d.id)}));return a;
   },
   async add(c){
-    const u=user;const d={key:c.key,uid:u.uid,name:String(u.displayName||u.email||"مستخدم").slice(0,60),photo:String(u.photoURL||"").slice(0,300),text:c.text,shot:c.shot||"",t:c.t==null?null:c.t,likes:0,createdAt:Date.now()};
-    return (await addDoc(collection(db,"comments"),d)).id;
+    const u=user;
+    try{if((await getDoc(doc(db,"banned",u.uid))).exists())throw new Error("banned")}catch(e){if(e.message==="banned")throw e}
+    const d={key:c.key,uid:u.uid,name:String(u.displayName||u.email||"مستخدم").slice(0,60),photo:String(u.photoURL||"").slice(0,300),text:c.text,shot:c.shot||"",t:c.t==null?null:c.t,likes:0,createdAt:Date.now(),parent:c.parent||null,to:c.to||null,ref:c.ref||null};
+    const id=(await addDoc(collection(db,"comments"),d)).id;
+    if(c.to&&c.to!==u.uid){
+      addDoc(collection(db,"users",c.to,"notifs"),{type:"reply",from:u.uid,fromName:d.name,fromPhoto:d.photo,text:c.text.slice(0,140),key:c.key,title:String(c.title||"").slice(0,120),poster:String(c.poster||"").slice(0,300),cid:id,ts:Date.now(),read:false}).catch(()=>{});
+      if(CFG.push)post("/notify",{type:"reply",cid:id,img:c.poster||""}).catch(()=>{});
+    }
+    return id;
   },
-  async like(id,on){
+  async like(id,on,c){
     const ref=doc(db,"comments",id),lr=doc(db,"users",user.uid,"clikes",id);
-    if(on){await setDoc(lr,{t:Date.now()});await updateDoc(ref,{likes:increment(1)});likedC.add(id)}
+    if(on){await setDoc(lr,{t:Date.now()});await updateDoc(ref,{likes:increment(1)});likedC.add(id);
+      if(c&&c.uid&&c.uid!==user.uid&&[1,5,10,25,50,100,250,500,1000].includes(c.likes)){
+        const m=c.likes;
+        addDoc(collection(db,"users",c.uid,"notifs"),{type:"like",from:user.uid,fromName:String(user.displayName||user.email||"مستخدم").slice(0,60),fromPhoto:String(user.photoURL||"").slice(0,300),text:(m===1?"أعجب أحدهم بتعليقك: ":"وصل تعليقك إلى "+m+" إعجاب: ")+String(c.text||"").slice(0,100),key:c.key||"",title:String(c.wtitle||"").slice(0,120),poster:String(c.wposter||"").slice(0,300),cid:id,ts:Date.now(),read:false}).catch(()=>{});
+        if(CFG.push)post("/notify",{type:"like",cid:id,m,img:c.wposter||""}).catch(()=>{});
+      }}
     else{await deleteDoc(lr);await updateDoc(ref,{likes:increment(-1)});likedC.delete(id)}
+  },
+  async del(id){await deleteDoc(doc(db,"comments",id))},
+  async search(q){
+    const r=await tm("/search/multi",{query:q,include_adult:"false"});
+    return (r.results||[]).filter(x=>(x.media_type==="movie"||x.media_type==="tv")&&x.poster_path).slice(0,8).map(x=>({type:x.media_type,id:x.id,title:x.title||x.name||"",poster:IMG+"w185"+x.poster_path,year:String(x.release_date||x.first_air_date||"").slice(0,4)}));
+  },
+  open(r){try{JP.close()}catch(e){}setTimeout(()=>{location.hash="#/"+r.type+"/"+r.id},100)},
+  async notifs(){
+    if(!user)return[];
+    try{const s=await getDocs(query(collection(db,"users",user.uid,"notifs"),orderBy("ts","desc"),limit(30)));const a=[];s.forEach(d=>a.push({id:d.id,...d.data()}));notifC=a;return a}catch(e){return[]}
+  },
+  async readAll(){
+    if(!user)return;
+    await Promise.all(notifC.filter(x=>!x.read).map(x=>updateDoc(doc(db,"users",user.uid,"notifs",x.id),{read:true}).catch(()=>{})));
+    notifC.forEach(x=>x.read=true);
   }
 };
 const cfgP=getDoc(doc(db,"settings","home")).catch(()=>null);
@@ -639,7 +734,7 @@ onAuthStateChanged(auth,async u=>{
       getDocs(collection(db,"users",u.uid,"actors")).then(s=>s.forEach(d=>actors.set(d.id,d.data()))).catch(()=>{})
     ]);
   }else a.innerHTML=`<i class="fas fa-user"></i>`;
-  updDlBadge();
+  updDlBadge();setTimeout(()=>{try{checkUnread();if(u)syncPush()}catch(e){}},1500);
   if(u){const pr=doc(db,"profiles",u.uid);getDoc(pr).then(sn=>setDoc(pr,{name:String(u.displayName||"").slice(0,80),email:String(u.email||"").slice(0,120),photo:String(u.photoURL||"").slice(0,300),provider:(u.providerData[0]&&u.providerData[0].providerId)||"",lastSeen:Date.now(),...(sn.exists()&&sn.data().createdAt?{}:{createdAt:Date.now()})},{merge:true})).catch(()=>{});pushPres()}
   const fb=$("#favBtn");if(fb)syncFav(fb);
   if(!u)await loadHist();
@@ -1022,10 +1117,10 @@ function goHash(h){const m=String(h).match(/^#\/(movie|tv)\/(\d+)(?:\/(\d+)\/(\d
 const LSget=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k));return v??d}catch(e){return d}};
 const LSset=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
 const getFollows=()=>LSget("sp_follows",[]);
-const getTopics=()=>({trending:true,upcoming:true,...LSget("sp_topics",{})});
+const getTopics=()=>({trending:true,upcoming:true,replies:true,...LSget("sp_topics",{})});
 const b64u2buf=b=>{const p="=".repeat((4-b.length%4)%4),r=atob((b+p).replace(/-/g,"+").replace(/_/g,"/"));return Uint8Array.from(r,c=>c.charCodeAt(0))};
 async function curSub(){try{if(!PUSH_OK)return null;const r=await navigator.serviceWorker.ready;return await r.pushManager.getSubscription()}catch(e){return null}}
-const post=(p,b)=>fetch(CFG.push+p,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(b)});
+const post=async(p,b)=>{const hd={"content-type":"application/json"};try{if(user)hd.authorization="Bearer "+await user.getIdToken()}catch(e){}return fetch(CFG.push+p,{method:"POST",headers:hd,body:JSON.stringify(b)})};
 async function syncPush(){
   const sub=await curSub();if(!sub||!CFG.push)return;
   try{await post("/sub",{sub:sub.toJSON(),topics:getTopics(),follows:getFollows().map(f=>f.key)})}catch(e){}
@@ -1057,7 +1152,7 @@ async function toggleFollow(it,btn){
 }
 async function fetchRecent(){if(!CFG.push)return[];try{return await (await fetch(CFG.push+"/recent")).json()}catch(e){return[]}}
 async function checkUnread(){
-  const r=await fetchRecent(),seen=LSget("sp_seen",0),n=r.filter(x=>x.ts>seen).length,f=$("#spFab");
+  const r=await fetchRecent(),seen=LSget("sp_seen",0),rn=user?(await window.SPC.notifs()).filter(x=>!x.read).length:0,n=r.filter(x=>x.ts>seen).length+rn,f=$("#spFab");
   f.classList.toggle("has",n>0);f.querySelector(".dot").textContent=n>9?"9+":n;
   try{n>0?navigator.setAppBadge&&navigator.setAppBadge(n):navigator.clearAppBadge&&navigator.clearAppBadge()}catch(e){}
 }
@@ -1072,8 +1167,10 @@ async function openNotif(){
   const m=document.createElement("div");m.className="modal on";m.style.zIndex=500;document.body.appendChild(m);
   m.addEventListener("click",e=>{if(e.target===m)m.remove()});
   m.innerHTML=`<div class="mbox" style="max-width:420px"><div class="center" style="padding:20px">${spinner()}</div></div>`;
-  const recent=await fetchRecent();
-  if(recent.length)LSset("sp_seen",recent[0].ts);$("#spFab").classList.remove("has");try{navigator.clearAppBadge&&navigator.clearAppBadge()}catch(e){}
+  const [recent,reps]=await Promise.all([fetchRecent(),window.SPC.notifs()]);
+  const seenPrev=LSget("sp_seen",0);
+  if(recent.length)LSset("sp_seen",recent[0].ts);
+  setTimeout(()=>window.SPC.readAll(),1500);$("#spFab").classList.remove("has");try{navigator.clearAppBadge&&navigator.clearAppBadge()}catch(e){}
   const draw=async()=>{
     const sub=await curSub(),perm=PUSH_OK?Notification.permission:"unsupported",on=!!sub&&perm==="granted",tp=getTopics(),fs=getFollows();
     let status;
@@ -1089,11 +1186,12 @@ async function openNotif(){
     const sw=(t,ic,lb)=>`<button class="nc-sw ${tp[t]?"on":""}" data-t="${t}"><span class="ic"><i class="fas ${ic}"></i></span><span class="tx">${lb}</span><span class="tg"></span></button>`;
     m.innerHTML=`<div class="mbox nc"><div class="nc-h"><span class="nc-ic"><i class="fas fa-bell"></i></span><h3>الإشعارات</h3><button class="nc-x" id="n-x" aria-label="إغلاق"><i class="fas fa-xmark"></i></button></div>
     <div class="nc-b">${inst}${status}
-    ${on?`<div class="nc-t">التنبيهات</div>${sw("trending","fa-fire","عمل جديد في الأكثر مشاهدة")}${sw("upcoming","fa-calendar-days","أفلام قادمة")}`:""}
-    <div class="nc-t">ما تتابعه <em>${fs.length}</em></div>
-    ${fs.length?fs.map((f,i)=>`<div class="nc-it" data-o="${i}"><span class="ic"><i class="fas fa-tv"></i></span><div class="tx"><b>${esc(f.title)}</b></div><button class="nc-un" data-u="${i}">إلغاء</button></div>`).join(""):`<div class="nc-em"><i class="fas fa-bell-slash"></i>اضغط «متابعة» في صفحة أي مسلسل يُعرض حالياً أو عمل قادم</div>`}
+    ${on?`<div class="nc-t">التنبيهات</div>${sw("trending","fa-fire","عمل جديد في الأكثر مشاهدة")}${sw("upcoming","fa-calendar-days","أفلام قادمة")}${sw("replies","fa-comments","ردود وإعجابات تعليقاتي")}`:""}
+    ${reps.length?`<div class="nc-t">الردود على تعليقاتك <em>${reps.filter(x=>!x.read).length||reps.length}</em></div>`+reps.slice(0,10).map((n,i)=>`<div class="nc-it nc-rp ${n.read?"":"un"}" data-p="${i}"><span class="av">${n.fromPhoto?`<img src="${esc(n.fromPhoto)}" referrerpolicy="no-referrer" alt="">`:esc((n.fromName||"U")[0].toUpperCase())}<i class="fas fa-${n.type==="like"?"heart":"reply"}"></i></span><div class="tx"><b>${n.type==="like"?"إعجاب بتعليقك":`${esc(n.fromName||"مستخدم")} <em>ردّ على تعليقك</em>`}</b><span class="q">${esc(n.text)}</span><span>${esc(n.title||"")}</span></div>${n.poster?`<img class="th" src="${esc(n.poster)}" alt="">`:""}<small>${ago(n.ts)}</small></div>`).join(""):""}
     <div class="nc-t">آخر الإشعارات</div>
-    ${recent.length?recent.slice(0,12).map((r,i)=>`<div class="nc-it" data-r="${i}"><span class="ic k"><i class="fas ${KI[r.kind]||"fa-bell"}"></i></span><div class="tx"><b>${esc(r.title)}</b><span>${esc(r.body)}</span></div><small>${ago(r.ts)}</small></div>`).join(""):`<div class="nc-em"><i class="fas fa-inbox"></i>لا توجد إشعارات بعد</div>`}
+    ${recent.length?recent.slice(0,12).map((r,i)=>`<div class="nc-it nc-nw ${r.ts>seenPrev?"un":""}" data-r="${i}">${r.img?`<img class="pic" loading="lazy" src="${esc(r.img)}" alt="">`:`<span class="pic ph"><i class="fas ${KI[r.kind]||"fa-bell"}"></i></span>`}<div class="tx"><b>${esc(r.title)}</b><span class="q">${esc(r.body)}</span><small>${ago(r.ts)}</small></div></div>`).join(""):`<div class="nc-em"><i class="fas fa-inbox"></i>لا توجد إشعارات بعد</div>`}
+    <div class="nc-t">ما تتابعه <em>${fs.length}</em></div>
+    ${fs.length?fs.map((f,i)=>`<div class="nc-it nc-fl" data-o="${i}">${f.poster?`<img class="th" loading="lazy" src="${esc(f.poster)}" alt="">`:`<span class="ic"><i class="fas fa-tv"></i></span>`}<div class="tx"><b>${esc(f.title)}</b><span>${f.type==="tv"?"مسلسل":"فيلم"}</span></div><button class="nc-un" data-u="${i}">إلغاء</button></div>`).join(""):`<div class="nc-em"><i class="fas fa-bell-slash"></i>اضغط «متابعة» في صفحة أي مسلسل يُعرض حالياً أو عمل قادم</div>`}
     </div></div>`;
     m.querySelector("#n-x").onclick=()=>m.remove();
     const ib=m.querySelector("#n-in");if(ib)ib.onclick=async()=>{installEv.prompt();try{await installEv.userChoice}catch(e){}installEv=null;draw()};
@@ -1105,6 +1203,7 @@ async function openNotif(){
       if(e.target.closest("[data-u]")){fs.splice(+b.dataset.o,1);LSset("sp_follows",fs);syncPush();draw();return}
       m.remove();openDetail(f.type,f.id);
     });
+    m.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{const n=reps[+b.dataset.p],k=String(n.key||"").split(":");m.remove();if(k[0]==="tv")openDetail("tv",+k[1],+k[2]?{s:+k[2],e:+k[3]||1}:null);else if(k[0]==="movie")openDetail("movie",+k[1])});
     m.querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{const r=recent[+b.dataset.r];m.remove();if(/^https?:/i.test(r.url||""))window.open(r.url,"_blank");else goHash(r.url)});
   };
   draw();

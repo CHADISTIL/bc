@@ -103,6 +103,7 @@ label{display:block;font-size:.78em;color:var(--mut);margin-bottom:6px}
     <button class="tab on" data-p="analytics"><i class="fas fa-chart-line"></i> التحليلات</button>
     <button class="tab" data-p="content"><i class="fas fa-film"></i> المحتوى</button>
     <button class="tab" data-p="trend"><i class="fas fa-fire"></i> الرائج</button>
+    <button class="tab" data-p="cm"><i class="fas fa-comments"></i> التعليقات</button>
     <button class="tab" data-p="reports"><i class="fas fa-flag"></i> البلاغات <span class="badge" id="repBadge" style="display:none"></span></button>
     <button class="tab" data-p="home"><i class="fas fa-house"></i> الرئيسية</button>
     <button class="tab" data-p="push"><i class="fas fa-bell"></i> الإشعارات</button>
@@ -210,6 +211,27 @@ label{display:block;font-size:.78em;color:var(--mut);margin-bottom:6px}
     </div>
   </div>
 
+  <!-- ═════ التعليقات ═════ -->
+  <div class="pane" id="p-cm" style="display:none">
+    <div class="card">
+      <div class="ch"><span class="ci"><i class="fas fa-ban"></i></span><b>الكلمات المحظورة</b></div>
+      <div class="sm" style="margin-bottom:10px;line-height:1.9">الفلتر التلقائي يعمل دائماً ويشمل: ألفاظ جنسية وسباب (عربي / فرنسي / إنجليزي)، الروابط، البريد الإلكتروني، أرقام الهواتف، ومعرّفات الحسابات (@). أضف هنا كلماتك الخاصة.</div>
+      <label class="chk" style="margin-bottom:10px"><input type="checkbox" id="bwSol" checked> حظر عبارات الترويج (خاص، تعالي، سخنت، واتساب، تلغرام...)</label>
+      <textarea id="bwList" style="direction:rtl;text-align:right;min-height:120px" placeholder="كلمة أو عبارة في كل سطر&#10;ضع * قبل الكلمة لمنعها حتى داخل الكلمات، مثل: *كلمة"></textarea>
+      <button id="bwSave"><i class="fas fa-floppy-disk"></i> حفظ</button>
+    </div>
+    <div class="card">
+      <div class="ch"><span class="ci"><i class="fas fa-comments"></i></span><b>آخر التعليقات</b>
+        <button class="sec ic" id="cmR" title="تحديث"><i class="fas fa-rotate"></i></button></div>
+      <input class="inp" id="cmQ" placeholder="بحث بالاسم أو النص...">
+      <div id="cmList"><div class="sm">…</div></div>
+    </div>
+    <div class="card">
+      <div class="ch"><span class="ci"><i class="fas fa-user-slash"></i></span><b>المحظورون من التعليق</b><span class="sm" id="banN"></span></div>
+      <div id="banList"><div class="sm">لا يوجد محظورون</div></div>
+    </div>
+  </div>
+
   <!-- ═════ الرئيسية ═════ -->
   <div class="pane" id="p-home" style="display:none">
     <div class="card">
@@ -240,7 +262,7 @@ label{display:block;font-size:.78em;color:var(--mut);margin-bottom:6px}
       <label>رابط الفتح — <code>#/movie/603</code> أو <code>#/tv/1396/1/3</code> لفتح عمل داخل الموقع، أو رابط https خارجي. اتركه فارغاً لفتح الموقع فقط</label>
       <input class="inp" id="nU" dir="ltr" placeholder="#/movie/603">
       <label>رابط الصورة (اختياري)</label>
-      <input class="inp" id="nI" dir="ltr" placeholder="https://image.tmdb.org/...">
+      <div style="display:flex;gap:8px"><input class="inp" id="nI" dir="ltr" placeholder="https://image.tmdb.org/..." style="flex:1"><button class="sec ic" id="nIup" title="رفع صورة"><i class="fas fa-image"></i></button><input type="file" id="nIf" accept="image/*" hidden></div>
       <div class="rep" id="nPrev" style="margin-top:6px"></div>
       <label style="margin-top:10px">المستلمون</label>
       <select id="nTo"><option value="all">كل المشتركين</option><option value="me">جهازي فقط (تجربة)</option></select>
@@ -346,6 +368,75 @@ async function loadAnalytics(quiet){
 }
 $("#anR").onclick=()=>loadAnalytics();
 /* ───── tabs ───── */
+
+/* ───── التعليقات والحظر ───── */
+let CMS=[],BANS=new Map();
+async function loadBW(){try{const s=await getDoc(doc(db,"settings","banwords"));const d=s.exists()?s.data():{};$("#bwList").value=(d.words||[]).join("\n");$("#bwSol").checked=d.solicit!==false}catch(e){}}
+$("#bwSave").onclick=async()=>{
+  const words=[...new Set($("#bwList").value.split("\n").map(x=>x.trim()).filter(Boolean))].slice(0,500);
+  try{await setDoc(doc(db,"settings","banwords"),{words,solicit:$("#bwSol").checked,updatedAt:Date.now()});msg("تم حفظ الكلمات المحظورة ("+words.length+")","ok")}
+  catch(e){msg("تعذر الحفظ ("+e.code+")","err")}
+};
+async function loadCm(){loadBW();await loadBans();loadComments()}
+async function loadBans(){
+  try{const s=await getDocs(collection(db,"banned"));BANS=new Map();s.forEach(d=>BANS.set(d.id,d.data()))}catch(e){msg("تعذر قراءة المحظورين — تأكد من نشر قواعد Firestore","err")}
+  renderBans();
+}
+function renderBans(){
+  $("#banN").textContent=BANS.size?BANS.size+" محظور":"";
+  $("#banList").innerHTML=BANS.size?[...BANS].map(([uid,b])=>`<div class="usr"><div class="av">${b.photo?`<img src="${esc(b.photo)}" referrerpolicy="no-referrer" alt="">`:`<i class="fas fa-user"></i>`}</div><div class="t"><b>${esc(b.name||uid)}</b><span class="sm">${esc(b.reason||"")} · ${new Date(b.at||0).toLocaleDateString("ar")}</span></div><button class="sec sm2" data-un="${uid}"><i class="fas fa-user-check"></i> رفع الحظر</button></div>`).join(""):`<div class="sm">لا يوجد محظورون</div>`;
+  document.querySelectorAll("[data-un]").forEach(b=>b.onclick=async()=>{try{await deleteDoc(doc(db,"banned",b.dataset.un));BANS.delete(b.dataset.un);renderBans();renderComments();msg("تم رفع الحظر","ok")}catch(e){msg("تعذر رفع الحظر ("+e.code+")","err")}});
+}
+async function loadComments(){
+  $("#cmList").innerHTML="<div class='sm'>…</div>";
+  try{const s=await getDocs(query(collection(db,"comments"),orderBy("createdAt","desc"),limit(150)));CMS=[];s.forEach(d=>CMS.push({id:d.id,...d.data()}))}
+  catch(e){$("#cmList").innerHTML="<div class='sm'>تعذر التحميل ("+esc(e.code||"")+")</div>";return}
+  renderComments();
+}
+function renderComments(){
+  const q=($("#cmQ").value||"").trim().toLowerCase();
+  const arr=CMS.filter(c=>!q||String(c.text||"").toLowerCase().includes(q)||String(c.name||"").toLowerCase().includes(q));
+  $("#cmList").innerHTML=arr.length?arr.map(c=>{
+    const k=String(c.key||"").split(":"),link=`./#/${k[0]}/${k[1]}${k[0]==="tv"&&+k[2]?`/${k[2]}/${k[3]||1}`:""}`;
+    return `<div class="usr" data-c="${c.id}" style="align-items:flex-start"><div class="av">${c.photo?`<img src="${esc(c.photo)}" referrerpolicy="no-referrer" alt="">`:`<i class="fas fa-user"></i>`}</div>
+    <div class="t" style="white-space:normal"><b>${esc(c.name||"")} ${BANS.has(c.uid)?'<span class="tag new">محظور</span>':""}${c.parent?'<span class="tag">رد</span>':""}${c.shot?'<span class="tag">لقطة</span>':""}</b>
+    <div style="font-size:.86em;line-height:1.7;margin:3px 0;word-break:break-word">${esc(c.text)}</div>
+    ${c.shot?`<img src="${esc(c.shot)}" style="max-width:160px;border-radius:10px;display:block;margin:4px 0" alt="">`:""}
+    ${c.ref?`<div class="sm"><i class="fas fa-film"></i> ${esc(c.ref.title||"")}</div>`:""}
+    <span class="sm"><a href="${esc(link)}" target="_blank" style="color:var(--p)">${esc(c.key)}</a> · <i class="fas fa-heart"></i> ${c.likes||0} · ${new Date(c.createdAt||0).toLocaleString("ar")}</span></div>
+    <div style="display:flex;flex-direction:column;gap:6px"><button class="sm2" data-d="${c.id}"><i class="fas fa-trash"></i></button>${BANS.has(c.uid)?"":`<button class="sec sm2" data-b="${c.id}" title="حظر المستخدم"><i class="fas fa-user-slash"></i></button>`}</div></div>`}).join(""):`<div class="sm">لا توجد تعليقات</div>`;
+  document.querySelectorAll("#cmList [data-d]").forEach(b=>b.onclick=async()=>{
+    if(!confirm("حذف التعليق؟"))return;
+    try{await deleteDoc(doc(db,"comments",b.dataset.d));CMS=CMS.filter(x=>x.id!==b.dataset.d);renderComments();msg("تم الحذف","ok")}catch(e){msg("تعذر الحذف ("+e.code+")","err")}
+  });
+  document.querySelectorAll("#cmList [data-b]").forEach(b=>b.onclick=async()=>{
+    const c=CMS.find(x=>x.id===b.dataset.b);if(!c)return;
+    const reason=prompt("سبب الحظر (اختياري) — سيُمنع "+c.name+" من التعليق:","");if(reason===null)return;
+    try{
+      await setDoc(doc(db,"banned",c.uid),{name:c.name||"",photo:c.photo||"",reason:reason.slice(0,100),at:Date.now(),by:auth.currentUser.email||""});
+      BANS.set(c.uid,{name:c.name,photo:c.photo,reason,at:Date.now()});
+      if(confirm("حذف كل تعليقات "+c.name+" المعروضة أيضاً؟")){
+        const mine=CMS.filter(x=>x.uid===c.uid);
+        await Promise.all(mine.map(x=>deleteDoc(doc(db,"comments",x.id)).catch(()=>{})));
+        CMS=CMS.filter(x=>x.uid!==c.uid);
+      }
+      renderBans();renderComments();msg("تم حظر المستخدم من التعليق","ok");
+    }catch(e){msg("تعذر الحظر ("+e.code+") — تأكد من نشر قواعد Firestore","err")}
+  });
+}
+$("#nIup").onclick=()=>$("#nIf").click();
+$("#nIf").onchange=async ev=>{
+  const f=ev.target.files[0];if(!f)return;const C=window.SP_CONFIG&&SP_CONFIG.cloudinary;if(!C){msg("ضع إعدادات cloudinary في config.js","err");return}
+  msg("جارٍ رفع الصورة...","ok");
+  try{
+    const bm=await createImageBitmap(f),s=Math.min(1,1000/bm.width),cv=document.createElement("canvas");cv.width=Math.round(bm.width*s);cv.height=Math.round(bm.height*s);cv.getContext("2d").drawImage(bm,0,0,cv.width,cv.height);
+    const blob=await new Promise(r=>cv.toBlob(r,"image/jpeg",.8));const fd=new FormData();fd.append("file",blob);fd.append("upload_preset",C.preset);fd.append("folder","notifs");
+    const j=await (await fetch("https://api.cloudinary.com/v1_1/"+C.cloud+"/image/upload",{method:"POST",body:fd})).json();
+    if(!j.secure_url)throw new Error(j.error&&j.error.message||"upload");
+    $("#nI").value=j.secure_url.replace("/upload/","/upload/q_auto,f_auto/");$("#nI").dispatchEvent(new Event("input"));msg("تم رفع الصورة","ok");
+  }catch(e){msg("تعذر رفع الصورة","err")}
+};
+$("#cmQ").oninput=renderComments;$("#cmR").onclick=loadCm;
 document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>showPane(b.dataset.p));
 function showPane(p){
   document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("on",b.dataset.p===p));
@@ -353,6 +444,7 @@ function showPane(p){
   clearInterval(anT);if(p==="analytics"){loadAnalytics();anT=setInterval(()=>{if(!document.hidden)loadAnalytics(true)},20000)}
   if(p==="trend"&&!tr.items.length)loadTrend();
   if(p==="reports")loadReports();
+  if(p==="cm")loadCm();
   if(p==="home"&&!H.loaded)loadHome();
 }
 
