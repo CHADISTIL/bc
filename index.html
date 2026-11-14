@@ -121,6 +121,20 @@ background:rgba(22,33,62,.85);backdrop-filter:blur(12px);border-bottom:1px solid
 #updBar .u-go{border:0;border-radius:99px;padding:9px 16px;font:inherit;font-weight:700;font-size:.85em;background:#ff4757;color:#fff;cursor:pointer;white-space:nowrap}
 #updBar .u-go:disabled{opacity:.7}
 #updBar .u-no{border:0;background:none;color:#8b91ab;cursor:pointer;padding:6px;font-size:1em}
+.d-pw{position:relative;flex-shrink:0;width:108px;border-radius:12px}
+.d-pw::after{content:"";position:absolute;left:0;right:0;bottom:0;height:48%;border-radius:0 0 12px 12px;background:linear-gradient(to top,rgba(0,0,0,.78),transparent);opacity:0;transition:opacity .5s ease;pointer-events:none}
+.d-pw.s-on::after{opacity:1}
+.pst-trl{position:absolute;z-index:2;left:7px;right:7px;bottom:7px;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:6px;height:34px;padding:0 8px;border:1px solid rgba(255,255,255,.3);border-radius:99px;color:#fff;font:inherit;font-size:.72em;font-weight:700;white-space:nowrap;background:rgba(14,14,26,.5);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);cursor:pointer;opacity:0;transform:translateY(16px) scale(.88);filter:blur(3px);pointer-events:none;transition:opacity .45s cubic-bezier(.4,0,.2,1),transform .55s cubic-bezier(.2,.9,.25,1.25),filter .45s,background .25s}
+.d-pw.s-on .pst-trl{opacity:1;transform:none;filter:none;pointer-events:auto}
+.pst-trl:active{transform:scale(.95)!important}
+.pst-trl i{font-size:1.25em;color:#ff4757}
+.pst-trl .fa-youtube{animation:pstPulse 1.7s ease-in-out infinite}
+.pst-trl::before{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.38) 50%,transparent 70%);transform:translateX(-130%);pointer-events:none}
+.d-pw.s-on .pst-trl::before{animation:pstSheen 1.2s .55s ease both}
+.pst-trl.back{background:rgba(255,71,87,.88);border-color:rgba(255,255,255,.45)}.pst-trl.back i{color:#fff}
+@keyframes pstPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.2)}}
+@keyframes pstSheen{to{transform:translateX(130%)}}
+@media (prefers-reduced-motion:reduce){.pst-trl{transition:opacity .01s;filter:none;transform:none}.pst-trl .fa-youtube,.d-pw.s-on .pst-trl::before{animation:none}}
 .d-hero{position:relative;aspect-ratio:16/9;max-height:50vh;width:100%;background:#000}
 .d-hero img{width:100%;height:100%;object-fit:cover}
 .d-hero::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,#12142a,transparent 70%)}
@@ -1396,8 +1410,22 @@ async function openDetail(type,id,epSel){
       }
     }
     if(trailer){const t=document.createElement("button");t.className="btn sec";
-      const setT=b=>{t.dataset.back=b?"1":"";t.innerHTML=b?`<i class="fas fa-rotate-left"></i> العودة لمشاهدة الفيلم`:`<i class="fab fa-youtube"></i> التريلر`};
-      setT(false);
+      t.style.display="none";
+      /* زر التريلر / العودة فوق غلاف الفيلم: يظهر ويختفي بحركة ناعمة حتى لا يحجب الغلاف */
+      const pimg=acts.closest(".d-body").querySelector(".d-poster"),pw=document.createElement("div");pw.className="d-pw";
+      if(pimg){pimg.replaceWith(pw);pw.appendChild(pimg)}
+      const cv=document.createElement("button");cv.type="button";cv.className="pst-trl";pw.appendChild(cv);
+      let hideT=0;
+      const showC=()=>{clearTimeout(hideT);pw.classList.add("s-on");if(!t.dataset.back)hideT=setTimeout(hideC,3800)};
+      const hideC=()=>{if(!t.dataset.back)pw.classList.remove("s-on")};
+      const setT=b=>{t.dataset.back=b?"1":"";
+        t.innerHTML=b?`<i class="fas fa-rotate-left"></i> العودة لمشاهدة الفيلم`:`<i class="fab fa-youtube"></i> التريلر`;
+        cv.innerHTML=b?'<i class="fas fa-rotate-left"></i><span>العودة للفيلم</span>':'<i class="fab fa-youtube"></i><span>التريلر</span>';
+        cv.classList.toggle("back",!!b);showC()};
+      cv.onclick=e=>{e.stopPropagation();t.onclick()};
+      pw.addEventListener("click",e=>{if(e.target.closest(".pst-trl"))return;pw.classList.contains("s-on")&&!t.dataset.back?hideC():showC()});
+      setT(false);clearTimeout(hideT);pw.classList.remove("s-on");setTimeout(showC,700);
+      const loop=setInterval(()=>{if(!pw.isConnected){clearInterval(loop);return}if(!pw.classList.contains("s-on")&&!t.dataset.back)showC()},11000);
       t.onclick=()=>{
       if(t.dataset.back){JP.endTrailer();setT(false);return}
       if(JP.isOpen()&&JP.trailer&&JP.trailer(trailer.key)){setT(true);window.addEventListener("jp-close",()=>setT(false),{once:true});return}
