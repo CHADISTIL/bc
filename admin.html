@@ -57,6 +57,7 @@ label{display:block;font-size:.78em;color:var(--mut);margin-bottom:6px}
 .row>*{margin-bottom:0}
 .eprow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 12px;background:var(--card2);border-radius:14px;margin-bottom:6px;font-size:.82em}
 .eprow span{word-break:break-all;flex:1}
+.eprow .inp{background:var(--card);border:1px solid rgba(255,255,255,.08)}
 .pub{display:flex;gap:12px;align-items:center;padding:9px;border-radius:16px;background:var(--card2);margin-bottom:8px}
 .pub img{width:42px;height:60px;object-fit:cover;border-radius:8px;background:#222;flex:none}
 .pub .t{flex:1;min-width:0}
@@ -257,6 +258,9 @@ button:not(.sec):not(.del):not(.tab):not(.x):hover{box-shadow:0 6px 18px rgba(25
             </div>
           </div>
         </div>
+        <div class="adx" data-t="m" style="margin:10px 0"><label><i class="fas fa-rectangle-ad"></i> إعلان VAST لهذا الفيلم</label>
+          <select class="inp adm"><option value="auto">تلقائي (الإعدادات العامة)</option><option value="custom">رابط VAST خاص</option><option value="off">بدون إعلان</option></select>
+          <input class="inp adu" dir="ltr" placeholder="https://.../vast.xml" style="display:none;margin-top:6px"></div>
         <button id="saveMovie"><i class="fas fa-floppy-disk"></i> حفظ الفيلم</button>
       </div>
 
@@ -297,6 +301,9 @@ button:not(.sec):not(.del):not(.tab):not(.x):hover{box-shadow:0 6px 18px rgba(25
             </div>
           </div>
         </div>
+        <div class="adx" data-t="e" style="margin:10px 0"><label><i class="fas fa-rectangle-ad"></i> إعلان VAST لهذه الحلقة</label>
+          <select class="inp adm"><option value="auto">تلقائي (الإعدادات العامة)</option><option value="custom">رابط VAST خاص</option><option value="off">بدون إعلان</option></select>
+          <input class="inp adu" dir="ltr" placeholder="https://.../vast.xml" style="display:none;margin-top:6px"></div>
         <div class="row"><button id="saveEp"><i class="fas fa-floppy-disk"></i> حفظ الحلقة</button><button class="sec" id="nextEp"><i class="fas fa-forward-step"></i> حفظ وانتقل للتالية</button></div>
         <div class="ch" style="margin-top:18px"><span class="ci"><i class="fas fa-list"></i></span><b>الحلقات المضافة</b></div>
         <div id="epList"></div>
@@ -407,25 +414,50 @@ button:not(.sec):not(.del):not(.tab):not(.x):hover{box-shadow:0 6px 18px rgba(25
       <div class="ch"><span class="ci"><i class="fas fa-rectangle-ad"></i></span><b>إعلانات VAST</b></div>
       <p class="sm" style="margin:6px 0 10px">تتحكم في ظهور الإعلانات داخل مشغّل الفيديو.</p>
       <label class="chk"><input type="checkbox" id="vOn">تفعيل الإعلانات</label>
-      <label style="margin-top:8px">رابط VAST</label>
-      <input class="inp" id="vUrl" dir="ltr" placeholder="https://.../watch.xml?key=...">
+
+      <label style="margin-top:10px"><i class="fas fa-link"></i> روابط الإعلانات (VAST)</label>
+      <div id="vTags"></div>
+      <button type="button" class="sec" id="vAdd"><i class="fas fa-plus"></i> إضافة رابط إعلان</button>
+      <label style="margin-top:8px">طريقة التوزيع عند وجود أكثر من رابط</label>
+      <select class="inp" id="vOrder"><option value="seq">تناوب: رابط مختلف في كل مرة</option><option value="rand">عشوائي</option><option value="fallback">احتياطي: الأول دائماً والباقي إن فشل</option></select>
+      <p class="sm" style="margin:4px 0 0">إن لم يُرجع الرابط إعلاناً يُجرَّب الرابط التالي تلقائياً (حتى 3 روابط).</p>
+
+      <label style="margin-top:12px"><i class="fas fa-layer-group"></i> الفئات التي يظهر فيها الإعلان</label>
+      <div class="row">
+        <label class="chk" style="flex:1"><input type="checkbox" id="vCm">أفلام</label>
+        <label class="chk" style="flex:1"><input type="checkbox" id="vCs">مسلسلات</label>
+        <label class="chk" style="flex:1"><input type="checkbox" id="vCa">أنمي</label>
+      </div>
+      <p class="sm" style="margin:0 0 6px">الأنمي = رسوم متحركة يابانية (تصنيف Animation + لغة أصلية يابانية). التريلر لا يظهر فيه إعلان أبداً.</p>
+      <label>يظهر الإعلان لـ</label>
+      <select class="inp" id="vAud"><option value="all">جميع المستخدمين</option><option value="guests">الزوار غير المسجلين فقط</option></select>
+
+      <label style="margin-top:12px"><i class="fas fa-clock"></i> التوقيت</label>
       <label class="chk"><input type="checkbox" id="vPre">إعلان عند بدء التشغيل (Pre-roll)</label>
       <div class="row" style="margin-top:8px">
         <div style="flex:1"><label>بعد دقائق (مفصولة بفاصلة)</label><input class="inp" id="vMin" dir="ltr" placeholder="3, 20"></div>
         <div style="flex:1"><label>عند نسب % من الفيديو</label><input class="inp" id="vPct" dir="ltr" placeholder="50, 80"></div>
       </div>
+
+      <label style="margin-top:6px"><i class="fas fa-gauge"></i> حدود التكرار</label>
       <div class="row">
-        <div style="flex:1"><label>أقصى عدد إعلانات للفيديو</label><input class="inp" id="vMax" type="number" min="1" value="4"></div>
+        <div style="flex:1"><label>أقصى عدد للفيديو</label><input class="inp" id="vMax" type="number" min="1" value="4"></div>
         <div style="flex:1"><label>أقل مدة للفيديو (دقائق)</label><input class="inp" id="vDur" type="number" min="0" value="0"></div>
       </div>
       <div class="row">
-        <label class="chk" style="flex:1"><input type="checkbox" id="vMov">على الأفلام</label>
-        <label class="chk" style="flex:1"><input type="checkbox" id="vEp">على الحلقات</label>
+        <div style="flex:1"><label>أقل فاصل بين إعلانين (دقائق)</label><input class="inp" id="vGap" type="number" min="0" value="0"></div>
+        <div style="flex:1"><label>أقصى عدد يومياً للجهاز (0 = بلا حد)</label><input class="inp" id="vDay" type="number" min="0" value="0"></div>
       </div>
-      <div class="row" style="margin-top:8px">
+
+      <label style="margin-top:6px"><i class="fas fa-hand"></i> التخطي والمهلة</label>
+      <div class="row">
         <label class="chk" style="flex:1"><input type="checkbox" id="vSkip">يمكن تخطي الإعلان</label>
         <div style="flex:1"><label>زر التخطي بعد (ثوانٍ)</label><input class="inp" id="vSkipT" type="number" min="0" value="5"></div>
       </div>
+      <div class="row">
+        <div style="flex:1"><label>مهلة تحميل الإعلان (ثوانٍ)</label><input class="inp" id="vTo" type="number" min="3" max="20" value="7"></div>
+      </div>
+      <p class="sm" style="margin:0 0 8px">إن لم يبدأ الإعلان خلال المهلة يُتجاوز ويكمل الفيديو دون تعطيل المشاهد.</p>
       <button id="vSave"><i class="fas fa-floppy-disk"></i> حفظ إعدادات الإعلانات</button>
     </div>
   </div>
@@ -697,13 +729,13 @@ async function pick(type,id,name,ep){
   const s=await getDoc(doc(db,"titles",tid())).catch(()=>null);
   const d=s&&s.exists()?s.data():{};
   $("#mq").value=fmtQ(d.qualities||(d.watchUrl?[{label:"تلقائي",url:d.watchUrl}]:[]));
-  $("#msub").value=d.subtitle||"";spvReset();
+  $("#msub").value=d.subtitle||"";spvReset();adSet("m",d.ad);adSet("e",null);
   if(type==="tv"){
     await loadEps();
     if(ep&&ep.season){
       $("#eS").value=ep.season;$("#eE").value=ep.episode;
       const x=epCache.find(i=>i.season===ep.season&&i.episode===ep.episode);
-      $("#eq").value=x?fmtQ(x.qualities):"";$("#esub").value=x?.subtitle||"";spvReset();
+      $("#eq").value=x?fmtQ(x.qualities):"";$("#esub").value=x?.subtitle||"";adSet("e",x&&x.ad);spvReset();
     }
   }
   window.scrollTo({top:$("#editor").offsetTop-60,behavior:"smooth"});
@@ -713,8 +745,9 @@ $("#saveMovie").onclick=async()=>{
   spvFlush("m");
   const qualities=parseQ($("#mq").value);
   if(!qualities.length)return msg("أدخل رابطاً صالحاً واحداً على الأقل","err");
+  const ad=adGet("m");if(!ad)return;
   try{
-    await setDoc(doc(db,"titles",tid()),{type:"movie",tmdbId:sel.id,title:sel.name,qualities,watchUrl:qualities[0].url,subtitle:$("#msub").value.trim(),updatedAt:Date.now()},{merge:true});
+    await setDoc(doc(db,"titles",tid()),{type:"movie",tmdbId:sel.id,title:sel.name,qualities,watchUrl:qualities[0].url,subtitle:$("#msub").value.trim(),ad,updatedAt:Date.now()},{merge:true});
     msg("تم حفظ الفيلم","ok");loadPub();
   }catch(e){msg("فشل الحفظ — تأكد أن حسابك ضمن admins وأن القواعد منشورة ("+e.code+")","err")}
 };
@@ -724,14 +757,15 @@ async function saveEp(){
   const s=+$("#eS").value,e=+$("#eE").value,qualities=parseQ($("#eq").value);
   if(!s||!e)return msg("حدد الموسم والحلقة","err");
   if(!qualities.length)return msg("أدخل رابطاً صالحاً","err");
+  const ad=adGet("e");if(!ad)return;
   try{
     await setDoc(doc(db,"titles",tid()),{type:"tv",tmdbId:sel.id,title:sel.name,lastSeason:s,lastEpisode:e,updatedAt:Date.now()},{merge:true});
-    await setDoc(doc(db,"titles",tid(),"episodes",`s${s}e${e}`),{season:s,episode:e,qualities,url:qualities[0].url,subtitle:$("#esub").value.trim(),updatedAt:Date.now()});
+    await setDoc(doc(db,"titles",tid(),"episodes",`s${s}e${e}`),{season:s,episode:e,qualities,url:qualities[0].url,subtitle:$("#esub").value.trim(),ad,updatedAt:Date.now()});
     msg(`تم حفظ S${s} E${e}`,"ok");loadEps();loadPub();return true;
   }catch(x){msg("فشل الحفظ — تأكد أن حسابك ضمن admins ("+x.code+")","err")}
 }
 $("#saveEp").onclick=saveEp;
-$("#nextEp").onclick=async()=>{if(await saveEp()){$("#eE").value=+$("#eE").value+1;$("#eq").value="";$("#esub").value="";$("#esubI").textContent="";spvReset()}};
+$("#nextEp").onclick=async()=>{if(await saveEp()){$("#eE").value=+$("#eE").value+1;$("#eq").value="";$("#esub").value="";$("#esubI").textContent="";adSet("e",null);spvReset()}};
 
 let epCache=[];
 async function loadEps(){
@@ -744,7 +778,7 @@ async function loadEps(){
   box.querySelectorAll("button").forEach(b=>b.onclick=async()=>{
     const x=arr.find(i=>i.id===b.dataset.e);
     if(b.dataset.a==="del"){if(await ask("ستُحذف هذه الحلقة.",{title:"حذف الحلقة",icon:"fa-trash",danger:true,ok:"حذف"})){await deleteDoc(doc(db,"titles",tid(),"episodes",x.id)).catch(()=>msg("فشل الحذف","err"));loadEps()}}
-    else{$("#eS").value=x.season;$("#eE").value=x.episode;$("#eq").value=fmtQ(x.qualities);$("#esub").value=x.subtitle||"";$("#esubI").textContent="";spvReset();window.scrollTo({top:$("#tvBox").offsetTop,behavior:"smooth"})}
+    else{$("#eS").value=x.season;$("#eE").value=x.episode;$("#eq").value=fmtQ(x.qualities);$("#esub").value=x.subtitle||"";adSet("e",x.ad);$("#esubI").textContent="";spvReset();window.scrollTo({top:$("#tvBox").offsetTop,behavior:"smooth"})}
   });
 }
 
@@ -1202,23 +1236,65 @@ $("#nSend").onclick=async()=>{
 
 /* ───── VAST settings ───── */
 const nums=t=>String(t).split(/[,،\s]+/).map(Number).filter(n=>n>0);
+const vRow=(t={})=>{
+  const d=document.createElement("div");d.className="eprow";d.style.cssText="flex-wrap:wrap;align-items:stretch";
+  d.innerHTML=`<div class="row" style="width:100%;margin:0"><label class="chk" style="margin:0"><input type="checkbox" class="vt-on"${t.on===false?"":" checked"}>مفعّل</label><input class="inp vt-n" style="flex:1;min-width:90px" placeholder="اسم (اختياري)"><button type="button" class="sec ic vt-t" title="اختبار الرابط"><i class="fas fa-vial"></i></button><button type="button" class="sec ic vt-x" title="حذف"><i class="fas fa-trash"></i></button></div><input class="inp vt-u" dir="ltr" style="width:100%;margin-top:6px" placeholder="https://.../vast.xml"><div class="sm vt-r" style="width:100%;margin-top:6px"></div>`;
+  d.querySelector(".vt-n").value=t.name||"";d.querySelector(".vt-u").value=t.url||"";
+  d.querySelector(".vt-x").onclick=()=>d.remove();
+  d.querySelector(".vt-t").onclick=()=>vastTest(d.querySelector(".vt-u").value.trim(),d.querySelector(".vt-r"));
+  return d;
+};
+$("#vAdd").onclick=()=>{const r=vRow();$("#vTags").appendChild(r);r.querySelector(".vt-u").focus()};
+const CORSP="https://calm-frost-26fb.jawrab.workers.dev/?url=";
+/* اختبار رابط VAST: يجلب الملف مباشرة ثم عبر الوركر ثم عبر البروكسي ويعرض النتيجة */
+async function vastTest(url,out){
+  if(!/^https?:\/\//i.test(url)){out.innerHTML=`<span style="color:var(--err,#ff6b6b)">أدخل رابطاً صالحاً</span>`;return}
+  out.textContent="جارٍ الاختبار...";
+  const get=async(u)=>{const c=new AbortController(),t=setTimeout(()=>c.abort(),8000);try{const r=await fetch(u,{signal:c.signal});const tx=await r.text();return{ok:r.ok&&/<VAST/i.test(tx),tx,st:r.status}}catch(e){return{ok:false,err:e.name==="AbortError"?"انتهت المهلة":"حُجب من المتصفح (CORS)"}}finally{clearTimeout(t)}};
+  const steps=[["مباشرة",url]];if(MEDIA)steps.push(["عبر وركر sp-media",MEDIA+"/vast?u="+encodeURIComponent(url)]);steps.push(["عبر البروكسي",CORSP+encodeURIComponent(url)]);
+  const log=[];let hit=null;
+  for(const [n,u] of steps){const r=await get(u);if(r.ok){hit={n,tx:r.tx};log.push(`<i class="fas fa-check" style="color:var(--ok)"></i> ${n}: وصل`);break}log.push(`<i class="fas fa-xmark" style="color:#ff6b6b"></i> ${n}: ${r.err||("رد غير صالح "+(r.st||""))}`)}
+  if(!hit){out.innerHTML=log.join("<br>")+`<br><b>الرابط لا يعمل من المتصفح.</b> تأكد من الرابط، وأن وركر sp-media منشور (يحتوي مسار /vast).`;return}
+  let doc=new DOMParser().parseFromString(hit.tx,"text/xml"),wr=doc.querySelector("VASTAdTagURI");
+  const mf=[...doc.querySelectorAll("MediaFile")],imp=doc.querySelectorAll("Impression").length;
+  let note="";
+  if(wr&&!mf.length)note="الرد Wrapper يحيل إلى رابط آخر (سيُتتبَّع تلقائياً داخل المشغّل).";
+  else if(!mf.length)note="<b style='color:#ffb84d'>الرابط يعمل لكنه لا يُرجع إعلاناً الآن (No fill)</b> — قد يكون بسبب الموقع الجغرافي أو الجهاز أو عدم وجود حملات. وأحياناً تُرجع الشبكة إعلاناً للمتصفح فقط وليس للخادم.";
+  else{const v=mf.filter(x=>/mp4|video/.test(x.getAttribute("type")||"")&&!/javascript|flash/.test(x.getAttribute("type")||""));note=v.length?`<b style="color:var(--ok)">جاهز:</b> ${v.length} ملف فيديو، ${imp} تتبّع ظهور.`:"<b style='color:#ffb84d'>الإعلان من نوع VPAID/غير فيديو ولا يدعمه المشغّل</b>"}
+  out.innerHTML=log.join("<br>")+"<br>"+note;
+}
 async function loadVast(){
   const s=await getDoc(doc(db,"settings","vast")).catch(()=>null);
   const d=s&&s.exists()?s.data():{enabled:true,url:"https://www.videosprofitnetwork.com/watch.xml?key=3f1497cd192863eda22ba81d86a3fc75",preroll:true,atMinutes:[3],atPercents:[50,80],maxPerVideo:4,movies:true,episodes:true,skippable:true,skipAfter:5,minDurationMin:0};
-  $("#vOn").checked=!!d.enabled;$("#vUrl").value=d.url||"";$("#vPre").checked=d.preroll!==false;
+  $("#vOn").checked=!!d.enabled;
+  const tags=d.tags&&d.tags.length?d.tags:(d.url?[{name:"الرئيسي",url:d.url,on:true}]:[]);
+  $("#vTags").innerHTML="";tags.forEach(t=>$("#vTags").appendChild(vRow(t)));
+  $("#vOrder").value=d.order||"seq";
+  const c=d.cats||{movie:d.movies!==false,series:d.episodes!==false,anime:d.episodes!==false};
+  $("#vCm").checked=c.movie!==false;$("#vCs").checked=c.series!==false;$("#vCa").checked=c.anime!==false;
+  $("#vAud").value=d.audience||"all";
+  $("#vPre").checked=d.preroll!==false;
   $("#vMin").value=(d.atMinutes||[]).join(", ");$("#vPct").value=(d.atPercents||[]).join(", ");
   $("#vMax").value=d.maxPerVideo??4;$("#vDur").value=d.minDurationMin??0;
-  $("#vMov").checked=d.movies!==false;$("#vEp").checked=d.episodes!==false;
-  $("#vSkip").checked=d.skippable!==false;$("#vSkipT").value=d.skipAfter??5;
+  $("#vGap").value=d.gapMin??0;$("#vDay").value=d.dayMax??0;
+  $("#vSkip").checked=d.skippable!==false;$("#vSkipT").value=d.skipAfter??5;$("#vTo").value=d.timeoutSec??7;
 }
 $("#vSave").onclick=async()=>{
-  const url=$("#vUrl").value.trim();
-  if($("#vOn").checked&&!/^https?:\/\//i.test(url))return msg("أدخل رابط VAST صالحاً","err");
+  const tags=[...document.querySelectorAll("#vTags .eprow")].map(r=>({name:r.querySelector(".vt-n").value.trim(),url:r.querySelector(".vt-u").value.trim(),on:r.querySelector(".vt-on").checked})).filter(t=>t.url);
+  if(tags.some(t=>!/^https?:\/\//i.test(t.url)))return msg("أحد روابط VAST غير صالح","err");
+  if($("#vOn").checked&&!tags.some(t=>t.on))return msg("أضف رابط إعلان مفعّلاً واحداً على الأقل","err");
+  const cats={movie:$("#vCm").checked,series:$("#vCs").checked,anime:$("#vCa").checked},first=(tags.find(t=>t.on)||tags[0]||{}).url||"";
   try{
-    await setDoc(doc(db,"settings","vast"),{enabled:$("#vOn").checked,url,preroll:$("#vPre").checked,atMinutes:nums($("#vMin").value),atPercents:nums($("#vPct").value),maxPerVideo:+$("#vMax").value||4,minDurationMin:+$("#vDur").value||0,movies:$("#vMov").checked,episodes:$("#vEp").checked,skippable:$("#vSkip").checked,skipAfter:+$("#vSkipT").value||0,updatedAt:Date.now()});
+    await setDoc(doc(db,"settings","vast"),{enabled:$("#vOn").checked,url:first,tags,order:$("#vOrder").value,cats,movies:cats.movie,episodes:cats.series||cats.anime,audience:$("#vAud").value,preroll:$("#vPre").checked,atMinutes:nums($("#vMin").value),atPercents:nums($("#vPct").value),maxPerVideo:+$("#vMax").value||4,minDurationMin:+$("#vDur").value||0,gapMin:+$("#vGap").value||0,dayMax:+$("#vDay").value||0,skippable:$("#vSkip").checked,skipAfter:+$("#vSkipT").value||0,timeoutSec:Math.min(20,Math.max(3,+$("#vTo").value||7)),updatedAt:Date.now()});
     msg("تم حفظ إعدادات الإعلانات","ok");
   }catch(e){msg("فشل الحفظ — تأكد من نشر قاعدة settings ("+e.code+")","err")}
 };
+/* إعلان خاص بفيلم أو حلقة: auto | custom | off */
+const adBox=t=>document.querySelector('.adx[data-t="'+t+'"]');
+const adShow=b=>{b.querySelector(".adu").style.display=b.querySelector(".adm").value==="custom"?"":"none"};
+const adSet=(t,a)=>{const b=adBox(t);b.querySelector(".adm").value=(a&&a.mode)||"auto";b.querySelector(".adu").value=(a&&a.url)||"";adShow(b)};
+const adGet=t=>{const b=adBox(t),m=b.querySelector(".adm").value,u=b.querySelector(".adu").value.trim();if(m==="custom"){if(!/^https?:\/\//i.test(u)){msg("أدخل رابط VAST الخاص صالحاً أو اختر تلقائي","err");return null}return{mode:"custom",url:u}}return{mode:m}};
+["m","e"].forEach(t=>adBox(t).querySelector(".adm").onchange=()=>adShow(adBox(t)));
 </script>
 </body>
 </html>

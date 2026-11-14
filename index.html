@@ -126,7 +126,7 @@ background:rgba(22,33,62,.85);backdrop-filter:blur(12px);border-bottom:1px solid
 .d-pw.s-on::after{opacity:1}
 .d-pw:not(.on)::after,.d-pw:not(.on) .pst-trl{display:none}
 .pst-trl{position:absolute;z-index:2;left:0;right:0;margin:0 auto;bottom:8px;width:34px;height:34px;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:0;padding:0;border:1px solid rgba(255,255,255,.3);border-radius:99px;color:#fff;font:inherit;font-size:.72em;font-weight:700;white-space:nowrap;background:rgba(14,14,26,.5);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);cursor:pointer;opacity:0;transform:scale(.4);filter:blur(4px);pointer-events:none;transition:width .45s cubic-bezier(.65,0,.35,1) .08s,gap .45s .08s,opacity .3s .3s,transform .4s .3s ease,filter .3s .3s,background .25s}
-.d-pw.s-on .pst-trl{width:calc(100% - 14px);gap:6px;opacity:1;transform:none;filter:none;pointer-events:auto;animation:pstHalo 1.1s .1s ease-out both;transition:opacity .25s,transform .55s cubic-bezier(.2,1.25,.3,1),filter .3s,width .7s cubic-bezier(.22,1,.36,1) .18s,gap .7s .18s,background .25s}
+.d-pw.s-on .pst-trl{width:calc(100% - 14px);gap:6px;opacity:1;transform:none;filter:none;pointer-events:auto;transition:opacity .25s,transform .55s cubic-bezier(.2,1.25,.3,1),filter .3s,width .7s cubic-bezier(.22,1,.36,1) .18s,gap .7s .18s,background .25s}
 .pst-trl:active{transform:scale(.95)!important}
 .pst-trl i{font-size:1.25em;color:#ff4757;flex-shrink:0}
 .pst-trl span{display:block;max-width:0;opacity:0;overflow:hidden;transition:opacity .15s,max-width .3s}
@@ -137,7 +137,6 @@ background:rgba(22,33,62,.85);backdrop-filter:blur(12px);border-bottom:1px solid
 .pst-trl.back{background:rgba(255,71,87,.88);border-color:rgba(255,255,255,.45)}.pst-trl.back i{color:#fff}
 @keyframes pstPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.2)}}
 @keyframes pstSheen{to{transform:translateX(130%)}}
-@keyframes pstHalo{0%{box-shadow:0 0 0 0 rgba(255,71,87,.6)}100%{box-shadow:0 0 0 14px rgba(255,71,87,0)}}
 .se-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .se-row .btn{padding:8px 14px;font-size:.85em;animation:folIn .45s cubic-bezier(.2,1.1,.3,1) both}
 @keyframes folIn{from{opacity:0;transform:scale(.7) translateX(-10px)}}
@@ -338,7 +337,7 @@ html.embed #spFab{display:none}
 <div id="toast"></div>
 
 <link rel="preconnect" href="https://api.themoviedb.org"><link rel="preconnect" href="https://image.tmdb.org"><link rel="preconnect" href="https://firestore.googleapis.com"><script src="config.js"></script>
-<script src="player.js?v=19"></script>
+<script src="player.js?v=20"></script>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {getAuth,onAuthStateChanged,GoogleAuthProvider,signInWithPopup,signInWithEmailAndPassword,createUserWithEmailAndPassword,signOut,updateProfile,sendPasswordResetEmail,deleteUser}
@@ -1410,7 +1409,7 @@ async function openDetail(type,id,epSel){
         const bodyEl=ov.querySelector(".d-body");
         closeDetail();
         const h=histTrack(it,0,0);
-        play({...h,title:it.title,quals,subtitle:link.subtitle,poster:it.poster,backdrop:d.backdrop_path?IMG+"w1280"+d.backdrop_path:it.poster,chips:[it.year,"فيلم"].filter(Boolean),kind:"movie",fav:favFor(it),slot:bodyEl,shareUrl:shareLink("movie",id),embedUrl:embedLink("movie",id),onClose:()=>setHash("")});
+        play({...h,ad:link.ad,cat:adCat(d,"movie"),isUser:()=>!!user,title:it.title,quals,subtitle:link.subtitle,poster:it.poster,backdrop:d.backdrop_path?IMG+"w1280"+d.backdrop_path:it.poster,chips:[it.year,"فيلم"].filter(Boolean),kind:"movie",fav:favFor(it),slot:bodyEl,shareUrl:shareLink("movie",id),embedUrl:embedLink("movie",id),onClose:()=>setHash("")});
         setHash(`#/movie/${id}`);
       }else{
         const b=document.createElement("button");b.className="btn sec";b.innerHTML=`<i class="fas fa-clock"></i> غير متوفر بعد`;b.style.cssText="opacity:.6;cursor:default";b.onclick=()=>toast("لم يُضف رابط المشاهدة بعد");acts.appendChild(b);
@@ -1454,6 +1453,8 @@ async function openDetail(type,id,epSel){
 }
 function closeDetail(){curDetail=null;backPres();setHash("");$("#detail").classList.remove("on");document.body.classList.remove("lock")}
 
+/* فئة الإعلان: أنمي (رسوم متحركة يابانية) / مسلسل / فيلم */
+function adCat(d,type){const an=(d.genres||[]).some(g=>g.id===16)&&(d.original_language==="ja"||(d.origin_country||[]).includes("JP"));return an?"anime":(type==="tv"?"series":"movie")}
 async function renderEpisodes(d,it,epSel){
   const box=$("#epsBox"),bodyEl=box.closest(".d-body");
   const info=document.createElement("div");bodyEl.insertBefore(info,bodyEl.firstChild);
@@ -1479,7 +1480,7 @@ async function renderEpisodes(d,it,epSel){
         const img=c.ep.still_path;
         info.innerHTML=c.ep.overview?`<div class="desc"><b>${esc(c.ep.name||"")}</b><br>${esc(c.ep.overview)}</div>`:"";
         const h=histTrack(it,+n,c.ep.episode_number);
-        play({...h,title:`${it.title} - S${n} E${c.ep.episode_number}`,quals:c.q,subtitle:c.l.subtitle,poster:img?IMG+"w300"+img:it.poster,backdrop:img?IMG+"w780"+img:it.poster,chips:[`S${n}`,`E${c.ep.episode_number}`],kind:"episode",fav:favFor(it),slot:bodyEl,
+        play({...h,ad:c.l.ad,cat:adCat(d,"tv"),isUser:()=>!!user,title:`${it.title} - S${n} E${c.ep.episode_number}`,quals:c.q,subtitle:c.l.subtitle,poster:img?IMG+"w300"+img:it.poster,backdrop:img?IMG+"w780"+img:it.poster,chips:[`S${n}`,`E${c.ep.episode_number}`],kind:"episode",fav:favFor(it),slot:bodyEl,
           shareUrl:shareLink("tv",d.id,n,c.ep.episode_number),embedUrl:embedLink("tv",d.id,n,c.ep.episode_number),onClose:back,
           next:()=>{for(let j=i+1;j<allEps.length;j++){if(mk(allEps[j]).q.length)return{title:`${it.title} - S${n} E${allEps[j].episode_number}`,play:()=>playEp(j)}}return null}});
         setHash(`#/tv/${d.id}/${n}/${c.ep.episode_number}`);
@@ -1567,7 +1568,7 @@ async function runEmbed(type,id,se,ep){
     const bd=d.backdrop_path?IMG+"w1280"+d.backdrop_path:(d.poster_path?IMG+"w500"+d.poster_path:"");
     if(!quals.length){document.body.insertAdjacentHTML("beforeend",`<div class="center" style="position:fixed;inset:0;z-index:500;background:#000;display:flex;align-items:center;justify-content:center">هذا المحتوى غير متوفر بعد</div>`);return}
     trackVisit({type,id,title:d.original_title||d.original_name||d.title||d.name,poster:d.poster_path?IMG+"w342"+d.poster_path:""});
-    play({embed:true,title:name,quals,subtitle:link.subtitle,poster:bd,backdrop:bd,kind:type==="tv"?"episode":"movie",rep:{type,tmdbId:id,title:name,season:se||0,episode:ep||0}});
+    play({embed:true,ad:link.ad,cat:adCat(d,type),isUser:()=>!!user,title:name,quals,subtitle:link.subtitle,poster:bd,backdrop:bd,kind:type==="tv"?"episode":"movie",rep:{type,tmdbId:id,title:name,season:se||0,episode:ep||0}});
   }catch(e){document.body.insertAdjacentHTML("beforeend",`<div class="center" style="position:fixed;inset:0;z-index:500;background:#000;display:flex;align-items:center;justify-content:center">تعذر تحميل الفيديو</div>`)}
 }
 {const a=new URLSearchParams(location.search).get("act");if(a){const h=location.hash;try{history.replaceState(history.state,"",location.pathname)}catch(e){}setTimeout(()=>spAct(a,h),0)}}
