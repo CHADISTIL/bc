@@ -33,6 +33,14 @@ button:hover{filter:brightness(1.1)}
 button.sec{background:rgba(255,255,255,.1)}
 .spv-ctl{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}.spv-ctl button{padding:8px 9px;font-size:.8em;width:auto;direction:ltr;unicode-bidi:isolate}.spv-v{width:84px;text-align:center;margin:0}.spv-step{min-width:46px;font-size:1em}.spv-q{margin-inline-start:auto;opacity:.8}
 .spv-b{margin-top:6px}
+#updBar{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translate(-50%,24px) scale(.96);opacity:0;z-index:10040;display:flex;align-items:center;gap:12px;width:min(460px,calc(100vw - 24px));padding:12px 14px;border-radius:18px;background:rgba(18,20,36,.94);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.14);box-shadow:0 14px 40px rgba(0,0,0,.5);color:#fff;transition:opacity .35s cubic-bezier(.4,0,.2,1),transform .45s cubic-bezier(.2,.9,.3,1.2)}
+#updBar.on{opacity:1;transform:translate(-50%,0) scale(1)}
+#updBar>i.fa-circle-arrow-up{font-size:1.5em;color:#ff4757}
+#updBar div{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0}#updBar b{font-size:.95em}#updBar span{font-size:.78em;color:#aab0c8}
+#updBar .u-go{border:0;border-radius:99px;padding:9px 16px;font:inherit;font-weight:700;font-size:.85em;background:#ff4757;color:#fff;cursor:pointer;white-space:nowrap;width:auto}
+#updBar .u-go:disabled{opacity:.7}
+#updBar .u-no{border:0;background:none;color:#8b91ab;cursor:pointer;padding:6px;font-size:1em;width:auto}
+
 button.del{background:rgba(255,71,87,.16);color:#ff7a88;padding:7px 13px;font-size:.75em}
 button.sm2{padding:7px 13px;font-size:.75em}
 button.ic{width:34px;height:34px;padding:0;font-size:.8em}
@@ -388,6 +396,7 @@ button:not(.sec):not(.del):not(.tab):not(.x):hover{box-shadow:0 6px 18px rgba(25
       <label style="margin-top:10px">المستلمون</label>
       <select id="nTo"><option value="all">كل المشتركين</option><option value="me">جهازي فقط (تجربة)</option></select>
       <button id="nSend"><i class="fas fa-paper-plane"></i> إرسال الإشعار</button>
+      <button class="sec" id="nUpd" style="margin-top:8px"><i class="fas fa-circle-arrow-up"></i> قالب: إشعار تحديث التطبيق</button>
       <div class="sm" id="nOut" style="margin-top:10px;line-height:1.8"></div>
     </div>
   </div>
@@ -613,7 +622,24 @@ $("#inst").onclick=async()=>{
   if(instEv){instEv.prompt();const r=await instEv.userChoice.catch(()=>null);instEv=null;if(r&&r.outcome==="accepted")$("#inst").classList.remove("on")}
   else note("افتح قائمة المشاركة في Safari ثم اختر <b>إضافة إلى الشاشة الرئيسية</b> لتثبيت لوحة الإدارة.",{title:"تثبيت التطبيق",icon:"fa-mobile-screen",html:true,ok:"حسناً"});
 };
-if("serviceWorker"in navigator)navigator.serviceWorker.register("admin-sw.js",{scope:"./admin.html"}).catch(()=>{});
+let UPDG=false;
+function showAdminUpdate(reg){
+  if($("#updBar"))return;
+  const b=document.createElement("div");b.id="updBar";
+  b.innerHTML='<i class="fas fa-circle-arrow-up"></i><div><b>يتوفر تحديث للوحة الإدارة</b><span>حدّث الآن للحصول على آخر التحسينات</span></div><button type="button" class="u-go">تحديث الآن</button><button type="button" class="u-no" aria-label="لاحقاً"><i class="fas fa-xmark"></i></button>';
+  document.body.appendChild(b);requestAnimationFrame(()=>requestAnimationFrame(()=>b.classList.add("on")));
+  b.querySelector(".u-no").onclick=()=>{b.classList.remove("on");setTimeout(()=>b.remove(),350)};
+  b.querySelector(".u-go").onclick=()=>{const g=b.querySelector(".u-go");g.disabled=true;g.innerHTML='<i class="fas fa-spinner fa-spin"></i> جارٍ التحديث';UPDG=true;if(reg.waiting)reg.waiting.postMessage({skip:1});setTimeout(()=>location.reload(),2500)};
+}
+if("serviceWorker"in navigator){
+  navigator.serviceWorker.register("admin-sw.js",{scope:"./admin.html"}).then(reg=>{
+    if(reg.waiting&&navigator.serviceWorker.controller)showAdminUpdate(reg);
+    reg.addEventListener("updatefound",()=>{const w=reg.installing;if(w)w.addEventListener("statechange",()=>{if(w.state==="installed"&&navigator.serviceWorker.controller)showAdminUpdate(reg)})});
+    document.addEventListener("visibilitychange",()=>{if(!document.hidden)reg.update().catch(()=>{})});
+    setInterval(()=>reg.update().catch(()=>{}),30*60e3);
+  }).catch(()=>{});
+  navigator.serviceWorker.addEventListener("controllerchange",()=>{if(UPDG)location.reload()});
+}
 $("#login").onclick=()=>signInWithPopup(auth,new GoogleAuthProvider()).catch(e=>msg("تعذر الدخول: "+e.code,"err"));
 $("#logout").onclick=()=>signOut(auth);
 
@@ -1149,6 +1175,12 @@ function fillPubSelect(){
   const s=$("#nPub");s.innerHTML=`<option value="">… أو اختر من المنشورات</option>`+pubs.map(p=>`<option value="${esc(p.id)}">${esc(p.title||p.id)} (${p.type==="tv"?"مسلسل":"فيلم"})</option>`).join("");
 }
 $("#nPub").onchange=e=>{const p=pubs.find(x=>x.id===e.target.value);if(p)nFill(p.type,p.tmdbId)};
+$("#nUpd").onclick=()=>{
+  $("#nT").value="تحديث جديد للتطبيق";
+  $("#nB").value="يتوفر تحديث جديد لتطبيق SP. اضغط لفتح التطبيق وتحديثه بضغطة زر.";
+  $("#nU").value="#/update";$("#nI").value="";$("#nT").dispatchEvent(new Event("input"));
+  msg("عُبّئ قالب التحديث، راجعه ثم اضغط إرسال","ok");
+};
 $("#nSend").onclick=async()=>{
   const out=$("#nOut");
   if(!PUSH)return out.innerHTML="رابط الـ Worker غير مضبوط في config.js";

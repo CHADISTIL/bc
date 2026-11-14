@@ -114,6 +114,13 @@ background:rgba(22,33,62,.85);backdrop-filter:blur(12px);border-bottom:1px solid
 .crop-h{font-size:.8em;color:#9aa0b8;text-align:center;max-width:300px}
 .crop-b{display:flex;gap:10px}.crop-b button{border:0;border-radius:99px;padding:11px 26px;font:inherit;font-weight:700;cursor:pointer}
 .cp-ok{background:#ff4757;color:#fff}.cp-no{background:rgba(255,255,255,.12);color:#fff}
+#updBar{position:fixed;left:50%;bottom:calc(112px + env(safe-area-inset-bottom));transform:translate(-50%,24px) scale(.96);opacity:0;z-index:10040;display:flex;align-items:center;gap:12px;width:min(440px,calc(100vw - 24px));padding:12px 14px;border-radius:18px;background:rgba(18,20,36,.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.14);box-shadow:0 14px 40px rgba(0,0,0,.5);color:#fff;direction:rtl;transition:opacity .35s cubic-bezier(.4,0,.2,1),transform .45s cubic-bezier(.2,.9,.3,1.2)}
+#updBar.on{opacity:1;transform:translate(-50%,0) scale(1)}
+#updBar>i.fa-circle-arrow-up{font-size:1.5em;color:#ff4757}
+#updBar div{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0}#updBar b{font-size:.95em}#updBar span{font-size:.78em;color:#aab0c8}
+#updBar .u-go{border:0;border-radius:99px;padding:9px 16px;font:inherit;font-weight:700;font-size:.85em;background:#ff4757;color:#fff;cursor:pointer;white-space:nowrap}
+#updBar .u-go:disabled{opacity:.7}
+#updBar .u-no{border:0;background:none;color:#8b91ab;cursor:pointer;padding:6px;font-size:1em}
 .d-hero{position:relative;aspect-ratio:16/9;max-height:50vh;width:100%;background:#000}
 .d-hero img{width:100%;height:100%;object-fit:cover}
 .d-hero::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,#12142a,transparent 70%)}
@@ -1128,9 +1135,44 @@ const backPres=()=>setPres(curDetail?{k:"detail",label:curDetail.title,type:curD
 const CFG=window.SP_CONFIG||{};
 const PUSH_OK="serviceWorker" in navigator&&"PushManager" in window&&"Notification" in window;
 if("serviceWorker" in navigator&&/^https?:$/.test(location.protocol)){
-  navigator.serviceWorker.register("sw.js").catch(()=>{});
+  navigator.serviceWorker.register("sw.js").then(reg=>{
+    SWREG=reg;
+    if(reg.waiting&&navigator.serviceWorker.controller)showUpdate();
+    reg.addEventListener("updatefound",()=>{const w=reg.installing;if(w)w.addEventListener("statechange",()=>{if(w.state==="installed"&&navigator.serviceWorker.controller)showUpdate()})});
+    document.addEventListener("visibilitychange",()=>{if(!document.hidden)reg.update().catch(()=>{})});
+    setInterval(()=>reg.update().catch(()=>{}),30*60e3);
+  }).catch(()=>{});
+  navigator.serviceWorker.addEventListener("controllerchange",()=>{if(UPD.going)location.reload()});
   navigator.serviceWorker.addEventListener("message",e=>{if(e.data&&e.data.act){spAct(e.data.act,e.data.url);return}if(e.data&&e.data.go)goHash(e.data.go);if(e.data&&e.data.sound)playNotif()});
 }
+/* ───── تحديث التطبيق بضغطة زر ───── */
+let SWREG=null;const UPD={going:false,dismissed:false};
+function showUpdate(force){
+  if(UPD.dismissed&&!force)return;
+  if(document.getElementById("updBar"))return;
+  const b=document.createElement("div");b.id="updBar";
+  b.innerHTML='<i class="fas fa-circle-arrow-up"></i><div><b>يتوفر تحديث جديد</b><span>حدّث الآن للحصول على آخر التحسينات</span></div><button type="button" class="u-go">تحديث الآن</button><button type="button" class="u-no" aria-label="لاحقاً"><i class="fas fa-xmark"></i></button>';
+  document.body.appendChild(b);requestAnimationFrame(()=>requestAnimationFrame(()=>b.classList.add("on")));
+  b.querySelector(".u-no").onclick=()=>{UPD.dismissed=true;b.classList.remove("on");setTimeout(()=>b.remove(),350)};
+  b.querySelector(".u-go").onclick=()=>{
+    const g=b.querySelector(".u-go");g.disabled=true;g.innerHTML='<i class="fas fa-spinner fa-spin"></i> جارٍ التحديث';
+    UPD.going=true;
+    const w=SWREG&&SWREG.waiting;
+    if(w)w.postMessage({skip:1});
+    setTimeout(()=>location.reload(),2500);   /* احتياط إن لم يصل حدث controllerchange */
+  };
+}
+async function spCheckUpdate(explicit){
+  try{
+    if(!SWREG)SWREG=await navigator.serviceWorker.getRegistration();
+    if(!SWREG){if(explicit)toast("التحديث غير متاح هنا");return}
+    await SWREG.update();
+    for(let i=0;i<12&&!SWREG.waiting&&SWREG.installing;i++)await new Promise(r=>setTimeout(r,500));
+    if(SWREG.waiting&&navigator.serviceWorker.controller)showUpdate(true);
+    else if(explicit)toast("أنت على أحدث نسخة");
+  }catch(e){if(explicit)toast("تعذر البحث عن تحديث")}
+}
+window.spCheckUpdate=spCheckUpdate;
 let _ns=null;
 function playNotif(){try{if(LSget("sp_snd",true)===false)return;if(!_ns){_ns=new Audio("NotifSound.mp3");_ns.preload="auto"}_ns.currentTime=0;_ns.play().catch(()=>{})}catch(e){}}
 window.playNotif=playNotif;
@@ -1172,7 +1214,7 @@ function cropAvatar(file){
     };
   });
 }
-function goHash(h){const m=String(h).match(/^#\/(movie|tv)\/(\d+)(?:\/(\d+)\/(\d+))?/);if(m)openDetail(m[1],+m[2],m[3]?{s:+m[3],e:+m[4]}:null)}
+function goHash(h){if(h==="#/update"){spCheckUpdate(true);return}const m=String(h).match(/^#\/(movie|tv)\/(\d+)(?:\/(\d+)\/(\d+))?/);if(m)openDetail(m[1],+m[2],m[3]?{s:+m[3],e:+m[4]}:null)}
 const LSget=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k));return v??d}catch(e){return d}};
 const LSset=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
 const getFollows=()=>LSget("sp_follows",[]);
@@ -1491,6 +1533,7 @@ async function runEmbed(type,id,se,ep){
  if(em)runEmbed(em[1],+em[2],em[3]?+em[3]:0,em[3]?+em[4]:0);
  else{
   goTab("home");
+  if(location.hash==="#/update"){try{history.replaceState(null,"",location.pathname)}catch(e){}setTimeout(()=>spCheckUpdate(true),900)}
   const m=location.hash.match(/^#\/(movie|tv)\/(\d+)(?:\/(\d+)\/(\d+))?/);
   if(m){openDetail(m[1],+m[2],m[3]?{s:+m[3],e:+m[4]}:null);
     const t0=Date.now(),iv=setInterval(()=>{if((window.JP&&JP.isOpen())||Date.now()-t0>8000){clearInterval(iv);document.documentElement.classList.remove("boot")}},100)}

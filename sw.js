@@ -1,7 +1,9 @@
 importScripts('config.js');
-const CACHE='sp-v21';
+const CACHE='sp-v22';
 const SHELL=['./','index.html','player.js','config.js','manifest.webmanifest','icons/icon-192.png'];
-self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL).catch(()=>{})).then(()=>self.skipWaiting()))});
+self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL).catch(()=>{})))});
+/* النسخة الجديدة تنتظر موافقة المستخدم (زر «تحديث الآن» في التطبيق) */
+self.addEventListener('message',e=>{if(e.data&&e.data.skip)self.skipWaiting()});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE&&k!=='sp-seen').map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
 self.addEventListener('fetch',e=>{
   const r=e.request;
