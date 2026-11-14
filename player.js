@@ -190,6 +190,12 @@ var st2=document.createElement('style');st2.textContent=`
 .jp-note .tx{flex:1;min-width:0}.jp-note .tx b{display:block;font-size:.92em}.jp-note .tx>span{display:block;font-size:.78em;color:#a5abc4;margin-top:2px;word-break:break-word}
 .jp-note .bt{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}.jp-note .bt button{background:rgba(255,255,255,.1);border-radius:12px;padding:7px 12px;font-size:.78em;font-weight:700;color:#fff}.jp-note .bt button:first-child{background:#ff4757}
 .jp-note .x{width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.08);color:#ccc;flex:none}
+.jp-snap{position:absolute;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;pointer-events:none;background:rgba(0,0,0,.18);animation:jpF .15s}
+.jp-snap>div{display:flex;align-items:center;gap:11px;padding:13px 22px;border-radius:99px;background:rgba(10,12,24,.78);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.18);color:#fff;font-weight:600;font-size:.92em;box-shadow:0 10px 30px rgba(0,0,0,.45);animation:jpSnIn .28s cubic-bezier(.2,.9,.3,1.25)}
+.jp-snap i{font-size:1.15em;color:#ff4757;animation:jpSnP .8s ease-in-out infinite}
+@keyframes jpSnIn{from{opacity:0;transform:scale(.8) translateY(10px)}to{opacity:1;transform:none}}
+@keyframes jpSnP{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.25);opacity:.6}}
+@media (orientation:landscape){.jp-shot{max-height:42vh}}
 .jp-flash{position:absolute;inset:0;background:#fff;z-index:40;pointer-events:none;animation:jpFl .45s ease-out both}@keyframes jpFl{0%{opacity:.85}100%{opacity:0}}
 .jp-cm{display:none;padding:2px 14px 0;max-width:900px;margin:auto;position:relative;z-index:1}
 #jp.mini .jp-cm,#jp.embed .jp-cm{display:none!important}
@@ -305,7 +311,7 @@ var wrap=$('#jpWrap'),vid=$('#jpVid'),adV=$('#jpAdV');
 var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
 var fmt=function(s){if(!isFinite(s)||s<0)return'00:00';var h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=Math.floor(s%60),p=function(n){return String(n).padStart(2,'0')};return(h?h+':':'')+p(m)+':'+p(x)};
 var LS={get:function(k,d){try{var v=JSON.parse(localStorage.getItem(k));return v==null?d:v}catch(e){return d}},set:function(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
-var tT;function toast(m){toastEl.textContent=m;toastEl.classList.add('on');clearTimeout(tT);tT=setTimeout(function(){toastEl.classList.remove('on')},2400)}
+var tT;function toast(m){var host=isFs()?wrap:document.body;if(toastEl.parentNode!==host)host.appendChild(toastEl);toastEl.textContent=m;toastEl.classList.add('on');clearTimeout(tT);tT=setTimeout(function(){toastEl.classList.remove('on')},2400)}
 function loadScript(src){return new Promise(function(res,rej){var s=document.createElement('script');s.src=src;s.onload=res;s.onerror=rej;document.head.appendChild(s)})}
 
 /* ───────────── state ───────────── */
@@ -1393,12 +1399,13 @@ async function grabShot(){
   if(S.opts&&S.opts.yt){toast('لا يمكن التقاط لقطة من الإعلان');return}
   if(!vid.videoWidth){toast('لا توجد لقطة متاحة الآن');return}
   var t=vid.currentTime,wasPlaying=!vid.paused;try{vid.pause()}catch(e){}
-  toast('جارٍ التقاط اللقطة...');
-  var fl=document.createElement('div');fl.className='jp-flash';wrap.appendChild(fl);setTimeout(function(){fl.remove()},450);
-  if(isFs())exitFs();
+  var sn=document.createElement('div');sn.className='jp-snap';sn.innerHTML='<div><i class="fas fa-camera"></i><span>جارٍ التقاط اللقطة...</span></div>';wrap.appendChild(sn);
+  var tS=Date.now();
   var full;
   try{full=await snapBlob(1920,.92,'image/jpeg')}
-  catch(e){toast('لا يمكن التقاط لقطة من هذا المصدر');if(wasPlaying)vid.play().catch(function(){});return}
+  catch(e){sn.remove();toast('لا يمكن التقاط لقطة من هذا المصدر');if(wasPlaying)vid.play().catch(function(){});return}
+  var rest=650-(Date.now()-tS);if(rest>0)await new Promise(function(r){setTimeout(r,rest)});
+  var fl=document.createElement('div');fl.className='jp-flash';wrap.appendChild(fl);setTimeout(function(){fl.remove()},450);sn.remove();
   var url=URL.createObjectURL(full),name=((S.opts&&S.opts.title)||'video').replace(/[\/\\:*?"<>|]/g,'_')+' '+tstr(t).replace(/:/g,'-')+'.jpg';
   var mo=modal('لقطة الفيديو','fa-camera',function(b){
     b.innerHTML='<img class="jp-shot" src="'+url+'" alt=""><div style="display:flex;justify-content:center"><span class="jp-sc on"><i class="fas fa-clock"></i>'+tstr(t)+'</span></div>'

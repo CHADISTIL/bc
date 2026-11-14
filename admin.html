@@ -31,6 +31,8 @@ select option{background:#1a1a2e}
 button{border:none;border-radius:999px;padding:10px 18px;font-weight:700;cursor:pointer;color:#fff;background:var(--p);font-size:.86em;display:inline-flex;align-items:center;justify-content:center;gap:7px;transition:.15s}
 button:hover{filter:brightness(1.1)}
 button.sec{background:rgba(255,255,255,.1)}
+.spv-ctl{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}.spv-ctl button{padding:8px 9px;font-size:.8em;width:auto;direction:ltr;unicode-bidi:isolate}.spv-v{width:84px;text-align:center;margin:0}.spv-step{min-width:46px;font-size:1em}.spv-q{margin-inline-start:auto;opacity:.8}
+.spv-b{margin-top:6px}
 button.del{background:rgba(255,71,87,.16);color:#ff7a88;padding:7px 13px;font-size:.75em}
 button.sm2{padding:7px 13px;font-size:.75em}
 button.ic{width:34px;height:34px;padding:0;font-size:.8em}
@@ -222,6 +224,31 @@ button:not(.sec):not(.del):not(.tab):not(.x):hover{box-shadow:0 6px 18px rgba(25
         <label>ترجمة (VTT أو SRT) — اختياري</label>
         <label class="file"><input type="file" id="msubF" accept=".srt,.vtt,.txt"><i class="fas fa-paperclip"></i> رفع ملف ترجمة</label> <span class="sm" id="msubI"></span>
         <textarea id="msub" placeholder="WEBVTT ..."></textarea>
+        <div class="spv" data-t="m">
+          <button type="button" class="sec spv-b"><i class="fas fa-circle-play"></i> معاينة الفيديو والترجمة وضبط التوقيت</button>
+          <div class="spv-box" style="display:none">
+            <video controls playsinline preload="metadata" style="width:100%;max-height:340px;border-radius:12px;background:#000;margin-top:8px"></video>
+            <div class="sm spv-st"></div>
+            <div class="spv-ctl" dir="ltr">
+              <button type="button" class="sec spv-step" data-d="-250" aria-label="تقديم الترجمة ربع ثانية"><i class="fas fa-minus"></i></button>
+              <input class="inp spv-v" type="number" step="0.25" value="0" aria-label="إزاحة الترجمة بالثواني"><span class="sm">ث</span>
+              <button type="button" class="sec spv-step" data-d="250" aria-label="تأخير الترجمة ربع ثانية"><i class="fas fa-plus"></i></button>
+              <button type="button" class="sec spv-q" aria-label="شرح"><i class="fas fa-circle-question"></i></button>
+            </div>
+            <div class="sm spv-help" style="display:none;margin-top:6px;line-height:1.8">
+              <b>كيف أضبط الترجمة؟</b><br>
+              كل ضغطة على <b>−</b> أو <b>+</b> تغيّر التوقيت بربع ثانية.<br>
+              <b>−</b> يجعل الترجمة تظهر <b>أبكر</b> (استعمله إن كانت متأخرة)، و<b>+</b> يجعلها تظهر <b>أبطأ</b> (استعمله إن كانت متقدمة). ويمكنك كتابة قيمة دقيقة في الخانة.<br>
+              <b>أول سطر يظهر الآن:</b> شغّل الفيديو وأوقفه عند لحظة نطق أول سطر ترجمة ثم اضغطه ليحسب الفرق تلقائياً.<br>
+              <b>تثبيت التعديل:</b> يكتب التوقيت المصحَّح في نص الترجمة. وإن لم تضغطه فيُثبَّت تلقائياً عند الحفظ.
+            </div>
+            <div class="spv-ctl">
+              <button type="button" class="sec spv-sync"><i class="fas fa-crosshairs"></i> أول سطر يظهر الآن</button>
+              <button type="button" class="spv-apply"><i class="fas fa-check"></i> تثبيت التعديل في النص</button>
+              <button type="button" class="sec spv-rst"><i class="fas fa-rotate-left"></i> تصفير</button>
+            </div>
+          </div>
+        </div>
         <button id="saveMovie"><i class="fas fa-floppy-disk"></i> حفظ الفيلم</button>
       </div>
 
@@ -237,6 +264,31 @@ button:not(.sec):not(.del):not(.tab):not(.x):hover{box-shadow:0 6px 18px rgba(25
         <label>ترجمة الحلقة — اختياري</label>
         <label class="file"><input type="file" id="esubF" accept=".srt,.vtt,.txt"><i class="fas fa-paperclip"></i> رفع ملف ترجمة</label> <span class="sm" id="esubI"></span>
         <textarea id="esub"></textarea>
+        <div class="spv" data-t="e">
+          <button type="button" class="sec spv-b"><i class="fas fa-circle-play"></i> معاينة الفيديو والترجمة وضبط التوقيت</button>
+          <div class="spv-box" style="display:none">
+            <video controls playsinline preload="metadata" style="width:100%;max-height:340px;border-radius:12px;background:#000;margin-top:8px"></video>
+            <div class="sm spv-st"></div>
+            <div class="spv-ctl" dir="ltr">
+              <button type="button" class="sec spv-step" data-d="-250" aria-label="تقديم الترجمة ربع ثانية"><i class="fas fa-minus"></i></button>
+              <input class="inp spv-v" type="number" step="0.25" value="0" aria-label="إزاحة الترجمة بالثواني"><span class="sm">ث</span>
+              <button type="button" class="sec spv-step" data-d="250" aria-label="تأخير الترجمة ربع ثانية"><i class="fas fa-plus"></i></button>
+              <button type="button" class="sec spv-q" aria-label="شرح"><i class="fas fa-circle-question"></i></button>
+            </div>
+            <div class="sm spv-help" style="display:none;margin-top:6px;line-height:1.8">
+              <b>كيف أضبط الترجمة؟</b><br>
+              كل ضغطة على <b>−</b> أو <b>+</b> تغيّر التوقيت بربع ثانية.<br>
+              <b>−</b> يجعل الترجمة تظهر <b>أبكر</b> (استعمله إن كانت متأخرة)، و<b>+</b> يجعلها تظهر <b>أبطأ</b> (استعمله إن كانت متقدمة). ويمكنك كتابة قيمة دقيقة في الخانة.<br>
+              <b>أول سطر يظهر الآن:</b> شغّل الفيديو وأوقفه عند لحظة نطق أول سطر ترجمة ثم اضغطه ليحسب الفرق تلقائياً.<br>
+              <b>تثبيت التعديل:</b> يكتب التوقيت المصحَّح في نص الترجمة. وإن لم تضغطه فيُثبَّت تلقائياً عند الحفظ.
+            </div>
+            <div class="spv-ctl">
+              <button type="button" class="sec spv-sync"><i class="fas fa-crosshairs"></i> أول سطر يظهر الآن</button>
+              <button type="button" class="spv-apply"><i class="fas fa-check"></i> تثبيت التعديل في النص</button>
+              <button type="button" class="sec spv-rst"><i class="fas fa-rotate-left"></i> تصفير</button>
+            </div>
+          </div>
+        </div>
         <div class="row"><button id="saveEp"><i class="fas fa-floppy-disk"></i> حفظ الحلقة</button><button class="sec" id="nextEp"><i class="fas fa-forward-step"></i> حفظ وانتقل للتالية</button></div>
         <div class="ch" style="margin-top:18px"><span class="ci"><i class="fas fa-list"></i></span><b>الحلقات المضافة</b></div>
         <div id="epList"></div>
@@ -598,7 +650,7 @@ function bindSub(fid,tid_,iid){
     const f=e.target.files[0];if(!f)return;
     if(f.size>900000){msg("ملف الترجمة كبير جداً (الحد 900 كيلوبايت)","err");e.target.value="";return}
     try{
-      const t=await readSub(f);$(tid_).value=t;
+      const t=await readSub(f);$(tid_).value=t;$(tid_).dispatchEvent(new Event("subload"));
       const n=(t.match(/-->/g)||[]).length;
       $(iid).textContent=`${f.name} — ${n} سطر ترجمة`;
       if(!n)msg("الملف لا يبدو ملف ترجمة صالحاً (لا توجد أزمنة -->)","err");
@@ -619,19 +671,20 @@ async function pick(type,id,name,ep){
   const s=await getDoc(doc(db,"titles",tid())).catch(()=>null);
   const d=s&&s.exists()?s.data():{};
   $("#mq").value=fmtQ(d.qualities||(d.watchUrl?[{label:"تلقائي",url:d.watchUrl}]:[]));
-  $("#msub").value=d.subtitle||"";
+  $("#msub").value=d.subtitle||"";spvReset();
   if(type==="tv"){
     await loadEps();
     if(ep&&ep.season){
       $("#eS").value=ep.season;$("#eE").value=ep.episode;
       const x=epCache.find(i=>i.season===ep.season&&i.episode===ep.episode);
-      $("#eq").value=x?fmtQ(x.qualities):"";$("#esub").value=x?.subtitle||"";
+      $("#eq").value=x?fmtQ(x.qualities):"";$("#esub").value=x?.subtitle||"";spvReset();
     }
   }
   window.scrollTo({top:$("#editor").offsetTop-60,behavior:"smooth"});
 }
 
 $("#saveMovie").onclick=async()=>{
+  spvFlush("m");
   const qualities=parseQ($("#mq").value);
   if(!qualities.length)return msg("أدخل رابطاً صالحاً واحداً على الأقل","err");
   try{
@@ -641,6 +694,7 @@ $("#saveMovie").onclick=async()=>{
 };
 
 async function saveEp(){
+  spvFlush("e");
   const s=+$("#eS").value,e=+$("#eE").value,qualities=parseQ($("#eq").value);
   if(!s||!e)return msg("حدد الموسم والحلقة","err");
   if(!qualities.length)return msg("أدخل رابطاً صالحاً","err");
@@ -651,7 +705,7 @@ async function saveEp(){
   }catch(x){msg("فشل الحفظ — تأكد أن حسابك ضمن admins ("+x.code+")","err")}
 }
 $("#saveEp").onclick=saveEp;
-$("#nextEp").onclick=async()=>{if(await saveEp()){$("#eE").value=+$("#eE").value+1;$("#eq").value="";$("#esub").value="";$("#esubI").textContent=""}};
+$("#nextEp").onclick=async()=>{if(await saveEp()){$("#eE").value=+$("#eE").value+1;$("#eq").value="";$("#esub").value="";$("#esubI").textContent="";spvReset()}};
 
 let epCache=[];
 async function loadEps(){
@@ -664,7 +718,7 @@ async function loadEps(){
   box.querySelectorAll("button").forEach(b=>b.onclick=async()=>{
     const x=arr.find(i=>i.id===b.dataset.e);
     if(b.dataset.a==="del"){if(await ask("ستُحذف هذه الحلقة.",{title:"حذف الحلقة",icon:"fa-trash",danger:true,ok:"حذف"})){await deleteDoc(doc(db,"titles",tid(),"episodes",x.id)).catch(()=>msg("فشل الحذف","err"));loadEps()}}
-    else{$("#eS").value=x.season;$("#eE").value=x.episode;$("#eq").value=fmtQ(x.qualities);$("#esub").value=x.subtitle||"";$("#esubI").textContent="";window.scrollTo({top:$("#tvBox").offsetTop,behavior:"smooth"})}
+    else{$("#eS").value=x.season;$("#eE").value=x.episode;$("#eq").value=fmtQ(x.qualities);$("#esub").value=x.subtitle||"";$("#esubI").textContent="";spvReset();window.scrollTo({top:$("#tvBox").offsetTop,behavior:"smooth"})}
   });
 }
 
@@ -883,6 +937,75 @@ async function hRun(box,p,ta,title,file,url){
   }catch(e){st.innerHTML=`<i class="fas fa-circle-xmark" style="color:var(--p)"></i> ${esc(vMsg(e.message))}`}
   finally{lock(false)}
 }
+
+/* ───── معاينة الفيديو والترجمة وضبط التوقيت ───── */
+const T_RE=/(?:(\d+):)?(\d{1,2}):(\d{2})([.,])(\d{1,3})/g;
+const fmtT=(ms,sep)=>{ms=Math.max(0,Math.round(ms));const h=Math.floor(ms/3600000),m=Math.floor(ms%3600000/60000),s=Math.floor(ms%60000/1000),x=ms%1000;return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}${sep}${String(x).padStart(3,"0")}`};
+function shiftSub(t,ms){
+  if(!ms)return t;
+  return t.split(/\r?\n/).map(l=>l.includes("-->")?l.replace(T_RE,(a,h,m,s,sep,x)=>fmtT(((+h||0)*3600+(+m)*60+(+s))*1000+(+x.padEnd(3,"0"))+ms,sep)):l).join("\n");
+}
+function toVtt(t){
+  t=t.replace(/^﻿/,"").replace(/\r/g,"");
+  if(/^\s*WEBVTT/.test(t))return t;
+  return "WEBVTT\n\n"+t.split("\n").map(l=>l.includes("-->")?l.replace(/(\d),(\d{1,3})/g,"$1.$2"):l).join("\n");
+}
+function firstCue(t){
+  const l=t.split(/\r?\n/).find(x=>x.includes("-->"));if(!l)return null;
+  const m=new RegExp(T_RE.source).exec(l);if(!m)return null;
+  return ((+m[1]||0)*3600+(+m[2])*60+(+m[3]))*1000+(+m[5].padEnd(3,"0"));
+}
+async function spvSrc(qId){
+  const q=parseQ($(qId).value)[0];if(!q)throw new Error("أدخل رابط الفيديو أولاً");
+  const u=q.url,m=/^vcdn:([\w-]+)$/i.exec(u);
+  if(m){
+    if(!PUSH)throw new Error("رابط Worker غير مضبوط");
+    const j=await(await fetch(PUSH+"/vcdn-play?id="+m[1])).json();
+    if(!j.streamUrl)throw new Error("تعذر جلب رابط التشغيل من vcdn (قد لا يكون جاهزاً بعد)");
+    return j.streamUrl;
+  }
+  try{const t=new URL(u),h=t.hostname.toLowerCase();if(MEDIA&&t.protocol==="https:"&&(h==="pixeldrain.com"||h==="archive.org"||h.endsWith(".archive.org")))return MEDIA+"/pass?u="+encodeURIComponent(u)}catch(e){}
+  return u;
+}
+const SPV={};
+function initSpv(k,qId,sId){
+  const box=document.querySelector(`.spv[data-t="${k}"]`),area=box.querySelector(".spv-box"),v=area.querySelector("video"),st=area.querySelector(".spv-st"),val=area.querySelector(".spv-v");
+  const S={off:0,url:"",loaded:false};
+  const show=()=>{val.value=(S.off/1000).toFixed(2).replace(/\.?0+$/,"")||"0";
+    const t=$(sId).value.trim();
+    st.innerHTML=!t?'<i class="fas fa-circle-info"></i> لا توجد ترجمة لعرضها':S.off?`<i class="fas fa-triangle-exclamation" style="color:var(--warn,#f5a524)"></i> تعديل غير مثبّت: ${S.off>0?"+":""}${(S.off/1000).toFixed(2)} ثانية`:'<i class="fas fa-circle-check" style="color:var(--ok)"></i> الترجمة بتوقيتها الأصلي'};
+  const refresh=()=>{
+    v.querySelectorAll("track").forEach(x=>x.remove());
+    if(S.url){URL.revokeObjectURL(S.url);S.url=""}
+    const t=$(sId).value.trim();show();if(!t)return;
+    S.url=URL.createObjectURL(new Blob([toVtt(shiftSub(t,S.off))],{type:"text/vtt"}));
+    const tr=document.createElement("track");tr.kind="subtitles";tr.label="ترجمة";tr.srclang="ar";tr.default=true;tr.src=S.url;v.appendChild(tr);
+    const on=()=>{try{v.textTracks[0].mode="showing"}catch(e){}};on();tr.addEventListener("load",on);setTimeout(on,150);
+  };
+  const apply=()=>{const t=$(sId).value;if(!S.off)return false;$(sId).value=shiftSub(t,S.off);S.off=0;refresh();return true};
+  box.querySelector(".spv-b").onclick=async()=>{
+    area.style.display="";st.textContent="جارٍ تجهيز الفيديو...";
+    try{const src=await spvSrc(qId);v.src=src;v.load();S.loaded=true;refresh()}
+    catch(e){st.innerHTML=`<i class="fas fa-circle-xmark" style="color:var(--p)"></i> ${esc(e.message)}`}
+  };
+  v.addEventListener("error",()=>{if(v.getAttribute("src"))st.innerHTML='<i class="fas fa-circle-xmark" style="color:var(--p)"></i> تعذر تشغيل الفيديو في المتصفح (قد يكون الرابط منتهياً أو بصيغة لا يدعمها المتصفح)'});
+  area.querySelectorAll("[data-d]").forEach(b=>b.onclick=()=>{S.off+=+b.dataset.d;refresh()});
+  area.querySelector(".spv-q").onclick=()=>{const h=area.querySelector(".spv-help");h.style.display=h.style.display==="none"?"":"none"};
+  val.onchange=()=>{const n=parseFloat(val.value);S.off=isFinite(n)?Math.round(n*1000):0;refresh()};
+  area.querySelector(".spv-rst").onclick=()=>{S.off=0;refresh()};
+  area.querySelector(".spv-apply").onclick=()=>{if(apply())msg("ثُبّت التعديل في نص الترجمة","ok");else msg("لا يوجد تعديل لتثبيته","err")};
+  area.querySelector(".spv-sync").onclick=()=>{
+    const f=firstCue($(sId).value);if(f==null)return msg("لا توجد ترجمة صالحة","err");
+    if(!v.currentTime)return msg("أوقف الفيديو عند لحظة نطق أول سطر ترجمة أولاً","err");
+    S.off=Math.round(v.currentTime*1000)-f;refresh();
+  };
+  $(sId).addEventListener("subload",()=>{S.off=0;if(S.loaded)refresh();else show()});
+  $(sId).addEventListener("input",()=>{if(S.loaded)refresh()});
+  SPV[k]={flush:apply,close:()=>{S.off=0;S.loaded=false;v.pause();v.removeAttribute("src");v.querySelectorAll("track").forEach(x=>x.remove());area.style.display="none";v.load()}};
+}
+initSpv("m","#mq","#msub");initSpv("e","#eq","#esub");
+const spvReset=()=>{for(const k in SPV)SPV[k].close()};
+const spvFlush=k=>{try{if(SPV[k]&&SPV[k].flush())msg("ثُبّت تعديل توقيت الترجمة قبل الحفظ","ok")}catch(e){}};
 /* ───── البلاغات ───── */
 let reps=[];
 async function countReports(){
