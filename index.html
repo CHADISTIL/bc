@@ -124,17 +124,24 @@ background:rgba(22,33,62,.85);backdrop-filter:blur(12px);border-bottom:1px solid
 .d-pw{position:relative;flex-shrink:0;width:108px;border-radius:12px}
 .d-pw::after{content:"";position:absolute;left:0;right:0;bottom:0;height:48%;border-radius:0 0 12px 12px;background:linear-gradient(to top,rgba(0,0,0,.78),transparent);opacity:0;transition:opacity .5s ease;pointer-events:none}
 .d-pw.s-on::after{opacity:1}
-.pst-trl{position:absolute;z-index:2;left:7px;right:7px;bottom:7px;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:6px;height:34px;padding:0 8px;border:1px solid rgba(255,255,255,.3);border-radius:99px;color:#fff;font:inherit;font-size:.72em;font-weight:700;white-space:nowrap;background:rgba(14,14,26,.5);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);cursor:pointer;opacity:0;transform:translateY(16px) scale(.88);filter:blur(3px);pointer-events:none;transition:opacity .45s cubic-bezier(.4,0,.2,1),transform .55s cubic-bezier(.2,.9,.25,1.25),filter .45s,background .25s}
-.d-pw.s-on .pst-trl{opacity:1;transform:none;filter:none;pointer-events:auto}
+.d-pw:not(.on)::after,.d-pw:not(.on) .pst-trl{display:none}
+.pst-trl{position:absolute;z-index:2;left:0;right:0;margin:0 auto;bottom:8px;width:34px;height:34px;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:0;padding:0;border:1px solid rgba(255,255,255,.3);border-radius:99px;color:#fff;font:inherit;font-size:.72em;font-weight:700;white-space:nowrap;background:rgba(14,14,26,.5);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);cursor:pointer;opacity:0;transform:scale(.4);filter:blur(4px);pointer-events:none;transition:width .45s cubic-bezier(.65,0,.35,1) .08s,gap .45s .08s,opacity .3s .3s,transform .4s .3s ease,filter .3s .3s,background .25s}
+.d-pw.s-on .pst-trl{width:calc(100% - 14px);gap:6px;opacity:1;transform:none;filter:none;pointer-events:auto;animation:pstHalo 1.1s .1s ease-out both;transition:opacity .25s,transform .55s cubic-bezier(.2,1.25,.3,1),filter .3s,width .7s cubic-bezier(.22,1,.36,1) .18s,gap .7s .18s,background .25s}
 .pst-trl:active{transform:scale(.95)!important}
-.pst-trl i{font-size:1.25em;color:#ff4757}
+.pst-trl i{font-size:1.25em;color:#ff4757;flex-shrink:0}
+.pst-trl span{display:block;max-width:0;opacity:0;overflow:hidden;transition:opacity .15s,max-width .3s}
+.d-pw.s-on .pst-trl span{max-width:90px;opacity:1;transition:opacity .35s .5s,max-width .6s .25s}
 .pst-trl .fa-youtube{animation:pstPulse 1.7s ease-in-out infinite}
 .pst-trl::before{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.38) 50%,transparent 70%);transform:translateX(-130%);pointer-events:none}
-.d-pw.s-on .pst-trl::before{animation:pstSheen 1.2s .55s ease both}
+.d-pw.s-on .pst-trl::before{animation:pstSheen 1.2s .75s ease both}
 .pst-trl.back{background:rgba(255,71,87,.88);border-color:rgba(255,255,255,.45)}.pst-trl.back i{color:#fff}
 @keyframes pstPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.2)}}
 @keyframes pstSheen{to{transform:translateX(130%)}}
-@media (prefers-reduced-motion:reduce){.pst-trl{transition:opacity .01s;filter:none;transform:none}.pst-trl .fa-youtube,.d-pw.s-on .pst-trl::before{animation:none}}
+@keyframes pstHalo{0%{box-shadow:0 0 0 0 rgba(255,71,87,.6)}100%{box-shadow:0 0 0 14px rgba(255,71,87,0)}}
+.se-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.se-row .btn{padding:8px 14px;font-size:.85em;animation:folIn .45s cubic-bezier(.2,1.1,.3,1) both}
+@keyframes folIn{from{opacity:0;transform:scale(.7) translateX(-10px)}}
+@media (prefers-reduced-motion:reduce){.pst-trl,.pst-trl span{transition:opacity .01s;filter:none;transform:none}.d-pw.s-on .pst-trl{animation:none}.pst-trl .fa-youtube,.d-pw.s-on .pst-trl::before,.se-row .btn{animation:none}}
 .d-hero{position:relative;aspect-ratio:16/9;max-height:50vh;width:100%;background:#000}
 .d-hero img{width:100%;height:100%;object-fit:cover}
 .d-hero::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,#12142a,transparent 70%)}
@@ -331,7 +338,7 @@ html.embed #spFab{display:none}
 <div id="toast"></div>
 
 <link rel="preconnect" href="https://api.themoviedb.org"><link rel="preconnect" href="https://image.tmdb.org"><link rel="preconnect" href="https://firestore.googleapis.com"><script src="config.js"></script>
-<script src="player.js?v=18"></script>
+<script src="player.js?v=19"></script>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {getAuth,onAuthStateChanged,GoogleAuthProvider,signInWithPopup,signInWithEmailAndPassword,createUserWithEmailAndPassword,signOut,updateProfile,sendPasswordResetEmail,deleteUser}
@@ -1410,22 +1417,25 @@ async function openDetail(type,id,epSel){
       }
     }
     if(trailer){const t=document.createElement("button");t.className="btn sec";
-      t.style.display="none";
       /* زر التريلر / العودة فوق غلاف الفيلم: يظهر ويختفي بحركة ناعمة حتى لا يحجب الغلاف */
       const pimg=acts.closest(".d-body").querySelector(".d-poster"),pw=document.createElement("div");pw.className="d-pw";
       if(pimg){pimg.replaceWith(pw);pw.appendChild(pimg)}
       const cv=document.createElement("button");cv.type="button";cv.className="pst-trl";pw.appendChild(cv);
-      let hideT=0;
-      const showC=()=>{clearTimeout(hideT);pw.classList.add("s-on");if(!t.dataset.back)hideT=setTimeout(hideC,3800)};
-      const hideC=()=>{if(!t.dataset.back)pw.classList.remove("s-on")};
+      let hideT=0,wasOn=false,lastHide=0;
+      const lbl=type==="tv"?"العودة للحلقة":"العودة للفيلم";
+      const mainOn=()=>JP.isOpen()&&!(JP.isSolo&&JP.isSolo());
+      const showC=()=>{clearTimeout(hideT);if(!pw.classList.contains("on"))return;pw.classList.add("s-on");if(!t.dataset.back)hideT=setTimeout(hideC,3800)};
+      const hideC=()=>{if(!t.dataset.back){pw.classList.remove("s-on");lastHide=Date.now()}};
       const setT=b=>{t.dataset.back=b?"1":"";
-        t.innerHTML=b?`<i class="fas fa-rotate-left"></i> العودة لمشاهدة الفيلم`:`<i class="fab fa-youtube"></i> التريلر`;
-        cv.innerHTML=b?'<i class="fas fa-rotate-left"></i><span>العودة للفيلم</span>':'<i class="fab fa-youtube"></i><span>التريلر</span>';
+        t.innerHTML=b?`<i class="fas fa-rotate-left"></i> ${mainOn()?lbl:"إغلاق التريلر"}`:`<i class="fab fa-youtube"></i> التريلر`;
+        cv.innerHTML=b?`<i class="fas fa-rotate-left"></i><span>${lbl}</span>`:'<i class="fab fa-youtube"></i><span>التريلر</span>';
         cv.classList.toggle("back",!!b);showC()};
+      /* الزر فوق الغلاف يعمل فقط أثناء تشغيل فيديو العمل نفسه؛ في باقي الحالات يبقى الزر الأصلي */
+      const sync=()=>{const on=mainOn();if(on===wasOn)return;wasOn=on;t.style.display=on?"none":"";pw.classList.toggle("on",on);clearTimeout(hideT);pw.classList.remove("s-on");if(on)setTimeout(showC,650);else lastHide=0};
       cv.onclick=e=>{e.stopPropagation();t.onclick()};
-      pw.addEventListener("click",e=>{if(e.target.closest(".pst-trl"))return;pw.classList.contains("s-on")&&!t.dataset.back?hideC():showC()});
-      setT(false);clearTimeout(hideT);pw.classList.remove("s-on");setTimeout(showC,700);
-      const loop=setInterval(()=>{if(!pw.isConnected){clearInterval(loop);return}if(!pw.classList.contains("s-on")&&!t.dataset.back)showC()},11000);
+      pw.addEventListener("click",e=>{if(!pw.classList.contains("on")||e.target.closest(".pst-trl"))return;pw.classList.contains("s-on")&&!t.dataset.back?hideC():showC()});
+      t.style.display="";setT(false);sync();
+      const loop=setInterval(()=>{if(!pw.isConnected){clearInterval(loop);return}sync();if(wasOn&&!pw.classList.contains("s-on")&&!t.dataset.back&&Date.now()-lastHide>11000)showC()},500);
       t.onclick=()=>{
       if(t.dataset.back){JP.endTrailer();setT(false);return}
       if(JP.isOpen()&&JP.trailer&&JP.trailer(trailer.key)){setT(true);window.addEventListener("jp-close",()=>setT(false),{once:true});return}
@@ -1451,7 +1461,11 @@ async function renderEpisodes(d,it,epSel){
   if(!seasons.length)return;
   let epLinks={};
   try{const s=await getDocs(collection(db,"titles",favId("tv",d.id),"episodes"));s.forEach(x=>epLinks[x.id]=x.data())}catch(e){}
-  box.innerHTML=`<div class="h2"><i class="fas fa-list-ol"></i>الحلقات</div><select class="sel" id="seasonSel">${seasons.map(s=>`<option value="${s.season_number}">Season ${s.season_number}</option>`).join("")}</select><div class="eps" id="eps"></div>`;
+  box.innerHTML=`<div class="h2"><i class="fas fa-list-ol"></i>الحلقات</div><div class="se-row" id="seRow"><select class="sel" id="seasonSel">${seasons.map(s=>`<option value="${s.season_number}">Season ${s.season_number}</option>`).join("")}</select></div><div class="eps" id="eps"></div>`;
+  /* أثناء تشغيل الفيديو ينتقل زر المتابعة بجانب زر المواسم */
+  {const row=$("#seRow"),fl=setInterval(()=>{if(!row.isConnected){clearInterval(fl);return}
+    const fb=$("#folBtn");if(!fb)return;const pl=JP.isOpen()&&!(JP.isSolo&&JP.isSolo());
+    if(pl&&fb.parentNode!==row)row.appendChild(fb);else if(!pl&&fb.parentNode===row){const ac=$("#acts");ac&&ac.appendChild(fb)}},400)}
   if(epSel&&seasons.some(x=>x.season_number===epSel.s))$("#seasonSel").value=epSel.s;
   const load=async()=>{
     const n=$("#seasonSel").value,eps=$("#eps");eps.innerHTML=spinner();
