@@ -337,7 +337,7 @@ html.embed #spFab{display:none}
 <div id="toast"></div>
 
 <link rel="preconnect" href="https://api.themoviedb.org"><link rel="preconnect" href="https://image.tmdb.org"><link rel="preconnect" href="https://firestore.googleapis.com"><script src="config.js"></script>
-<script src="player.js?v=22"></script>
+<script src="player.js?v=23"></script>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {getAuth,onAuthStateChanged,GoogleAuthProvider,signInWithPopup,signInWithEmailAndPassword,createUserWithEmailAndPassword,signOut,updateProfile,sendPasswordResetEmail,deleteUser}
@@ -1304,8 +1304,41 @@ checkUnread();
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)checkUnread()});
 setInterval(()=>{if(!document.hidden)checkUnread()},120000);
 let installEv=null;
-window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();installEv=e});
-window.addEventListener("appinstalled",()=>{installEv=null});
+/* أول زيارة في العمر: غلاف شفاف يغطي الصفحة، لمسة واحدة عليه تفتح نافذة التثبيت. لا يظهر ثانيةً إلا إذا اكتُشف أن التطبيق حُذف */
+const lsGet=k=>{try{return localStorage.getItem(k)}catch(e){return null}},lsSet=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
+const isStandalone=()=>matchMedia("(display-mode: standalone)").matches||navigator.standalone;
+const isIOSdev=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+function iosInstallHelp(){
+  const h=document.createElement("div");h.style.cssText="position:fixed;left:12px;right:12px;bottom:18px;z-index:99998;background:#171929;color:#fff;border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:14px 16px;font-size:.9em;line-height:1.7;box-shadow:0 12px 40px rgba(0,0,0,.5);direction:rtl";
+  h.innerHTML='<b><i class="fas fa-download"></i> تثبيت SP</b><br>اضغط زر المشاركة <i class="fas fa-arrow-up-from-bracket"></i> في أسفل المتصفح، ثم اختر «إضافة إلى الشاشة الرئيسية».';
+  h.onclick=()=>h.remove();setTimeout(()=>h.remove(),9000);document.body.appendChild(h);
+}
+function instGate(){
+  if(document.getElementById("instGate")||isStandalone())return;
+  const g=document.createElement("div");g.id="instGate";
+  g.style.cssText="position:fixed;inset:0;z-index:99999;background:transparent;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation";
+  g.addEventListener("click",e=>{
+    e.preventDefault();e.stopPropagation();g.remove();lsSet("sp_inst_seen","1");
+    const ev=installEv;
+    if(ev){installEv=null;try{ev.prompt();ev.userChoice.then(r=>{if(r&&r.outcome==="accepted")lsSet("sp_inst_ok","1")}).catch(()=>{})}catch(_){}}
+    else if(isIOSdev)iosInstallHelp();
+  },true);
+  document.body.appendChild(g);
+}
+/* يُعرض فقط إن لم تكن هذه أول زيارة قد مرّت، أو إن كان قد ثبّت التطبيق سابقاً ثم حُذف (المتصفح يعيد عرض التثبيت) */
+async function instMaybe(){
+  if(isStandalone())return;
+  const seen=lsGet("sp_inst_seen"),wasInstalled=lsGet("sp_inst_ok");
+  if(seen&&!wasInstalled)return;
+  try{if(navigator.getInstalledRelatedApps){const a=await navigator.getInstalledRelatedApps();if(a&&a.length){lsSet("sp_inst_ok","1");return}}}catch(e){}
+  if(wasInstalled)lsSet("sp_inst_ok","");
+  instGate();
+}
+window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();installEv=e;instMaybe()});
+window.addEventListener("appinstalled",()=>{installEv=null;lsSet("sp_inst_ok","1");lsSet("sp_inst_seen","1");const g=document.getElementById("instGate");if(g)g.remove()});
+if(isIOSdev&&!isStandalone()&&!lsGet("sp_inst_seen"))addEventListener("load",()=>setTimeout(instGate,1200));
+/* التطبيق المثبّت: أي رابط داخل نطاقه يُفتح في نافذة التطبيق الموجودة، ويُنقَل إلى الصفحة المطلوبة */
+if("launchQueue" in window)launchQueue.setConsumer(p=>{try{if(!p||!p.targetURL)return;const u=new URL(p.targetURL);if(u.hash&&u.hash!==location.hash)location.hash=u.hash}catch(e){}});
 $("#spFab").onclick=openNotif;
 async function spAct(act,hash){
   const mm=/#\/(movie|tv)\/(\d+)/.exec(hash||"");if(!mm||(act!=="fav"&&act!=="later"))return;
