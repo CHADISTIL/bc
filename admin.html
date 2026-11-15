@@ -58,6 +58,14 @@ label{display:block;font-size:.78em;color:var(--mut);margin-bottom:6px}
 .eprow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 12px;background:var(--card2);border-radius:14px;margin-bottom:6px;font-size:.82em}
 .eprow span{word-break:break-all;flex:1}
 .eprow .inp{background:var(--card);border:1px solid rgba(255,255,255,.08)}
+.as-g{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}.as-g .kpi{padding:11px}.as-g .kpi b{font-size:1.25em}
+.as-t{margin-top:14px}.as-t h4{margin:0 0 6px;font-size:.9em;color:var(--mut);font-weight:600}
+.as-r{display:grid;grid-template-columns:1fr auto auto auto;gap:8px;align-items:center;font-size:.8em;padding:5px 0;position:relative}
+.as-r>*{position:relative;z-index:1}.as-r i.bar{position:absolute;inset:3px auto 3px 0;border-radius:6px;background:rgba(90,184,255,.14);z-index:0}
+.as-r b{min-width:30px;text-align:center}.as-h{color:var(--mut);font-size:.72em}
+.as-tip{min-height:20px;font-size:.78em;color:var(--mut);text-align:center;margin-top:4px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}.chips span{background:var(--card2);border:1px solid var(--line);border-radius:99px;padding:3px 10px;font-size:.78em;cursor:pointer}
+details.adv{width:100%;margin-top:8px}details.adv summary{cursor:pointer;font-size:.82em;color:var(--info)}
 .pub{display:flex;gap:12px;align-items:center;padding:9px;border-radius:16px;background:var(--card2);margin-bottom:8px}
 .pub img{width:42px;height:60px;object-fit:cover;border-radius:8px;background:#222;flex:none}
 .pub .t{flex:1;min-width:0}
@@ -433,8 +441,12 @@ button:not(.sec):not(.del):not(.tab):not(.x):hover{box-shadow:0 6px 18px rgba(25
       <label>يظهر الإعلان لـ</label>
       <select class="inp" id="vAud"><option value="all">جميع المستخدمين</option><option value="guests">الزوار غير المسجلين فقط</option></select>
 
-      <label style="margin-top:12px"><i class="fas fa-clock"></i> التوقيت</label>
-      <label class="chk"><input type="checkbox" id="vPre">إعلان عند بدء التشغيل (Pre-roll)</label>
+      <label style="margin-top:12px"><i class="fas fa-earth-africa"></i> المناطق التي يظهر فيها الإعلان</label>
+      <div id="vGeo"></div>
+      <p class="sm" style="margin:4px 0 0">تُحدَّد الدولة من وركر sp-media (مسار /geo). إن تعذّر تحديدها يظهر الإعلان ولا يُحجب.</p>
+
+      <label style="margin-top:12px"><i class="fas fa-clock"></i> التوقيت العام</label>
+      <div class="row"><label class="chk" style="flex:1"><input type="checkbox" id="vPre">في البداية (Pre-roll)</label><label class="chk" style="flex:1"><input type="checkbox" id="vPost">في النهاية (Post-roll)</label></div>
       <div class="row" style="margin-top:8px">
         <div style="flex:1"><label>بعد دقائق (مفصولة بفاصلة)</label><input class="inp" id="vMin" dir="ltr" placeholder="3, 20"></div>
         <div style="flex:1"><label>عند نسب % من الفيديو</label><input class="inp" id="vPct" dir="ltr" placeholder="50, 80"></div>
@@ -460,6 +472,16 @@ button:not(.sec):not(.del):not(.tab):not(.x):hover{box-shadow:0 6px 18px rgba(25
       </div>
       <p class="sm" style="margin:0 0 8px">إن لم يبدأ الإعلان خلال المهلة يُتجاوز ويكمل الفيديو دون تعطيل المشاهد.</p>
       <button id="vSave"><i class="fas fa-floppy-disk"></i> حفظ إعدادات الإعلانات</button>
+    </div>
+
+    <div class="card" id="asCard">
+      <div class="ch"><span class="ci"><i class="fas fa-chart-line"></i></span><b>تحليلات الإعلانات</b></div>
+      <div class="row" style="margin:10px 0">
+        <select class="inp" id="asRange" style="flex:1"><option value="7">آخر 7 أيام</option><option value="14">آخر 14 يوماً</option><option value="30">آخر 30 يوماً</option><option value="90">آخر 90 يوماً</option></select>
+        <select class="inp" id="asAd" style="flex:1"><option value="">كل الإعلانات</option></select>
+        <button type="button" class="sec ic" id="asReload" title="تحديث"><i class="fas fa-rotate"></i></button>
+      </div>
+      <div id="asBody" class="sm">اضغط تحديث لعرض الأرقام.</div>
     </div>
   </div>
 </div>
@@ -1237,8 +1259,44 @@ $("#nSend").onclick=async()=>{
 
 /* ───── VAST settings ───── */
 const nums=t=>String(t).split(/[,،\s]+/).map(Number).filter(n=>n>0);
+const COUNTRIES=[["DZ","الجزائر"],["MA","المغرب"],["TN","تونس"],["LY","ليبيا"],["EG","مصر"],["SD","السودان"],["SA","السعودية"],["AE","الإمارات"],["QA","قطر"],["KW","الكويت"],["BH","البحرين"],["OM","عُمان"],["YE","اليمن"],["IQ","العراق"],["SY","سوريا"],["JO","الأردن"],["LB","لبنان"],["PS","فلسطين"],["MR","موريتانيا"],["SO","الصومال"],["FR","فرنسا"],["BE","بلجيكا"],["DE","ألمانيا"],["ES","إسبانيا"],["IT","إيطاليا"],["GB","بريطانيا"],["NL","هولندا"],["SE","السويد"],["CH","سويسرا"],["PT","البرتغال"],["TR","تركيا"],["US","أمريكا"],["CA","كندا"],["BR","البرازيل"],["MX","المكسيك"],["AR","الأرجنتين"],["RU","روسيا"],["UA","أوكرانيا"],["IN","الهند"],["PK","باكستان"],["ID","إندونيسيا"],["MY","ماليزيا"],["CN","الصين"],["JP","اليابان"],["KR","كوريا الجنوبية"],["AU","أستراليا"],["ZA","جنوب أفريقيا"],["NG","نيجيريا"],["SN","السنغال"],["ML","مالي"],["CI","ساحل العاج"]];
+const ARAB=["DZ","MA","TN","LY","EG","SD","SA","AE","QA","KW","BH","OM","YE","IQ","SY","JO","LB","PS","MR","SO"];
+const cName=c=>(COUNTRIES.find(x=>x[0]===c)||[c,c])[1];
+/* واجهة اختيار المناطق: الكل / فقط هذه الدول / كل الدول عدا هذه */
+function geoUI(g){
+  g=g||{};const el=document.createElement("div");el.className="geo";let list=(g.list||[]).slice();
+  el.innerHTML=`<select class="inp g-m" style="margin-top:6px"><option value="all">كل دول العالم</option><option value="inc">فقط في هذه الدول</option><option value="exc">كل الدول عدا هذه</option></select><div class="g-b" style="display:none"><div class="chips"></div><div class="row"><select class="inp g-add" style="flex:1"><option value="">+ إضافة دولة</option>${COUNTRIES.map(c=>`<option value="${c[0]}">${c[1]} (${c[0]})</option>`).join("")}</select><button type="button" class="sec g-ar">الدول العربية</button><button type="button" class="sec g-clr">مسح</button></div></div>`;
+  const m=el.querySelector(".g-m"),b=el.querySelector(".g-b"),ch=el.querySelector(".chips");
+  const draw=()=>{b.style.display=m.value==="all"?"none":"";ch.innerHTML=list.map(c=>`<span data-c="${c}">${cName(c)} ×</span>`).join("")||'<span class="sm" style="border:0;cursor:default">لم تُحدَّد دول بعد</span>'};
+  ch.onclick=e=>{const c=e.target.closest("[data-c]");if(c){list=list.filter(x=>x!==c.dataset.c);draw()}};
+  m.onchange=draw;
+  el.querySelector(".g-add").onchange=e=>{const v=e.target.value;if(v&&!list.includes(v))list.push(v);e.target.value="";draw()};
+  el.querySelector(".g-ar").onclick=()=>{ARAB.forEach(c=>{if(!list.includes(c))list.push(c)});draw()};
+  el.querySelector(".g-clr").onclick=()=>{list=[];draw()};
+  m.value=g.mode||"all";draw();
+  el.get=()=>m.value==="all"||!list.length?{mode:"all",list:[]}:{mode:m.value,list:list.slice()};
+  return el;
+}
+/* خيارات متقدمة لكل إعلان: توقيت خاص + مناطق + فترة حملة */
+function advUI(t){
+  const pl=t.place||{},el=document.createElement("details");el.className="adv";
+  el.innerHTML=`<summary>استهداف وتوقيت خاص بهذا الإعلان</summary>
+  <label class="chk" style="margin-top:8px"><input type="checkbox" class="pl-on"${pl.on?" checked":""}>توقيت خاص (بدل التوقيت العام)</label>
+  <div class="pl-b" style="display:none"><div class="row"><label class="chk" style="flex:1"><input type="checkbox" class="pl-pre"${pl.pre?" checked":""}>البداية</label><label class="chk" style="flex:1"><input type="checkbox" class="pl-post"${pl.post?" checked":""}>النهاية</label></div>
+  <div class="row"><div style="flex:1"><label>بعد دقائق</label><input class="inp pl-m" dir="ltr" placeholder="3, 20"></div><div style="flex:1"><label>عند نسب %</label><input class="inp pl-p" dir="ltr" placeholder="50, 80"></div></div></div>
+  <label style="margin-top:8px">المناطق (يتجاوز الإعداد العام)</label><div class="geo-h"></div>
+  <div class="row"><div style="flex:1"><label>تاريخ البدء</label><input class="inp ad-from" type="date"></div><div style="flex:1"><label>تاريخ الانتهاء</label><input class="inp ad-to" type="date"></div></div>`;
+  const geo=geoUI(t.geo);el.querySelector(".geo-h").appendChild(geo);
+  el.querySelector(".pl-m").value=(pl.m||[]).join(", ");el.querySelector(".pl-p").value=(pl.p||[]).join(", ");
+  el.querySelector(".ad-from").value=t.from||"";el.querySelector(".ad-to").value=t.to||"";
+  const on=el.querySelector(".pl-on"),bx=el.querySelector(".pl-b"),sh=()=>bx.style.display=on.checked?"":"none";on.onchange=sh;sh();
+  if(pl.on||(t.geo&&t.geo.mode&&t.geo.mode!=="all")||t.from||t.to)el.open=true;
+  el.get=()=>{const o={};if(on.checked)o.place={on:true,pre:el.querySelector(".pl-pre").checked,post:el.querySelector(".pl-post").checked,m:nums(el.querySelector(".pl-m").value),p:nums(el.querySelector(".pl-p").value)};
+    const g=geo.get();if(g.mode!=="all")o.geo=g;const f=el.querySelector(".ad-from").value,to=el.querySelector(".ad-to").value;if(f)o.from=f;if(to)o.to=to;return o};
+  return el;
+}
 const vRow=(t={})=>{
-  const dr=t.type==="direct"||t.video!==undefined,d=document.createElement("div");d.className="eprow";d.dataset.k=dr?"d":"v";d.style.cssText="flex-wrap:wrap;align-items:stretch";
+  const dr=t.type==="direct"||t.video!==undefined,d=document.createElement("div");d.className="eprow";d.dataset.k=dr?"d":"v";d.dataset.id=t.id||("a"+Math.random().toString(36).slice(2,8));d.style.cssText="flex-wrap:wrap;align-items:stretch";
   const head=`<div class="row" style="width:100%;margin:0"><label class="chk" style="margin:0"><input type="checkbox" class="vt-on"${t.on===false?"":" checked"}>مفعّل</label><input class="inp vt-n" style="flex:1;min-width:90px" placeholder="${dr?"اسم الإعلان":"اسم (اختياري)"}"><button type="button" class="sec ic vt-t" title="اختبار"><i class="fas fa-vial"></i></button><button type="button" class="sec ic vt-x" title="حذف"><i class="fas fa-trash"></i></button></div>`;
   d.innerHTML=head+(dr?`<div class="sm" style="width:100%;margin-top:6px"><i class="fas fa-film"></i> إعلان مباشر (بدون VAST)</div>
     <input class="inp vt-v" dir="ltr" style="width:100%;margin-top:6px" placeholder="رابط ملف الفيديو الخام (mp4)">
@@ -1249,6 +1307,7 @@ const vRow=(t={})=>{
   d.querySelector(".vt-n").value=t.name||"";
   if(dr){d.querySelector(".vt-v").value=t.video||"";d.querySelector(".vt-c").value=t.click||"";d.querySelector(".vt-k").value=t.cta||""}
   else d.querySelector(".vt-u").value=t.url||"";
+  d._adv=advUI(t);d.insertBefore(d._adv,d.querySelector(".vt-r"));
   d.querySelector(".vt-x").onclick=()=>d.remove();
   d.querySelector(".vt-t").onclick=()=>dr?videoTest(d.querySelector(".vt-v").value.trim(),d.querySelector(".vt-r")):vastTest(d.querySelector(".vt-u").value.trim(),d.querySelector(".vt-r"));
   return d;
@@ -1284,6 +1343,77 @@ async function vastTest(url,out){
   else{const v=mf.filter(x=>/mp4|video/.test(x.getAttribute("type")||"")&&!/javascript|flash/.test(x.getAttribute("type")||""));note=v.length?`<b style="color:var(--ok)">جاهز:</b> ${v.length} ملف فيديو، ${imp} تتبّع ظهور.`:"<b style='color:#ffb84d'>الإعلان من نوع VPAID/غير فيديو ولا يدعمه المشغّل</b>"}
   out.innerHTML=log.join("<br>")+"<br>"+note;
 }
+const fillAdSel=()=>{};
+/* ───── تحليلات الإعلانات ───── */
+const POSN=k=>k==="pre"?"بداية الفيديو":k==="post"?"نهاية الفيديو":k[0]==="m"?"الدقيقة "+k.slice(1):k[0]==="p"?"عند "+k.slice(1)+"%":k;
+const FAILN={nofill:"لا يوجد إعلان متاح (No fill)",fetch:"تعذّر جلب الرابط (CORS/شبكة)",media:"فشل تشغيل ملف الفيديو",timeout:"انتهت المهلة",blocked:"حُجب التشغيل التلقائي"};
+let AS=null;
+async function loadAdStats(){
+  const body=$("#asBody");body.textContent="جارٍ التحميل...";
+  try{
+    const n=+$("#asRange").value||7;
+    const q=await getDocs(query(collection(db,"adstats"),orderBy("d","desc"),limit(n)));
+    const rows={};q.forEach(x=>{const d=x.data();rows[d.d]=d});
+    AS={rows,n};renderAdStats();
+  }catch(e){body.innerHTML=`<span style="color:#ff6b6b">تعذّر قراءة adstats (${e.code||e.message}). أضف قاعدة القراءة للأدمن في Firestore.</span>`}
+}
+function renderAdStats(){
+  if(!AS)return;const {rows,n}=AS,body=$("#asBody"),adF=$("#asAd").value;
+  const days=[];const t0=new Date();for(let i=n-1;i>=0;i--){days.push(new Date(t0.getTime()-i*864e5).toISOString().slice(0,10))}
+  const val=(d,ev)=>{const x=d&&d[ev];if(!x)return 0;return adF?((x.ad||{})[adF]||0):(x.total||0)};
+  const names={},tn={};Object.values(rows).forEach(d=>{Object.assign(names,d.an||{});Object.assign(tn,d.n||{})});
+  // قائمة الإعلانات
+  const sel=$("#asAd"),cur=sel.value,ids=new Set();Object.values(rows).forEach(d=>["imp","clk","fail"].forEach(ev=>Object.keys((d[ev]&&d[ev].ad)||{}).forEach(i=>ids.add(i))));
+  sel.innerHTML='<option value="">كل الإعلانات</option>'+[...ids].map(i=>`<option value="${i}">${names[i]||i}</option>`).join("");sel.value=ids.has(cur)?cur:"";
+  const S={imp:days.map(d=>val(rows[d],"imp")),clk:days.map(d=>val(rows[d],"clk"))};
+  const tot=ev=>days.reduce((a,d)=>a+val(rows[d],ev),0);
+  const imp=tot("imp"),clk=tot("clk"),cmp=tot("cmp"),skp=tot("skp"),fail=tot("fail");
+  const pc=(a,b)=>b?(a/b*100).toFixed(1)+"%":"—";
+  const kp=(ic,cl,v,l)=>`<div class="kpi ${cl}"><div class="ki"><i class="fas ${ic}"></i></div><div><b>${v}</b><span>${l}</span></div></div>`;
+  let h=`<div class="as-g">${kp("fa-eye","b",imp,"مشاهدات الإعلان")}${kp("fa-hand-pointer","r",clk,"النقرات")}${kp("fa-percent","g",pc(clk,imp),"نسبة النقر CTR")}${kp("fa-circle-check","g",pc(cmp,imp),"أكمل المشاهدة")}${kp("fa-forward","",pc(skp,imp),"تخطّوه")}${kp("fa-triangle-exclamation","r",fail,"محاولات فاشلة")}</div>`;
+  h+=`<div class="as-t"><h4>المنحنى اليومي <span style="color:#4da3ff">● مشاهدات</span> <span style="color:#ff4757">● نقرات</span></h4>${chart(days,S)}<div class="as-tip" id="asTip">المس المنحنى لعرض أرقام اليوم</div></div>`;
+  // تفصيل (على كل الإعلانات)
+  const brk=(dim,lab,max=8)=>{const m={};Object.values(rows).forEach(d=>["imp","clk","cmp","skp"].forEach(ev=>{const x=d[ev]&&d[ev][dim];if(x)for(const k in x){(m[k]=m[k]||{imp:0,clk:0,cmp:0,skp:0})[ev]+=x[k]}}));
+    const arr=Object.entries(m).sort((a,b)=>b[1].imp-a[1].imp).slice(0,max);if(!arr.length)return'<div class="as-h">لا بيانات بعد</div>';const mx=Math.max(1,...arr.map(a=>a[1].imp));
+    return `<div class="as-r as-h"><span></span><span>مشاهدات</span><span>نقرات</span><span>CTR</span></div>`+arr.map(([k,v])=>`<div class="as-r"><i class="bar" style="width:${v.imp/mx*100}%"></i><span>${lab(k)}</span><b>${v.imp}</b><b>${v.clk}</b><b>${pc(v.clk,v.imp)}</b></div>`).join("")};
+  const sec=(t,x)=>`<div class="as-t"><h4>${t}</h4>${x}</div>`;
+  h+=sec("حسب الإعلان",brk("ad",k=>names[k]||k));
+  h+=sec("أكثر الأفلام والمسلسلات التي ظهر فيها الإعلان",brk("t",k=>tn[k]||k));
+  h+=sec("توقيت الظهور داخل الفيديو",brk("p",POSN));
+  h+=sec("حسب الدولة",brk("c",c=>cName(c)+" ("+c+")"));
+  // ساعات اليوم
+  const hr=Array(24).fill(0);Object.values(rows).forEach(d=>{const x=d.imp&&d.imp.h;if(x)for(const k in x)hr[+k]+=x[k]});const hm=Math.max(1,...hr);
+  h+=sec("ساعة اليوم (بتوقيت جهاز المشاهد)",`<svg viewBox="0 0 240 70" style="width:100%"><g>${hr.map((v,i)=>`<rect x="${i*10+1}" y="${58-v/hm*52}" width="8" height="${v/hm*52}" rx="2" fill="#5ab8ff" opacity=".8"><title>${i}:00 — ${v}</title></rect>`).join("")}</g>${[0,6,12,18,23].map(i=>`<text x="${i*10+5}" y="68" font-size="7" fill="#8f93aa" text-anchor="middle">${i}</text>`).join("")}</svg>`);
+  // الفشل
+  const fm={};Object.values(rows).forEach(d=>{const x=d.fail&&d.fail.r;if(x)for(const k in x)fm[k]=(fm[k]||0)+x[k]});
+  h+=sec("أسباب فشل الإعلان",Object.keys(fm).length?Object.entries(fm).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="as-r" style="grid-template-columns:1fr auto"><span>${FAILN[k]||k}</span><b>${v}</b></div>`).join(""):'<div class="as-h">لا إخفاقات مسجّلة</div>');
+  h+=`<p class="sm" style="margin-top:12px">التفاصيل (الأفلام/التوقيت/الدول) تشمل كل الإعلانات حتى لو اخترت إعلاناً بعينه؛ الأرقام الكلية والمنحنى يتبعان الاختيار. الأرقام تُسجَّل بالتوقيت العالمي UTC.</p>`;
+  body.innerHTML=h;
+  const svg=body.querySelector("svg.lc");if(svg){const tip=$("#asTip"),gl=svg.querySelector(".gl");
+    const mv=e=>{const r=svg.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*340,i=Math.max(0,Math.min(days.length-1,Math.round((x-28)/(300/Math.max(1,days.length-1)))));
+      gl.setAttribute("x1",28+i*300/Math.max(1,days.length-1));gl.setAttribute("x2",gl.getAttribute("x1"));gl.style.display="";
+      tip.innerHTML=`<b>${days[i]}</b> — مشاهدات: ${S.imp[i]} · نقرات: ${S.clk[i]}`};
+    svg.addEventListener("pointermove",mv);svg.addEventListener("pointerdown",mv)}
+}
+/* منحنى SVG ناعم (Catmull-Rom) */
+function chart(days,S){
+  const W=340,H=170,L=28,R=12,T=10,B=24,pw=W-L-R,ph=H-T-B,mx=Math.max(3,...S.imp,...S.clk),nd=Math.max(1,days.length-1);
+  const X=i=>L+i*pw/nd,Y=v=>T+ph-v/mx*ph;
+  const path=a=>{const p=a.map((v,i)=>[X(i),Y(v)]);if(p.length<2)return`M${p[0][0]},${p[0][1]}`;let d=`M${p[0][0]},${p[0][1]}`;for(let i=0;i<p.length-1;i++){const p0=p[i-1]||p[i],p1=p[i],p2=p[i+1],p3=p[i+2]||p2;d+=`C${p1[0]+(p2[0]-p0[0])/6},${p1[1]+(p2[1]-p0[1])/6} ${p2[0]-(p3[0]-p1[0])/6},${p2[1]-(p3[1]-p1[1])/6} ${p2[0]},${p2[1]}`}return d};
+  const ticks=[0,.5,1].map(f=>Math.round(mx*f));
+  const xl=[0,Math.floor(nd/3),Math.floor(nd*2/3),nd].filter((v,i,a)=>a.indexOf(v)===i);
+  const ap=path(S.imp);
+  return `<svg class="lc" viewBox="0 0 ${W} ${H}" style="width:100%;touch-action:none"><defs><linearGradient id="lg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4da3ff" stop-opacity=".35"/><stop offset="1" stop-color="#4da3ff" stop-opacity="0"/></linearGradient></defs>
+  ${ticks.map(v=>`<line x1="${L}" x2="${W-R}" y1="${Y(v)}" y2="${Y(v)}" stroke="rgba(255,255,255,.07)"/><text x="${L-4}" y="${Y(v)+3}" font-size="8" fill="#8f93aa" text-anchor="end">${v}</text>`).join("")}
+  <path d="${ap}L${X(days.length-1)},${Y(0)}L${X(0)},${Y(0)}Z" fill="url(#lg)"/>
+  <path d="${ap}" fill="none" stroke="#4da3ff" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="${path(S.clk)}" fill="none" stroke="#ff4757" stroke-width="2.2" stroke-linecap="round"/>
+  ${days.length<=31?S.imp.map((v,i)=>`<circle cx="${X(i)}" cy="${Y(v)}" r="2.2" fill="#4da3ff"/>`).join(""):""}
+  ${xl.map(i=>`<text x="${X(i)}" y="${H-6}" font-size="8" fill="#8f93aa" text-anchor="middle">${days[i].slice(5)}</text>`).join("")}
+  <line class="gl" y1="${T}" y2="${T+ph}" stroke="rgba(255,255,255,.35)" style="display:none"/></svg>`;
+}
+$("#asReload").onclick=loadAdStats;$("#asRange").onchange=loadAdStats;$("#asAd").onchange=renderAdStats;
+let vGeo=geoUI();
 async function loadVast(){
   const s=await getDoc(doc(db,"settings","vast")).catch(()=>null);
   const d=s&&s.exists()?s.data():{enabled:true,url:"https://www.videosprofitnetwork.com/watch.xml?key=3f1497cd192863eda22ba81d86a3fc75",preroll:true,atMinutes:[3],atPercents:[50,80],maxPerVideo:4,movies:true,episodes:true,skippable:true,skipAfter:5,minDurationMin:0};
@@ -1295,21 +1425,24 @@ async function loadVast(){
   const c=d.cats||{movie:d.movies!==false,series:d.episodes!==false,anime:d.episodes!==false};
   $("#vCm").checked=c.movie!==false;$("#vCs").checked=c.series!==false;$("#vCa").checked=c.anime!==false;
   $("#vAud").value=d.audience||"all";
-  $("#vPre").checked=d.preroll!==false;
+  $("#vPre").checked=d.preroll!==false;$("#vPost").checked=!!d.postroll;
+  $("#vGeo").innerHTML="";vGeo=geoUI(d.geo);$("#vGeo").appendChild(vGeo);fillAdSel(tags);
   $("#vMin").value=(d.atMinutes||[]).join(", ");$("#vPct").value=(d.atPercents||[]).join(", ");
   $("#vMax").value=d.maxPerVideo??4;$("#vDur").value=d.minDurationMin??0;
   $("#vGap").value=d.gapMin??0;$("#vDay").value=d.dayMax??0;
   $("#vSkip").checked=d.skippable!==false;$("#vSkipT").value=d.skipAfter??5;$("#vTo").value=d.timeoutSec??7;
+  loadAdStats();
 }
 $("#vSave").onclick=async()=>{
   const tags=[...document.querySelectorAll("#vTags .eprow")].map(r=>{const n=r.querySelector(".vt-n").value.trim(),on=r.querySelector(".vt-on").checked;
-    if(r.dataset.k==="d")return{type:"direct",name:n,on,video:r.querySelector(".vt-v").value.trim(),click:r.querySelector(".vt-c").value.trim(),cta:r.querySelector(".vt-k").value.trim(),skippable:r.querySelector(".vt-sk").checked,skipAfter:Math.max(0,+r.querySelector(".vt-st").value||0)};
-    return{name:n,url:r.querySelector(".vt-u").value.trim(),on}}).filter(t=>t.url||t.video);
+    const A=Object.assign({id:r.dataset.id},r._adv.get());
+    if(r.dataset.k==="d")return{...A,type:"direct",name:n,on,video:r.querySelector(".vt-v").value.trim(),click:r.querySelector(".vt-c").value.trim(),cta:r.querySelector(".vt-k").value.trim(),skippable:r.querySelector(".vt-sk").checked,skipAfter:Math.max(0,+r.querySelector(".vt-st").value||0)};
+    return{...A,name:n,url:r.querySelector(".vt-u").value.trim(),on}}).filter(t=>t.url||t.video);
   if(tags.some(t=>!/^https?:\/\//i.test(t.url||t.video)||(t.click&&!/^https?:\/\//i.test(t.click))))return msg("أحد روابط الإعلانات غير صالح","err");
   if($("#vOn").checked&&!tags.some(t=>t.on))return msg("أضف رابط إعلان مفعّلاً واحداً على الأقل","err");
   const cats={movie:$("#vCm").checked,series:$("#vCs").checked,anime:$("#vCa").checked},first=(tags.find(t=>t.on&&t.url)||{}).url||"";
   try{
-    await setDoc(doc(db,"settings","vast"),{enabled:$("#vOn").checked,url:first,tags,order:$("#vOrder").value,cats,movies:cats.movie,episodes:cats.series||cats.anime,audience:$("#vAud").value,preroll:$("#vPre").checked,atMinutes:nums($("#vMin").value),atPercents:nums($("#vPct").value),maxPerVideo:+$("#vMax").value||4,minDurationMin:+$("#vDur").value||0,gapMin:+$("#vGap").value||0,dayMax:+$("#vDay").value||0,skippable:$("#vSkip").checked,skipAfter:+$("#vSkipT").value||0,timeoutSec:Math.min(20,Math.max(3,+$("#vTo").value||7)),updatedAt:Date.now()});
+    await setDoc(doc(db,"settings","vast"),{enabled:$("#vOn").checked,url:first,tags,order:$("#vOrder").value,cats,movies:cats.movie,episodes:cats.series||cats.anime,audience:$("#vAud").value,preroll:$("#vPre").checked,postroll:$("#vPost").checked,geo:vGeo.get(),atMinutes:nums($("#vMin").value),atPercents:nums($("#vPct").value),maxPerVideo:+$("#vMax").value||4,minDurationMin:+$("#vDur").value||0,gapMin:+$("#vGap").value||0,dayMax:+$("#vDay").value||0,skippable:$("#vSkip").checked,skipAfter:+$("#vSkipT").value||0,timeoutSec:Math.min(20,Math.max(3,+$("#vTo").value||7)),updatedAt:Date.now()});
     msg("تم حفظ إعدادات الإعلانات","ok");
   }catch(e){msg("فشل الحفظ — تأكد من نشر قاعدة settings ("+e.code+")","err")}
 };

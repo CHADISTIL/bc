@@ -337,7 +337,7 @@ html.embed #spFab{display:none}
 <div id="toast"></div>
 
 <link rel="preconnect" href="https://api.themoviedb.org"><link rel="preconnect" href="https://image.tmdb.org"><link rel="preconnect" href="https://firestore.googleapis.com"><script src="config.js"></script>
-<script src="player.js?v=21"></script>
+<script src="player.js?v=22"></script>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {getAuth,onAuthStateChanged,GoogleAuthProvider,signInWithPopup,signInWithEmailAndPassword,createUserWithEmailAndPassword,signOut,updateProfile,sendPasswordResetEmail,deleteUser}
@@ -968,6 +968,27 @@ async function openAccount(){
 }
 /* ───── favorites ───── */
 const favId=(t,id)=>`${t}_${id}`;
+/* إحصاءات الإعلانات: تُجمَّع الأحداث وتُحفظ كعدّادات يومية في adstats/{اليوم} (كتابة واحدة كل بضع ثوانٍ) */
+const ADQ={c:{},nm:{},t:0};
+function adFlush(){
+  clearTimeout(ADQ.t);ADQ.t=0;
+  const ks=Object.keys(ADQ.c);if(!ks.length)return;
+  const day=new Date().toISOString().slice(0,10),data={d:day},nest=(p,v)=>{const a=p.split(".");let c=data;a.slice(0,-1).forEach(x=>c=c[x]=c[x]||{});c[a[a.length-1]]=v};
+  ks.forEach(k=>nest(k,increment(ADQ.c[k])));Object.keys(ADQ.nm).forEach(k=>nest(k,ADQ.nm[k]));
+  ADQ.c={};ADQ.nm={};
+  setDoc(doc(db,"adstats",day),data,{merge:true}).catch(()=>{});
+}
+window.addEventListener("sp-ad",e=>{
+  const v=e.detail||{},ev=v.ev;if(!["imp","clk","skp","cmp","fail"].includes(ev))return;
+  const ck=x=>String(x||"").replace(/[.\/\[\]*`~]/g,"_").slice(0,40)||"_",add=p=>{ADQ.c[p]=(ADQ.c[p]||0)+1};
+  add(ev+".total");add(ev+".ad."+ck(v.id));
+  if(ev==="fail")add("fail.r."+ck(v.x));
+  else{if(v.sk)add(ev+".t."+ck(v.sk));if(v.pos)add(ev+".p."+ck(v.pos));add(ev+".h."+new Date().getHours());if(v.cc)add(ev+".c."+ck(v.cc))}
+  if(v.sk&&v.title)ADQ.nm["n."+ck(v.sk)]=String(v.title).slice(0,80);
+  ADQ.nm["an."+ck(v.id)]=String(v.name||v.id).slice(0,60);
+  if(!ADQ.t)ADQ.t=setTimeout(adFlush,4000);
+});
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")adFlush()});
 function syncFav(btn){const on=favSet.has(btn.dataset.fid);btn.classList.toggle("on",on);btn.innerHTML=`<i class="fas fa-heart"></i> ${on?"في المفضلة":"أضف للمفضلة"}`}
 async function toggleFav(btn,it){
   if(!user){openAuth("سجّل الدخول لحفظ المفضلة");return}
@@ -1409,7 +1430,7 @@ async function openDetail(type,id,epSel){
         const bodyEl=ov.querySelector(".d-body");
         closeDetail();
         const h=histTrack(it,0,0);
-        play({...h,ad:link.ad,cat:adCat(d,"movie"),isUser:()=>!!user,title:it.title,quals,subtitle:link.subtitle,poster:it.poster,backdrop:d.backdrop_path?IMG+"w1280"+d.backdrop_path:it.poster,chips:[it.year,"فيلم"].filter(Boolean),kind:"movie",fav:favFor(it),slot:bodyEl,shareUrl:shareLink("movie",id),embedUrl:embedLink("movie",id),onClose:()=>setHash("")});
+        play({...h,sk:favId("movie",it.id),ad:link.ad,cat:adCat(d,"movie"),isUser:()=>!!user,title:it.title,quals,subtitle:link.subtitle,poster:it.poster,backdrop:d.backdrop_path?IMG+"w1280"+d.backdrop_path:it.poster,chips:[it.year,"فيلم"].filter(Boolean),kind:"movie",fav:favFor(it),slot:bodyEl,shareUrl:shareLink("movie",id),embedUrl:embedLink("movie",id),onClose:()=>setHash("")});
         setHash(`#/movie/${id}`);
       }else{
         const b=document.createElement("button");b.className="btn sec";b.innerHTML=`<i class="fas fa-clock"></i> غير متوفر بعد`;b.style.cssText="opacity:.6;cursor:default";b.onclick=()=>toast("لم يُضف رابط المشاهدة بعد");acts.appendChild(b);
@@ -1480,7 +1501,7 @@ async function renderEpisodes(d,it,epSel){
         const img=c.ep.still_path;
         info.innerHTML=c.ep.overview?`<div class="desc"><b>${esc(c.ep.name||"")}</b><br>${esc(c.ep.overview)}</div>`:"";
         const h=histTrack(it,+n,c.ep.episode_number);
-        play({...h,ad:c.l.ad,cat:adCat(d,"tv"),isUser:()=>!!user,title:`${it.title} - S${n} E${c.ep.episode_number}`,quals:c.q,subtitle:c.l.subtitle,poster:img?IMG+"w300"+img:it.poster,backdrop:img?IMG+"w780"+img:it.poster,chips:[`S${n}`,`E${c.ep.episode_number}`],kind:"episode",fav:favFor(it),slot:bodyEl,
+        play({...h,sk:favId("tv",it.id),ad:c.l.ad,cat:adCat(d,"tv"),isUser:()=>!!user,title:`${it.title} - S${n} E${c.ep.episode_number}`,quals:c.q,subtitle:c.l.subtitle,poster:img?IMG+"w300"+img:it.poster,backdrop:img?IMG+"w780"+img:it.poster,chips:[`S${n}`,`E${c.ep.episode_number}`],kind:"episode",fav:favFor(it),slot:bodyEl,
           shareUrl:shareLink("tv",d.id,n,c.ep.episode_number),embedUrl:embedLink("tv",d.id,n,c.ep.episode_number),onClose:back,
           next:()=>{for(let j=i+1;j<allEps.length;j++){if(mk(allEps[j]).q.length)return{title:`${it.title} - S${n} E${allEps[j].episode_number}`,play:()=>playEp(j)}}return null}});
         setHash(`#/tv/${d.id}/${n}/${c.ep.episode_number}`);
@@ -1568,7 +1589,7 @@ async function runEmbed(type,id,se,ep){
     const bd=d.backdrop_path?IMG+"w1280"+d.backdrop_path:(d.poster_path?IMG+"w500"+d.poster_path:"");
     if(!quals.length){document.body.insertAdjacentHTML("beforeend",`<div class="center" style="position:fixed;inset:0;z-index:500;background:#000;display:flex;align-items:center;justify-content:center">هذا المحتوى غير متوفر بعد</div>`);return}
     trackVisit({type,id,title:d.original_title||d.original_name||d.title||d.name,poster:d.poster_path?IMG+"w342"+d.poster_path:""});
-    play({embed:true,ad:link.ad,cat:adCat(d,type),isUser:()=>!!user,title:name,quals,subtitle:link.subtitle,poster:bd,backdrop:bd,kind:type==="tv"?"episode":"movie",rep:{type,tmdbId:id,title:name,season:se||0,episode:ep||0}});
+    play({embed:true,sk:favId(type,id),ad:link.ad,cat:adCat(d,type),isUser:()=>!!user,title:name,quals,subtitle:link.subtitle,poster:bd,backdrop:bd,kind:type==="tv"?"episode":"movie",rep:{type,tmdbId:id,title:name,season:se||0,episode:ep||0}});
   }catch(e){document.body.insertAdjacentHTML("beforeend",`<div class="center" style="position:fixed;inset:0;z-index:500;background:#000;display:flex;align-items:center;justify-content:center">تعذر تحميل الفيديو</div>`)}
 }
 {const a=new URLSearchParams(location.search).get("act");if(a){const h=location.hash;try{history.replaceState(history.state,"",location.pathname)}catch(e){}setTimeout(()=>spAct(a,h),0)}}
