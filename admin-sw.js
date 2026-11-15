@@ -1,5 +1,5 @@
 /* Service Worker خاص بلوحة الإدارة (نطاق admin.html فقط) */
-const CACHE='sp-admin-v7';
+const CACHE='sp-admin-v8';
 const SHELL=['./admin.html','admin.webmanifest','config.js','icons/admin-192.png','icons/admin-512.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL).catch(()=>{})))});
 self.addEventListener('message',e=>{if(e.data&&e.data.skip)self.skipWaiting()});

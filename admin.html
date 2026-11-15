@@ -1129,6 +1129,32 @@ document.querySelectorAll(".vup").forEach(box=>{
 const HN={pd:"PixelDrain",ia:"Internet Archive"};
 const hNm=(box,ext)=>box.dataset.t==="m"?`${sel.id}.${ext}`:`${sel.id}_S${+$("#eS").value||1}E${+$("#eE").value||1}.${ext}`;
 const hItem=()=>`sp-${sel.type==="tv"?"tv":"movie"}-${sel.id}`;
+/* Internet Archive: رفع متعدد الأجزاء (90MB لكل جزء، كل جزء يُعاد 3 مرات عند الفشل). يرجع null إذا المصدر لا يدعم Range */
+async function iaMulti(box,tok,url,title,fill,st){
+  const PART=90*1048576,H={"Content-Type":"application/json",Authorization:"Bearer "+tok};
+  const call=async o=>{const r=await fetch(MEDIA+"/ia-mp",{method:"POST",headers:H,body:JSON.stringify(o)});const j=await r.json().catch(()=>({}));if(!r.ok)throw Object.assign(new Error(j.error||("HTTP "+r.status)),{code:j.code});return j};
+  st.innerHTML=`<i class="fas fa-gear fa-spin"></i> جارٍ تجهيز الرفع إلى Internet Archive...`;
+  let i;try{i=await call({a:"init",src:url,title,item:hItem(),name:hNm(box,"")})}catch(e){if(e.code==="norange")return null;throw e}
+  const total=Math.ceil(i.len/PART),tags=[];
+  try{
+    for(let n=1;n<=total;n++){
+      const s0=(n-1)*PART,e0=Math.min(i.len,n*PART)-1;let ok=false,last;
+      for(let t=0;t<3&&!ok;t++){
+        st.innerHTML=`<i class="fas fa-gear fa-spin"></i> رفع الجزء ${n} من ${total}${t?` (محاولة ${t+1})`:""} — ${(s0/1048576).toFixed(0)} / ${(i.len/1048576).toFixed(0)} MB`;
+        fill.style.width=Math.round(s0/i.len*100)+"%";
+        try{const r=await call({a:"part",src:url,iaId:i.iaId,nm:i.nm,uploadId:i.uploadId,n,start:s0,end:e0});tags.push(r.etag);ok=true}
+        catch(e){last=e;await new Promise(x=>setTimeout(x,3000*(t+1)))}
+      }
+      if(!ok)throw last;
+    }
+    st.innerHTML=`<i class="fas fa-gear fa-spin"></i> جارٍ إنهاء الرفع...`;
+    const d=await call({a:"done",iaId:i.iaId,nm:i.nm,uploadId:i.uploadId,etags:tags});
+    return {url:d.url,id:d.id,size:i.len};
+  }catch(e){
+    call({a:"abort",iaId:i.iaId,nm:i.nm,uploadId:i.uploadId}).catch(()=>{});
+    throw e;
+  }
+}
 async function hRun(box,p,ta,title,file,url){
   const bar=box.querySelector(".vbar"),fill=bar.firstElementChild,st=box.querySelector(".vst");
   bar.style.display="";fill.style.width="0";
@@ -1146,11 +1172,14 @@ async function hRun(box,p,ta,title,file,url){
         x.onerror=()=>rej(new Error("Failed to fetch"));x.send(file);
       });
     }else{
+      if(p==="ia")j=await iaMulti(box,tok,url,title,fill,st);
+      if(!j){
       st.innerHTML=`<i class="fas fa-gear fa-spin"></i> جارٍ نقل الملف إلى ${HN[p]} عبر الخادم... قد يستغرق عدة دقائق، أبقِ الصفحة مفتوحة`;
       fill.style.width="35%";
       const r=await fetch(MEDIA+"/host-pull",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+tok},body:JSON.stringify({p,src:url,title,item:hItem(),name:hNm(box,"")})});
       j=await r.json().catch(()=>({}));
       if(!r.ok||!j.url)throw new Error(j.error||("HTTP "+r.status));
+      }
     }
     fill.style.width="100%";
     ta.value=ta.value.trim()?ta.value.trim()+"\n"+j.url:j.url;
