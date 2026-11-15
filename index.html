@@ -939,14 +939,14 @@ async function openAccount(){
       const j=await r.json();if(!j.secure_url)throw new Error((j.error&&j.error.message)||"upload");
       const url=j.secure_url.replace("/upload/","/upload/c_fill,w_300,h_300,q_auto,f_auto/");
       await updateProfile(u,{photoURL:url});
-      setDoc(doc(db,"profiles",u.uid),{photo:url},{merge:true}).catch(()=>{});
+      setDoc(doc(db,"profiles",u.uid),{photo:url},{merge:true}).catch(()=>{});syncComments(u,{photo:url.slice(0,300)});
       $("#acct").innerHTML=`<img src="${esc(url)}" alt="">`;
       toast("تم تحديث الصورة");openAccount();
     }catch(e){console.warn(e);toast("تعذر رفع الصورة")}
   };
   $("#ac-sn").onclick=async()=>{
     const n=$("#ac-n").value.trim().slice(0,40);if(!n)return toast("أدخل اسماً");
-    try{await updateProfile(u,{displayName:n});setDoc(doc(db,"profiles",u.uid),{name:n},{merge:true}).catch(()=>{});toast("تم حفظ الاسم");openAccount()}catch(e){toast("تعذر الحفظ")}
+    try{await updateProfile(u,{displayName:n});setDoc(doc(db,"profiles",u.uid),{name:n},{merge:true}).catch(()=>{});syncComments(u,{name:n.slice(0,60)});toast("تم حفظ الاسم");openAccount()}catch(e){toast("تعذر الحفظ")}
   };
   const pw=$("#ac-pw");if(pw)pw.onclick=async()=>{try{await sendPasswordResetEmail(auth,u.email);toast("أُرسل رابط تغيير كلمة المرور إلى بريدك")}catch(e){toast("تعذر الإرسال")}};
   $("#ac-dl").onclick=()=>openDownloads();
@@ -968,6 +968,8 @@ async function openAccount(){
 }
 /* ───── favorites ───── */
 const favId=(t,id)=>`${t}_${id}`;
+/* عند تغيير الاسم أو الصورة تُحدَّث تعليقات المستخدم القديمة أيضاً (تُخزَّن فيها نسخة من الاسم والصورة) */
+async function syncComments(u,f){try{const q=await getDocs(query(collection(db,"comments"),where("uid","==",u.uid),limit(300)));await Promise.all(q.docs.map(d=>updateDoc(d.ref,f).catch(()=>{})))}catch(e){console.warn("[SP] sync comments",e)}}
 /* إحصاءات الإعلانات: تُجمَّع الأحداث وتُحفظ كعدّادات يومية في adstats/{اليوم} (كتابة واحدة كل بضع ثوانٍ) */
 const ADQ={c:{},nm:{},t:0};
 function adFlush(){
