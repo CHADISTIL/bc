@@ -58,6 +58,7 @@ label{display:block;font-size:.78em;color:var(--mut);margin-bottom:6px}
 .eprow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 12px;background:var(--card2);border-radius:14px;margin-bottom:6px;font-size:.82em}
 .eprow span{word-break:break-all;flex:1}
 .eprow .inp{background:var(--card);border:1px solid rgba(255,255,255,.08)}
+.r2row{border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:12px;background:var(--card2)}.r2row.act{border-color:var(--ok)}.r2row .inp{margin-bottom:6px;background:rgba(255,255,255,.05)!important;border:1px solid rgba(255,255,255,.14)!important}.r2bar{height:7px;border-radius:9px;background:rgba(255,255,255,.08);overflow:hidden;margin:6px 0}.r2bar i{display:block;height:100%;background:var(--ok);border-radius:9px}
 .as-g{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}.as-g .kpi{padding:11px}.as-g .kpi b{font-size:1.25em}
 .as-t{margin-top:14px}.as-t h4{margin:0 0 6px;font-size:.9em;color:var(--mut);font-weight:600}
 .as-r{display:grid;grid-template-columns:1fr auto auto auto;gap:8px;align-items:center;font-size:.8em;padding:5px 0;position:relative}
@@ -196,6 +197,7 @@ button:not(.sec):not(.del):not(.tab):not(.x):hover{box-shadow:0 6px 18px rgba(25
     <button class="tab" data-p="home"><i class="fas fa-house"></i> الرئيسية</button>
     <button class="tab" data-p="push"><i class="fas fa-bell"></i> الإشعارات</button>
     <button class="tab" data-p="ads"><i class="fas fa-rectangle-ad"></i> الإعلانات</button>
+    <button class="tab" data-p="r2"><i class="fas fa-cloud"></i> التخزين</button>
   </div>
 
   <!-- ═════ التحليلات ═════ -->
@@ -236,7 +238,7 @@ button:not(.sec):not(.del):not(.tab):not(.x):hover{box-shadow:0 6px 18px rgba(25
       <div id="movieBox">
         <label>روابط الفيلم — سطر لكل جودة بصيغة <code>1080p|https://...</code> أو الرابط فقط</label>
         <textarea id="mq" placeholder="1080p|https://example.com/movie-1080.mp4&#10;أو ارفع الفيديو بالزر أدناه"></textarea>
-        <div class="vup" data-t="m"><select class="inp vprov" style="margin:0 0 6px"><option value="vcdn">الوجهة: vcdn</option><option value="pd">الوجهة: PixelDrain (رابط مباشر)</option><option value="ia">الوجهة: Internet Archive (رابط مباشر)</option></select><label class="file"><i class="fas fa-cloud-arrow-up"></i> رفع ملف من الجهاز<input type="file" accept="video/*"></label><div class="row vrow" style="margin-top:4px"><div class="vin"><input class="inp vurl" dir="ltr" placeholder="رابط فيديو مباشر"><button type="button" class="vx" title="مسح" style="display:none"><i class="fas fa-xmark"></i></button></div><button type="button" class="sec sm2 vps"><i class="fas fa-paste"></i> لصق</button><button type="button" class="sm2 vgo"><i class="fas fa-cloud-arrow-up"></i> رفع</button></div>
+        <div class="vup" data-t="m"><select class="inp vprov" style="margin:0 0 6px"><option value="vcdn">الوجهة: vcdn</option><option value="pd">الوجهة: PixelDrain (رابط مباشر)</option><option value="ia">الوجهة: Internet Archive (رابط مباشر)</option><option value="r2">الوجهة: Cloudflare R2 (الحساب النشط)</option></select><label class="file"><i class="fas fa-cloud-arrow-up"></i> رفع ملف من الجهاز<input type="file" accept="video/*"></label><label class="file hlsl" style="display:none"><i class="fas fa-folder-tree"></i> رفع مجلد HLS (m3u8 + مقاطع)<input type="file" class="hlsdir" webkitdirectory multiple></label><div class="row vrow" style="margin-top:4px"><div class="vin"><input class="inp vurl" dir="ltr" placeholder="رابط فيديو مباشر"><button type="button" class="vx" title="مسح" style="display:none"><i class="fas fa-xmark"></i></button></div><button type="button" class="sec sm2 vps"><i class="fas fa-paste"></i> لصق</button><button type="button" class="sm2 vgo"><i class="fas fa-cloud-arrow-up"></i> رفع</button></div>
         <div class="vbar" style="display:none"><i></i></div><div class="sm vst"></div></div>
         <label>ترجمة (VTT أو SRT) — اختياري</label>
         <label class="file"><input type="file" id="msubF" accept=".srt,.vtt,.txt"><i class="fas fa-paperclip"></i> رفع ملف ترجمة</label> <span class="sm" id="msubI"></span>
@@ -279,7 +281,7 @@ button:not(.sec):not(.del):not(.tab):not(.x):hover{box-shadow:0 6px 18px rgba(25
         </div>
         <label>روابط الحلقة — سطر لكل جودة</label>
         <textarea id="eq" placeholder="720p|https://..."></textarea>
-        <div class="vup" data-t="e"><select class="inp vprov" style="margin:0 0 6px"><option value="vcdn">الوجهة: vcdn</option><option value="pd">الوجهة: PixelDrain (رابط مباشر)</option><option value="ia">الوجهة: Internet Archive (رابط مباشر)</option></select><label class="file"><i class="fas fa-cloud-arrow-up"></i> رفع ملف من الجهاز<input type="file" accept="video/*"></label><div class="row vrow" style="margin-top:4px"><div class="vin"><input class="inp vurl" dir="ltr" placeholder="رابط فيديو مباشر"><button type="button" class="vx" title="مسح" style="display:none"><i class="fas fa-xmark"></i></button></div><button type="button" class="sec sm2 vps"><i class="fas fa-paste"></i> لصق</button><button type="button" class="sm2 vgo"><i class="fas fa-cloud-arrow-up"></i> رفع</button></div>
+        <div class="vup" data-t="e"><select class="inp vprov" style="margin:0 0 6px"><option value="vcdn">الوجهة: vcdn</option><option value="pd">الوجهة: PixelDrain (رابط مباشر)</option><option value="ia">الوجهة: Internet Archive (رابط مباشر)</option><option value="r2">الوجهة: Cloudflare R2 (الحساب النشط)</option></select><label class="file"><i class="fas fa-cloud-arrow-up"></i> رفع ملف من الجهاز<input type="file" accept="video/*"></label><label class="file hlsl" style="display:none"><i class="fas fa-folder-tree"></i> رفع مجلد HLS (m3u8 + مقاطع)<input type="file" class="hlsdir" webkitdirectory multiple></label><div class="row vrow" style="margin-top:4px"><div class="vin"><input class="inp vurl" dir="ltr" placeholder="رابط فيديو مباشر"><button type="button" class="vx" title="مسح" style="display:none"><i class="fas fa-xmark"></i></button></div><button type="button" class="sec sm2 vps"><i class="fas fa-paste"></i> لصق</button><button type="button" class="sm2 vgo"><i class="fas fa-cloud-arrow-up"></i> رفع</button></div>
         <div class="vbar" style="display:none"><i></i></div><div class="sm vst"></div></div>
         <label>ترجمة الحلقة — اختياري</label>
         <label class="file"><input type="file" id="esubF" accept=".srt,.vtt,.txt"><i class="fas fa-paperclip"></i> رفع ملف ترجمة</label> <span class="sm" id="esubI"></span>
@@ -417,6 +419,17 @@ button:not(.sec):not(.del):not(.tab):not(.x):hover{box-shadow:0 6px 18px rgba(25
   </div>
 
   <!-- ═════ الإعلانات ═════ -->
+  <div class="pane" id="p-r2" style="display:none">
+    <div class="card">
+      <div class="ch"><span class="ci"><i class="fas fa-cloud"></i></span><b>حسابات Cloudflare R2</b></div>
+      <p class="sm" style="margin:8px 0">أضف كل حساب جديد هنا، وفعّل واحداً فقط يُرفع إليه الآن. عند امتلاء حساب أضف حساباً جديداً وفعّله؛ روابط الفيديوهات القديمة تبقى تعمل لأن كل رابط يحمل عنوان حسابه.</p>
+      <div class="sm" style="margin:0 0 10px;color:#ffb84d"><i class="fas fa-triangle-exclamation"></i> المفاتيح تُحفظ في Firestore ويقرأها المشرفون فقط (قاعدة <code>storage</code>). استعمل مفتاح API محصوراً بحاوية واحدة بصلاحية Object Read &amp; Write.</div>
+      <div id="r2List"></div>
+      <div class="row"><button type="button" class="sec" id="r2Add"><i class="fas fa-plus"></i> إضافة حساب</button></div>
+      <button id="r2Save"><i class="fas fa-floppy-disk"></i> حفظ الحسابات</button>
+    </div>
+  </div>
+
   <div class="pane" id="p-ads" style="display:none">
     <div class="card">
       <div class="ch"><span class="ci"><i class="fas fa-rectangle-ad"></i></span><b>إعلانات VAST</b></div>
@@ -662,7 +675,7 @@ function showPane(p){
 onAuthStateChanged(auth,u=>{
   if(!u){$("#loginBox").style.display="";$("#app").style.display="none";return}
   $("#loginBox").style.display="none";$("#app").style.display="";
-  $("#who").textContent=u.email;loadVast();loadPub();countReports();loadAnalytics();anT=setInterval(()=>{if(!document.hidden&&$("#p-analytics").style.display!=="none")loadAnalytics(true)},20000);
+  $("#who").textContent=u.email;loadVast();loadR2();loadPub();countReports();loadAnalytics();anT=setInterval(()=>{if(!document.hidden&&$("#p-analytics").style.display!=="none")loadAnalytics(true)},20000);
   getDoc(doc(db,"admins",u.uid)).then(s=>{
     if(s.exists()){if(!sessionStorage.getItem("sp_wlc")){sessionStorage.setItem("sp_wlc","1");msg("مرحباً "+esc((u.displayName||u.email||"").split(" ")[0]),"ok")}}
     else note(`حسابك ليس مشرفاً بعد.<br>أنشئ في Firestore مجموعة <b>admins</b> ووثيقة معرّفها هذا الـ UID:<br><b dir="ltr" style="user-select:all;display:block;margin-top:8px;padding:10px;border-radius:12px;background:rgba(255,255,255,.07);word-break:break-all;font-size:.85em">${u.uid}</b>`,{title:"صلاحيات المشرف",icon:"fa-user-shield",html:true,tone:"safe",ok:"فهمت"});
@@ -961,6 +974,7 @@ document.querySelectorAll(".vup").forEach(box=>{
     const f=e.target.files[0];if(!f)return;
     if(!sel){msg("اختر العمل أولاً","err");return}
     const pv=box.querySelector(".vprov").value;
+    if(pv==="r2"){r2Up(box,ta(),f,null);e.target.value="";return}
     if(pv!=="vcdn"){hRun(box,pv,ta(),vTitle(box),f,null);e.target.value="";return}
     vRun(vFile(f),vTitle(box),ta(),box);e.target.value="";
   };
@@ -978,6 +992,7 @@ document.querySelectorAll(".vup").forEach(box=>{
     if(!/^https?:\/\//i.test(url)){st.textContent="الصق رابطاً يبدأ بـ http";return}
     if(!PUSH){st.textContent="ضع رابط الـ Worker في config.js";return}
     const pv=box.querySelector(".vprov").value;
+    if(pv==="r2"){r2Up(box,ta(),null,url);return}
     if(pv!=="vcdn"){hRun(box,pv,ta(),vTitle(box),null,url);return}
     st.textContent="فحص الرابط...";
     try{
@@ -987,6 +1002,129 @@ document.querySelectorAll(".vup").forEach(box=>{
   };
 });
 
+/* ───── Cloudflare R2: حسابات متعددة تُدخَل من الأدمين ───── */
+let R2={accounts:[],active:""};
+const R2GB=1073741824,r2Fmt=b=>b>=R2GB?(b/R2GB).toFixed(2)+" GB":(b/1048576).toFixed(0)+" MB";
+const r2Act=()=>R2.accounts.find(a=>a.id===R2.active)||null;
+async function loadR2(){
+  const s=await getDoc(doc(db,"storage","r2")).catch(()=>null);
+  R2=s&&s.exists()?s.data():{accounts:[],active:""};R2.accounts=R2.accounts||[];drawR2();
+}
+function drawR2(){
+  const L=$("#r2List");
+  if(!R2.accounts.length){L.innerHTML='<div class="sm" style="margin:6px 0 12px">لا توجد حسابات بعد. اضغط «إضافة حساب».</div>';return}
+  L.innerHTML=R2.accounts.map((a,i)=>{const cap=(+a.cap||10)*R2GB,pc=Math.min(100,(a.used||0)/cap*100);return `<div class="r2row${a.id===R2.active?" act":""}" data-i="${i}">
+    <div class="row" style="margin:0 0 8px"><label class="chk" style="flex:1;margin:0"><input type="radio" name="r2act" class="r2-a"${a.id===R2.active?" checked":""}>الحساب النشط للرفع</label><button type="button" class="sec ic r2-x" title="حذف الحساب"><i class="fas fa-trash"></i></button></div>
+    <input class="inp r2-n" placeholder="اسم الحساب (مثال: R2 رقم 1)" value="${esc(a.name||"")}">
+    <input class="inp r2-id" dir="ltr" placeholder="Account ID (32 حرفاً)" value="${esc(a.accountId||"")}">
+    <input class="inp r2-k" dir="ltr" placeholder="Access Key ID" value="${esc(a.accessKey||"")}">
+    <input class="inp r2-s" dir="ltr" type="password" autocomplete="off" placeholder="Secret Access Key" value="${esc(a.secret||"")}">
+    <input class="inp r2-b" dir="ltr" placeholder="اسم الحاوية Bucket" value="${esc(a.bucket||"")}">
+    <input class="inp r2-p" dir="ltr" placeholder="الرابط العام https://pub-xxxx.r2.dev" value="${esc(a.pub||"")}">
+    <div class="row"><div style="flex:1"><label>سعة الحساب (GB)</label><input class="inp r2-c" type="number" min="1" value="${+a.cap||10}"></div></div>
+    <div class="r2bar"><i style="width:${pc}%;${pc>=90?"background:#ff6b6b":""}"></i></div>
+    <div class="sm r2-u">المستعمل: ${r2Fmt(a.used||0)} من ${+a.cap||10} GB${pc>=90?' — <b style="color:#ff6b6b">اقترب الامتلاء، أضف حساباً جديداً</b>':""}</div>
+    <div class="row" style="margin-top:8px"><button type="button" class="sec r2-t"><i class="fas fa-vial"></i> اختبار الاتصال</button><button type="button" class="sec r2-r"><i class="fas fa-rotate"></i> تحديث المساحة الفعلية</button></div>
+    <div class="sm r2-m" style="margin-top:6px"></div></div>`}).join("");
+}
+$("#r2List").addEventListener("input",e=>{
+  const row=e.target.closest(".r2row");if(!row)return;const a=R2.accounts[+row.dataset.i],c=e.target.classList;
+  if(c.contains("r2-n"))a.name=e.target.value.trim();else if(c.contains("r2-id"))a.accountId=e.target.value.trim();else if(c.contains("r2-k"))a.accessKey=e.target.value.trim();
+  else if(c.contains("r2-s"))a.secret=e.target.value.trim();else if(c.contains("r2-b"))a.bucket=e.target.value.trim().toLowerCase();else if(c.contains("r2-p"))a.pub=e.target.value.trim().replace(/\/+$/,"");
+  else if(c.contains("r2-c"))a.cap=+e.target.value||10;
+});
+const r2Call=async(path,body)=>{
+  if(!MEDIA)throw new Error("ضع رابط media في config.js");
+  const tok=await auth.currentUser.getIdToken();
+  const r=await fetch(MEDIA+path,{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+tok},body:JSON.stringify(body)});
+  const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||("HTTP "+r.status));return j;
+};
+const r2Cred=a=>({accountId:a.accountId,accessKey:a.accessKey,secret:a.secret,bucket:a.bucket});
+$("#r2List").addEventListener("click",async e=>{
+  const row=e.target.closest(".r2row");if(!row)return;const i=+row.dataset.i,a=R2.accounts[i],m=row.querySelector(".r2-m");
+  if(e.target.closest(".r2-a")){R2.active=a.id;drawR2();return}
+  if(e.target.closest(".r2-x")){if(confirm("حذف هذا الحساب من القائمة؟ (لا تُحذف ملفاته من R2، لكن الروابط المحفوظة تبقى تعمل)")){R2.accounts.splice(i,1);if(R2.active===a.id)R2.active="";drawR2()}return}
+  if(e.target.closest(".r2-t")){m.textContent="جارٍ الاختبار...";
+    try{await r2Call("/r2-test",{acc:r2Cred(a)});m.innerHTML='<i class="fas fa-circle-check" style="color:var(--ok)"></i> الاتصال ناجح والمفاتيح صحيحة'+(a.pub?"":" — لكن الرابط العام غير مدخل")}
+    catch(err){m.innerHTML=`<i class="fas fa-circle-xmark" style="color:#ff6b6b"></i> ${esc(err.message)}`}return}
+  if(e.target.closest(".r2-r")){m.textContent="جارٍ حساب المساحة...";
+    try{const j=await r2Call("/r2-usage",{acc:r2Cred(a)});a.used=j.bytes;drawR2();const mm=$("#r2List").querySelectorAll(".r2row")[i].querySelector(".r2-m");mm.innerHTML=`<i class="fas fa-circle-check" style="color:var(--ok)"></i> ${j.count} ملف — ${r2Fmt(j.bytes)}${j.truncated?" (قراءة جزئية)":""} — اضغط حفظ لتثبيت الرقم`}
+    catch(err){m.innerHTML=`<i class="fas fa-circle-xmark" style="color:#ff6b6b"></i> ${esc(err.message)}`}return}
+});
+$("#r2Add").onclick=()=>{const id="r"+Math.random().toString(36).slice(2,8);R2.accounts.push({id,name:"R2 رقم "+(R2.accounts.length+1),accountId:"",accessKey:"",secret:"",bucket:"",pub:"",cap:10,used:0});if(!R2.active)R2.active=id;drawR2()};
+async function saveR2(quiet){
+  for(const a of R2.accounts){if(a.pub&&!/^https:\/\//i.test(a.pub)){msg("الرابط العام يجب أن يبدأ بـ https://","err");return false}}
+  try{await setDoc(doc(db,"storage","r2"),{accounts:R2.accounts,active:R2.active,updatedAt:Date.now()});if(!quiet)msg("تم حفظ حسابات R2","ok");return true}
+  catch(e){msg("فشل الحفظ — انشر قواعد Firestore الجديدة (storage) ("+(e.code||e.message)+")","err");return false}
+}
+$("#r2Save").onclick=()=>saveR2();
+const r2Ready=()=>{const a=r2Act();if(!a)throw new Error("لا يوجد حساب R2 نشط. أضف حساباً وفعّله من تبويب «التخزين»");
+  if(!a.accountId||!a.accessKey||!a.secret||!a.bucket||!a.pub)throw new Error("بيانات الحساب النشط ناقصة (Account ID / المفاتيح / الحاوية / الرابط العام)");return a};
+const r2Link=(a,key)=>a.pub+"/"+key.split("/").map(encodeURIComponent).join("/");
+const r2CT=n=>({m3u8:"application/vnd.apple.mpegurl",m4s:"video/mp4",mp4:"video/mp4",ts:"video/mp2t",vtt:"text/vtt",aac:"audio/aac",mkv:"video/x-matroska",webm:"video/webm",srt:"text/plain"})[(n.match(/\.(\w+)$/)||[])[1]&&(n.match(/\.(\w+)$/)[1].toLowerCase())]||"application/octet-stream";
+function r2Room(a,add){const cap=(+a.cap||10)*R2GB;if((a.used||0)+add>cap*0.98&&!confirm(`المساحة المتبقية في «${a.name}» لا تكفي (${r2Fmt(Math.max(0,cap-(a.used||0)))} متبقية، والمطلوب ${r2Fmt(add)}). المتابعة؟`))throw new Error("أُلغي الرفع: المساحة لا تكفي، فعّل حساباً آخر")}
+async function r2Used(a,add){a.used=(a.used||0)+add;await saveR2(true);drawR2()}
+async function r2Up(box,ta,file,url){
+  const bar=box.querySelector(".vbar"),fill=bar.firstElementChild,st=box.querySelector(".vst");
+  bar.style.display="";fill.style.width="0";
+  const lock=v=>box.querySelectorAll("input,button,select").forEach(x=>x.disabled=v);lock(true);
+  try{
+    if(!sel)throw new Error("اختر العمل أولاً");
+    const a=r2Ready();let size=0,key;
+    if(file){
+      const ext=((file.name.match(/\.(mp4|mkv|mov|webm|avi|m4v|ts)$/i)||[])[1]||"mp4").toLowerCase();key=hNm(box,ext);size=file.size;r2Room(a,size);
+      const j=await r2Call("/r2-sign",{acc:r2Cred(a),items:[{key}]});
+      await new Promise((res,rej)=>{
+        const x=new XMLHttpRequest();x.open("PUT",j.urls[0]);x.setRequestHeader("Content-Type",r2CT(key));
+        x.upload.onprogress=e=>{if(e.lengthComputable){const pc=Math.round(e.loaded/e.total*100);fill.style.width=pc+"%";st.textContent=`جارٍ الرفع إلى ${a.name} ${pc}% (${(e.loaded/1048576).toFixed(0)} / ${(e.total/1048576).toFixed(0)} MB)`}};
+        x.onload=()=>x.status>=200&&x.status<300?res():rej(new Error(x.status===403?"رُفض الرفع (403): تحقق من صلاحية المفتاح وCORS للحاوية":"HTTP "+x.status));
+        x.onerror=()=>rej(new Error("تعذّر الاتصال بـ R2 — فعّل CORS للحاوية (PUT)"));x.send(file);
+      });
+    }else{
+      const ext=((url.split(/[?#]/)[0].match(/\.(mp4|mkv|mov|webm|avi|m4v|ts)$/i)||[])[1]||"mp4").toLowerCase();key=hNm(box,ext);
+      st.innerHTML=`<i class="fas fa-gear fa-spin"></i> جارٍ نقل الملف إلى ${esc(a.name)} عبر الخادم... قد يستغرق عدة دقائق، أبقِ الصفحة مفتوحة`;fill.style.width="35%";
+      const j=await r2Call("/r2-pull",{acc:r2Cred(a),src:url,key});size=j.size||0;
+    }
+    fill.style.width="100%";const link=r2Link(a,key);
+    ta.value=ta.value.trim()?ta.value.trim()+"\n"+link:link;
+    await r2Used(a,size);
+    st.innerHTML=`<i class="fas fa-circle-check" style="color:var(--ok)"></i> تم الرفع إلى ${esc(a.name)} وأُضيف الرابط تلقائياً`;
+  }catch(e){st.innerHTML=`<i class="fas fa-circle-xmark" style="color:#ff6b6b"></i> ${esc(e.message==="Failed to fetch"?"تعذّر الاتصال":e.message)}`}
+  finally{lock(false)}
+}
+/* رفع مجلد HLS كاملاً مباشرة من المتصفح إلى R2 بروابط موقّعة، ثم إضافة رابط index.m3u8 */
+async function r2Hls(box,ta,files){
+  const bar=box.querySelector(".vbar"),fill=bar.firstElementChild,st=box.querySelector(".vst");
+  bar.style.display="";fill.style.width="0";
+  const lock=v=>box.querySelectorAll("input,button,select").forEach(x=>x.disabled=v);lock(true);
+  try{
+    if(!sel)throw new Error("اختر العمل أولاً");
+    const a=r2Ready();
+    const list=[...files].filter(f=>!/(^|\/)\./.test(f.webkitRelativePath||f.name)).map(f=>({f,rel:(f.webkitRelativePath||f.name).split("/").slice(1).join("/")||f.name}));
+    if(!list.length)throw new Error("المجلد فارغ");
+    const pls=list.filter(x=>/\.m3u8$/i.test(x.rel));if(!pls.length)throw new Error("لا يوجد ملف .m3u8 في المجلد");
+    const base="hls/"+(box.dataset.t==="m"?sel.id:`${sel.id}_S${+$("#eS").value||1}E${+$("#eE").value||1}`)+"/";
+    const total=list.reduce((s,x)=>s+x.f.size,0);r2Room(a,total);
+    let done=0,sent=0;
+    const put=async(x,url)=>{for(let t=0;t<3;t++){try{const r=await fetch(url,{method:"PUT",body:x.f,headers:{"Content-Type":r2CT(x.rel)}});if(r.ok)return;if(r.status===403)throw new Error("رُفض الرفع (403): تحقق من صلاحية المفتاح وCORS للحاوية")}catch(e){if(/403/.test(e.message)||t===2)throw e}await new Promise(r=>setTimeout(r,800*(t+1)))}};
+    for(let i=0;i<list.length;i+=200){
+      const chunk=list.slice(i,i+200),j=await r2Call("/r2-sign",{acc:r2Cred(a),items:chunk.map(x=>({key:base+x.rel}))});
+      let k=0;const worker=async()=>{while(k<chunk.length){const n=k++;await put(chunk[n],j.urls[n]);done++;sent+=chunk[n].f.size;fill.style.width=Math.round(sent/total*100)+"%";st.textContent=`جارٍ رفع HLS إلى ${a.name}: ${done} / ${list.length} ملف (${r2Fmt(sent)})`}};
+      await Promise.all(Array.from({length:6},worker));
+    }
+    pls.sort((x,y)=>{const sc=p=>/(^|\/)master\.m3u8$/i.test(p)?0:/(^|\/)index\.m3u8$/i.test(p)?1:2;return sc(x.rel)-sc(y.rel)||x.rel.split("/").length-y.rel.split("/").length});
+    const link=r2Link(a,base+pls[0].rel);
+    ta.value=ta.value.trim()?ta.value.trim()+"\n"+link:link;
+    await r2Used(a,total);fill.style.width="100%";
+    st.innerHTML=`<i class="fas fa-circle-check" style="color:var(--ok)"></i> رُفع ${list.length} ملفاً وأُضيف رابط HLS تلقائياً`;
+  }catch(e){st.innerHTML=`<i class="fas fa-circle-xmark" style="color:#ff6b6b"></i> ${esc(e.message==="Failed to fetch"?"تعذّر الاتصال — فعّل CORS للحاوية":e.message)}`}
+  finally{lock(false)}
+}
+document.querySelectorAll(".vup").forEach(box=>{
+  const ta=()=>box.dataset.t==="m"?$("#mq"):$("#eq"),pv=box.querySelector(".vprov"),hl=box.querySelector(".hlsl");
+  const sh=()=>{hl.style.display=pv.value==="r2"?"":"none"};pv.addEventListener("change",sh);sh();
+  box.querySelector(".hlsdir").onchange=e=>{const fs=e.target.files;if(fs&&fs.length)r2Hls(box,ta(),fs);e.target.value=""};
+});
 /* ───── رفع إلى PixelDrain / Internet Archive ───── */
 const HN={pd:"PixelDrain",ia:"Internet Archive"};
 const hNm=(box,ext)=>box.dataset.t==="m"?`${sel.id}.${ext}`:`${sel.id}_S${+$("#eS").value||1}E${+$("#eE").value||1}.${ext}`;
