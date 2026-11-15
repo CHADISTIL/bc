@@ -259,8 +259,8 @@ button:not(.sec):not(.del):not(.tab):not(.x):hover{box-shadow:0 6px 18px rgba(25
           </div>
         </div>
         <div class="adx" data-t="m" style="margin:10px 0"><label><i class="fas fa-rectangle-ad"></i> إعلان VAST لهذا الفيلم</label>
-          <select class="inp adm"><option value="auto">تلقائي (الإعدادات العامة)</option><option value="custom">رابط VAST خاص</option><option value="off">بدون إعلان</option></select>
-          <input class="inp adu" dir="ltr" placeholder="https://.../vast.xml" style="display:none;margin-top:6px"></div>
+          <select class="inp adm"><option value="auto">تلقائي (الإعدادات العامة)</option><option value="custom">رابط VAST خاص</option><option value="direct">إعلان مباشر (فيديو + نقر)</option><option value="off">بدون إعلان</option></select>
+          <input class="inp adu" dir="ltr" placeholder="https://.../vast.xml" style="display:none;margin-top:6px"><div class="add" style="display:none"><input class="inp adv" dir="ltr" placeholder="رابط الفيديو الخام (mp4)" style="margin-top:6px"><input class="inp adc" dir="ltr" placeholder="رابط النقر (اختياري)" style="margin-top:6px"><input class="inp adk" placeholder="العبارة التحفيزية على الزر" style="margin-top:6px"><div class="row" style="margin-top:6px"><label class="chk" style="flex:1"><input type="checkbox" class="adsk" checked>قابل للتخطي</label><div style="flex:1"><label>التخطي بعد (ث)</label><input class="inp adst" type="number" min="0" value="5"></div></div></div></div>
         <button id="saveMovie"><i class="fas fa-floppy-disk"></i> حفظ الفيلم</button>
       </div>
 
@@ -302,8 +302,8 @@ button:not(.sec):not(.del):not(.tab):not(.x):hover{box-shadow:0 6px 18px rgba(25
           </div>
         </div>
         <div class="adx" data-t="e" style="margin:10px 0"><label><i class="fas fa-rectangle-ad"></i> إعلان VAST لهذه الحلقة</label>
-          <select class="inp adm"><option value="auto">تلقائي (الإعدادات العامة)</option><option value="custom">رابط VAST خاص</option><option value="off">بدون إعلان</option></select>
-          <input class="inp adu" dir="ltr" placeholder="https://.../vast.xml" style="display:none;margin-top:6px"></div>
+          <select class="inp adm"><option value="auto">تلقائي (الإعدادات العامة)</option><option value="custom">رابط VAST خاص</option><option value="direct">إعلان مباشر (فيديو + نقر)</option><option value="off">بدون إعلان</option></select>
+          <input class="inp adu" dir="ltr" placeholder="https://.../vast.xml" style="display:none;margin-top:6px"><div class="add" style="display:none"><input class="inp adv" dir="ltr" placeholder="رابط الفيديو الخام (mp4)" style="margin-top:6px"><input class="inp adc" dir="ltr" placeholder="رابط النقر (اختياري)" style="margin-top:6px"><input class="inp adk" placeholder="العبارة التحفيزية على الزر" style="margin-top:6px"><div class="row" style="margin-top:6px"><label class="chk" style="flex:1"><input type="checkbox" class="adsk" checked>قابل للتخطي</label><div style="flex:1"><label>التخطي بعد (ث)</label><input class="inp adst" type="number" min="0" value="5"></div></div></div></div>
         <div class="row"><button id="saveEp"><i class="fas fa-floppy-disk"></i> حفظ الحلقة</button><button class="sec" id="nextEp"><i class="fas fa-forward-step"></i> حفظ وانتقل للتالية</button></div>
         <div class="ch" style="margin-top:18px"><span class="ci"><i class="fas fa-list"></i></span><b>الحلقات المضافة</b></div>
         <div id="epList"></div>
@@ -413,11 +413,12 @@ button:not(.sec):not(.del):not(.tab):not(.x):hover{box-shadow:0 6px 18px rgba(25
     <div class="card">
       <div class="ch"><span class="ci"><i class="fas fa-rectangle-ad"></i></span><b>إعلانات VAST</b></div>
       <p class="sm" style="margin:6px 0 10px">تتحكم في ظهور الإعلانات داخل مشغّل الفيديو.</p>
+      <div class="sm" id="vState" style="margin-bottom:8px"></div>
       <label class="chk"><input type="checkbox" id="vOn">تفعيل الإعلانات</label>
 
       <label style="margin-top:10px"><i class="fas fa-link"></i> روابط الإعلانات (VAST)</label>
       <div id="vTags"></div>
-      <button type="button" class="sec" id="vAdd"><i class="fas fa-plus"></i> إضافة رابط إعلان</button>
+      <div class="row"><button type="button" class="sec" id="vAdd"><i class="fas fa-plus"></i> رابط VAST</button><button type="button" class="sec" id="vAddD"><i class="fas fa-film"></i> إنشاء إعلان مباشر</button></div>
       <label style="margin-top:8px">طريقة التوزيع عند وجود أكثر من رابط</label>
       <select class="inp" id="vOrder"><option value="seq">تناوب: رابط مختلف في كل مرة</option><option value="rand">عشوائي</option><option value="fallback">احتياطي: الأول دائماً والباقي إن فشل</option></select>
       <p class="sm" style="margin:4px 0 0">إن لم يُرجع الرابط إعلاناً يُجرَّب الرابط التالي تلقائياً (حتى 3 روابط).</p>
@@ -1237,13 +1238,33 @@ $("#nSend").onclick=async()=>{
 /* ───── VAST settings ───── */
 const nums=t=>String(t).split(/[,،\s]+/).map(Number).filter(n=>n>0);
 const vRow=(t={})=>{
-  const d=document.createElement("div");d.className="eprow";d.style.cssText="flex-wrap:wrap;align-items:stretch";
-  d.innerHTML=`<div class="row" style="width:100%;margin:0"><label class="chk" style="margin:0"><input type="checkbox" class="vt-on"${t.on===false?"":" checked"}>مفعّل</label><input class="inp vt-n" style="flex:1;min-width:90px" placeholder="اسم (اختياري)"><button type="button" class="sec ic vt-t" title="اختبار الرابط"><i class="fas fa-vial"></i></button><button type="button" class="sec ic vt-x" title="حذف"><i class="fas fa-trash"></i></button></div><input class="inp vt-u" dir="ltr" style="width:100%;margin-top:6px" placeholder="https://.../vast.xml"><div class="sm vt-r" style="width:100%;margin-top:6px"></div>`;
-  d.querySelector(".vt-n").value=t.name||"";d.querySelector(".vt-u").value=t.url||"";
+  const dr=t.type==="direct"||t.video!==undefined,d=document.createElement("div");d.className="eprow";d.dataset.k=dr?"d":"v";d.style.cssText="flex-wrap:wrap;align-items:stretch";
+  const head=`<div class="row" style="width:100%;margin:0"><label class="chk" style="margin:0"><input type="checkbox" class="vt-on"${t.on===false?"":" checked"}>مفعّل</label><input class="inp vt-n" style="flex:1;min-width:90px" placeholder="${dr?"اسم الإعلان":"اسم (اختياري)"}"><button type="button" class="sec ic vt-t" title="اختبار"><i class="fas fa-vial"></i></button><button type="button" class="sec ic vt-x" title="حذف"><i class="fas fa-trash"></i></button></div>`;
+  d.innerHTML=head+(dr?`<div class="sm" style="width:100%;margin-top:6px"><i class="fas fa-film"></i> إعلان مباشر (بدون VAST)</div>
+    <input class="inp vt-v" dir="ltr" style="width:100%;margin-top:6px" placeholder="رابط ملف الفيديو الخام (mp4)">
+    <input class="inp vt-c" dir="ltr" style="width:100%;margin-top:6px" placeholder="رابط النقر (صفحة المعلن) — اختياري">
+    <input class="inp vt-k" style="width:100%;margin-top:6px" placeholder="العبارة التحفيزية على الزر (مثال: حمّل التطبيق الآن)">
+    <div class="row" style="width:100%;margin-top:6px"><label class="chk" style="flex:1"><input type="checkbox" class="vt-sk"${t.skippable===false?"":" checked"}>قابل للتخطي</label><div style="flex:1"><label>التخطي بعد (ث)</label><input class="inp vt-st" type="number" min="0" value="${t.skipAfter??5}"></div></div>`
+    :`<input class="inp vt-u" dir="ltr" style="width:100%;margin-top:6px" placeholder="https://.../vast.xml">`)+`<div class="sm vt-r" style="width:100%;margin-top:6px"></div>`;
+  d.querySelector(".vt-n").value=t.name||"";
+  if(dr){d.querySelector(".vt-v").value=t.video||"";d.querySelector(".vt-c").value=t.click||"";d.querySelector(".vt-k").value=t.cta||""}
+  else d.querySelector(".vt-u").value=t.url||"";
   d.querySelector(".vt-x").onclick=()=>d.remove();
-  d.querySelector(".vt-t").onclick=()=>vastTest(d.querySelector(".vt-u").value.trim(),d.querySelector(".vt-r"));
+  d.querySelector(".vt-t").onclick=()=>dr?videoTest(d.querySelector(".vt-v").value.trim(),d.querySelector(".vt-r")):vastTest(d.querySelector(".vt-u").value.trim(),d.querySelector(".vt-r"));
   return d;
 };
+/* اختبار فيديو إعلان مباشر: يحمّل البيانات الوصفية ويعرض المدة */
+function videoTest(u,out){
+  if(!/^https?:\/\//i.test(u)){out.innerHTML=`<span style="color:#ff6b6b">أدخل رابط فيديو صالحاً</span>`;return}
+  out.textContent="جارٍ الاختبار...";
+  const v=document.createElement("video");v.preload="metadata";let done=0;
+  const fin=h=>{if(done)return;done=1;clearTimeout(t);out.innerHTML=h;v.removeAttribute("src");v.load()};
+  const t=setTimeout(()=>fin(`<span style="color:#ff6b6b">انتهت المهلة — الرابط بطيء أو لا يُشغَّل</span>`),10000);
+  v.onloadedmetadata=()=>fin(`<span style="color:var(--ok)">يعمل:</span> المدة ${Math.round(v.duration)} ثانية، الأبعاد ${v.videoWidth}×${v.videoHeight}`);
+  v.onerror=()=>fin(`<span style="color:#ff6b6b">تعذّر تشغيل الفيديو — تأكد أنه رابط مباشر لملف mp4 وليس صفحة</span>`);
+  v.src=u;
+}
+$("#vAddD").onclick=()=>{const r=vRow({type:"direct"});$("#vTags").appendChild(r);r.querySelector(".vt-v").focus()};
 $("#vAdd").onclick=()=>{const r=vRow();$("#vTags").appendChild(r);r.querySelector(".vt-u").focus()};
 const CORSP="https://calm-frost-26fb.jawrab.workers.dev/?url=";
 /* اختبار رابط VAST: يجلب الملف مباشرة ثم عبر الوركر ثم عبر البروكسي ويعرض النتيجة */
@@ -1269,6 +1290,7 @@ async function loadVast(){
   $("#vOn").checked=!!d.enabled;
   const tags=d.tags&&d.tags.length?d.tags:(d.url?[{name:"الرئيسي",url:d.url,on:true}]:[]);
   $("#vTags").innerHTML="";tags.forEach(t=>$("#vTags").appendChild(vRow(t)));
+  $("#vState").innerHTML=s&&s.exists()?'<i class="fas fa-circle-check" style="color:var(--ok)"></i> الإعدادات محفوظة في الخادم':'<i class="fas fa-triangle-exclamation" style="color:#ffb84d"></i> <b>لم تُحفظ بعد</b> — هذه قيم افتراضية فقط ولن تظهر الإعلانات للمستخدمين حتى تضغط «حفظ إعدادات الإعلانات»';
   $("#vOrder").value=d.order||"seq";
   const c=d.cats||{movie:d.movies!==false,series:d.episodes!==false,anime:d.episodes!==false};
   $("#vCm").checked=c.movie!==false;$("#vCs").checked=c.series!==false;$("#vCa").checked=c.anime!==false;
@@ -1280,10 +1302,12 @@ async function loadVast(){
   $("#vSkip").checked=d.skippable!==false;$("#vSkipT").value=d.skipAfter??5;$("#vTo").value=d.timeoutSec??7;
 }
 $("#vSave").onclick=async()=>{
-  const tags=[...document.querySelectorAll("#vTags .eprow")].map(r=>({name:r.querySelector(".vt-n").value.trim(),url:r.querySelector(".vt-u").value.trim(),on:r.querySelector(".vt-on").checked})).filter(t=>t.url);
-  if(tags.some(t=>!/^https?:\/\//i.test(t.url)))return msg("أحد روابط VAST غير صالح","err");
+  const tags=[...document.querySelectorAll("#vTags .eprow")].map(r=>{const n=r.querySelector(".vt-n").value.trim(),on=r.querySelector(".vt-on").checked;
+    if(r.dataset.k==="d")return{type:"direct",name:n,on,video:r.querySelector(".vt-v").value.trim(),click:r.querySelector(".vt-c").value.trim(),cta:r.querySelector(".vt-k").value.trim(),skippable:r.querySelector(".vt-sk").checked,skipAfter:Math.max(0,+r.querySelector(".vt-st").value||0)};
+    return{name:n,url:r.querySelector(".vt-u").value.trim(),on}}).filter(t=>t.url||t.video);
+  if(tags.some(t=>!/^https?:\/\//i.test(t.url||t.video)||(t.click&&!/^https?:\/\//i.test(t.click))))return msg("أحد روابط الإعلانات غير صالح","err");
   if($("#vOn").checked&&!tags.some(t=>t.on))return msg("أضف رابط إعلان مفعّلاً واحداً على الأقل","err");
-  const cats={movie:$("#vCm").checked,series:$("#vCs").checked,anime:$("#vCa").checked},first=(tags.find(t=>t.on)||tags[0]||{}).url||"";
+  const cats={movie:$("#vCm").checked,series:$("#vCs").checked,anime:$("#vCa").checked},first=(tags.find(t=>t.on&&t.url)||{}).url||"";
   try{
     await setDoc(doc(db,"settings","vast"),{enabled:$("#vOn").checked,url:first,tags,order:$("#vOrder").value,cats,movies:cats.movie,episodes:cats.series||cats.anime,audience:$("#vAud").value,preroll:$("#vPre").checked,atMinutes:nums($("#vMin").value),atPercents:nums($("#vPct").value),maxPerVideo:+$("#vMax").value||4,minDurationMin:+$("#vDur").value||0,gapMin:+$("#vGap").value||0,dayMax:+$("#vDay").value||0,skippable:$("#vSkip").checked,skipAfter:+$("#vSkipT").value||0,timeoutSec:Math.min(20,Math.max(3,+$("#vTo").value||7)),updatedAt:Date.now()});
     msg("تم حفظ إعدادات الإعلانات","ok");
@@ -1291,9 +1315,12 @@ $("#vSave").onclick=async()=>{
 };
 /* إعلان خاص بفيلم أو حلقة: auto | custom | off */
 const adBox=t=>document.querySelector('.adx[data-t="'+t+'"]');
-const adShow=b=>{b.querySelector(".adu").style.display=b.querySelector(".adm").value==="custom"?"":"none"};
-const adSet=(t,a)=>{const b=adBox(t);b.querySelector(".adm").value=(a&&a.mode)||"auto";b.querySelector(".adu").value=(a&&a.url)||"";adShow(b)};
-const adGet=t=>{const b=adBox(t),m=b.querySelector(".adm").value,u=b.querySelector(".adu").value.trim();if(m==="custom"){if(!/^https?:\/\//i.test(u)){msg("أدخل رابط VAST الخاص صالحاً أو اختر تلقائي","err");return null}return{mode:"custom",url:u}}return{mode:m}};
+const adShow=b=>{const m=b.querySelector(".adm").value;b.querySelector(".adu").style.display=m==="custom"?"":"none";b.querySelector(".add").style.display=m==="direct"?"":"none"};
+const adSet=(t,a)=>{const b=adBox(t);a=a||{};b.querySelector(".adm").value=a.mode||"auto";b.querySelector(".adu").value=a.url||"";b.querySelector(".adv").value=a.video||"";b.querySelector(".adc").value=a.click||"";b.querySelector(".adk").value=a.cta||"";b.querySelector(".adsk").checked=a.skippable!==false;b.querySelector(".adst").value=a.skipAfter??5;adShow(b)};
+const adGet=t=>{const b=adBox(t),m=b.querySelector(".adm").value,u=b.querySelector(".adu").value.trim(),ok=x=>/^https?:\/\//i.test(x);
+  if(m==="custom"){if(!ok(u)){msg("أدخل رابط VAST الخاص صالحاً أو اختر تلقائي","err");return null}return{mode:"custom",url:u}}
+  if(m==="direct"){const v=b.querySelector(".adv").value.trim(),c=b.querySelector(".adc").value.trim();if(!ok(v)||(c&&!ok(c))){msg("أدخل رابط الفيديو (وكذلك رابط النقر إن وُجد) صالحاً","err");return null}return{mode:"direct",video:v,click:c,cta:b.querySelector(".adk").value.trim(),skippable:b.querySelector(".adsk").checked,skipAfter:Math.max(0,+b.querySelector(".adst").value||0)}}
+  return{mode:m}};
 ["m","e"].forEach(t=>adBox(t).querySelector(".adm").onchange=()=>adShow(adBox(t)));
 </script>
 </body>

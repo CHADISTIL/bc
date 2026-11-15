@@ -89,6 +89,9 @@ var CSS=`
 .jp-adc{position:absolute;bottom:16px;left:14px;background:rgba(0,0,0,.7);color:#ccc;padding:7px 14px;border-radius:8px;font-size:.78em;direction:rtl}
 .jp-ads{position:absolute;bottom:16px;left:14px;background:rgba(0,0,0,.75);border:1px solid rgba(255,255,255,.4)!important;padding:8px 16px;border-radius:8px;font-size:.82em;display:none}
 .jp-ads.on{display:block}
+.jp-cta{position:absolute;bottom:16px;right:14px;display:none;background:#ff4757!important;color:#fff;border:0!important;border-radius:99px;padding:9px 18px;font:inherit;font-size:.85em;font-weight:700;box-shadow:0 6px 18px rgba(0,0,0,.5);cursor:pointer;animation:jpCta 1.8s ease-in-out infinite}
+.jp-cta.on{display:block}
+@keyframes jpCta{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
 
 /* lock */
 .jp-lock{position:absolute;inset:0;z-index:60;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.01);touch-action:none}
@@ -285,7 +288,7 @@ root.innerHTML=`
   <div class="jp-prog" id="jpProg"><div class="jp-bar" id="jpBar"></div><div class="jp-tp" id="jpTP">00:00</div><div class="jp-pl" id="jpPL"></div></div>
   <div class="jp-touch" id="jpTouch"></div>
   <div class="jp-err" id="jpErr"><i class="fas fa-triangle-exclamation"></i><div>تعذر تشغيل الفيديو</div></div>
-  <div class="jp-ad" id="jpAd"><video id="jpAdV" playsinline webkit-playsinline></video><div class="jp-adl">إعلان</div><div class="jp-adc" id="jpAdC"></div><button class="jp-ads" id="jpAdS"><i class="fas fa-forward"></i> تخطي الإعلان</button></div>
+  <div class="jp-ad" id="jpAd"><video id="jpAdV" playsinline webkit-playsinline></video><div class="jp-adl">إعلان</div><div class="jp-adc" id="jpAdC"></div><button class="jp-cta" id="jpAdCta"></button><button class="jp-ads" id="jpAdS"><i class="fas fa-forward"></i> تخطي الإعلان</button></div>
   <div class="jp-lock" id="jpLock"><div class="jp-lh" id="jpLH">الشاشة مقفلة — انقر لإظهار زر الفتح</div><button class="jp-unl" id="jpUnl"><i class="fas fa-lock-open"></i> فتح الشاشة</button></div>
   <div class="jp-next" id="jpNext"><div class="jp-ring"><svg viewBox="0 0 72 72"><circle class="t" cx="36" cy="36" r="32"/><circle class="r" id="jpRing" cx="36" cy="36" r="32"/></svg><span id="jpNum">5</span></div><div id="jpNL"></div><div class="jp-nb"><button id="jpNC">إلغاء</button><button class="p" id="jpNP">تشغيل الآن</button></div></div>
   <div class="jp-mb" id="jpMB"><button id="mbX"><i class="fas fa-expand-alt"></i></button><button id="mbP"><i class="fas fa-pause"></i></button><button id="mbC"><i class="fas fa-times"></i></button></div>
@@ -953,6 +956,8 @@ function adCfg(){
   if(!o||o.yt)return null;
   var ov=o.ad||{};
   if(ov.mode==='off')return null;
+  if(ov.mode==='direct'&&/^https?:\/\//i.test(ov.video||''))
+    return ext(ext({preroll:true,atMinutes:[],atPercents:[50],maxPerVideo:2,skippable:true,skipAfter:5},g||{}),{enabled:true,_tags:[ov],_custom:true});
   if(ov.mode==='custom'&&/^https?:\/\//i.test(ov.url||''))
     return ext(ext({preroll:true,atMinutes:[],atPercents:[50],maxPerVideo:2,skippable:true,skipAfter:5},g||{}),{enabled:true,_tags:[{url:ov.url}],_custom:true});
   if(!g||!g.enabled)return null;
@@ -960,7 +965,7 @@ function adCfg(){
   if(g.cats){if(g.cats[k]===false)return null}
   else{if(o.kind==='movie'&&g.movies===false)return null;if(o.kind==='episode'&&g.episodes===false)return null}
   if(g.audience==='guests'&&o.isUser&&o.isUser())return null;
-  var tg=(g.tags&&g.tags.length?g.tags:(g.url?[{url:g.url}]:[])).filter(function(x){return x&&x.url&&x.on!==false});
+  var tg=(g.tags&&g.tags.length?g.tags:(g.url?[{url:g.url}]:[])).filter(function(x){return x&&(x.url||x.video)&&x.on!==false});
   if(!tg.length)return null;
   return ext(g,{_tags:tg});
 }
@@ -1024,21 +1029,23 @@ function showAd(done){
   S.ad.busy=true;S.ad.count++;
   var tags=adOrder(cfg),ti=0;
   var runAd=function(ad){
-    var box=$('#jpAd'),sk=$('#jpAdS'),cd=$('#jpAdC'),left=cfg.skipAfter==null?5:+cfg.skipAfter,skippable=cfg.skippable!==false,iv=0,wd=0,started=false,sent={};
+    var box=$('#jpAd'),sk=$('#jpAdS'),cd=$('#jpAdC'),left=(ad.skipAfter!=null?+ad.skipAfter:(cfg.skipAfter==null?5:+cfg.skipAfter)),skippable=(ad.skippable!=null?ad.skippable:cfg.skippable)!==false,cta=$('#jpAdCta'),iv=0,wd=0,started=false,sent={};
     var trk=function(ev){if(sent[ev])return;sent[ev]=1;adFire(ad.track[ev])};
     try{vid.pause()}catch(e){}
     $('#jpSub').style.display='none';
-    var reset=function(){clearInterval(iv);clearTimeout(wd);adV.onplaying=adV.ontimeupdate=null;adV.pause();adV.removeAttribute('src');box.classList.remove('on');sk.classList.remove('on');cd.textContent=''};
+    var reset=function(){clearInterval(iv);clearTimeout(wd);adV.onplaying=adV.ontimeupdate=null;adV.pause();adV.removeAttribute('src');box.classList.remove('on');sk.classList.remove('on');cta.classList.remove('on');cd.textContent=''};
     var cleanup=function(){reset();adV.load();S.ad.busy=false;S.ad.stop=null;showCtrls();end()};
     S.ad.stop=function(){fin=true;reset();S.ad.busy=false;S.ad.stop=null};
-    box.onclick=function(e){if(e.target.closest('#jpAdS'))return;if(ad.click){adFire(ad.clicks);window.open(ad.click,'_blank')}};
+    var go=function(){if(ad.click){adFire(ad.clicks);window.open(ad.click,'_blank')}};
+    box.onclick=function(e){if(e.target.closest('#jpAdS')||e.target.closest('#jpAdCta'))return;go()};
+    cta.textContent=ad.cta||'زيارة الموقع';cta.onclick=function(e){e.stopPropagation();go()};
     sk.onclick=function(e){e.stopPropagation();trk('skip');cleanup()};
     adV.onended=function(){trk('complete');cleanup()};
     adV.onerror=function(){adLog('media error',{url:ad.url});adFire(ad.errs,{err:405});cleanup()};
     adV.onplaying=function(){if(started)return;started=true;clearTimeout(wd);S.ad.last=Date.now();adDayInc();adFire(ad.imps);trk('creativeView');trk('start')};
     adV.ontimeupdate=function(){var d=adV.duration,p=d?adV.currentTime/d:0;if(p>=.25)trk('firstQuartile');if(p>=.5)trk('midpoint');if(p>=.75)trk('thirdQuartile')};
     wd=setTimeout(function(){if(!started){adLog('start timeout',{url:ad.url});adFire(ad.errs,{err:402});cleanup()}},((cfg.timeoutSec||7)+5)*1000);
-    adV.src=ad.url;box.classList.add('on');
+    adV.src=ad.url;box.classList.add('on');if(ad.click)cta.classList.add('on');
     var tick=function(){
       if(!skippable){cd.textContent='الإعلان يعمل...';return}
       if(left>0){cd.textContent='يمكن التخطي بعد '+left+' ث'}
@@ -1053,6 +1060,7 @@ function showAd(done){
     if(fin)return;
     if(ti>=tags.length||ti>=3){S.ad.busy=false;S.ad.count--;return end()}
     var tg=tags[ti++];
+    if(tg.video){runAd({url:tg.video,imps:[],track:{},clicks:[],errs:[],click:tg.click||'',cta:tg.cta||'',skipAfter:tg.skipAfter,skippable:tg.skippable});return}
     fetchVast(tg.url,0).then(function(ad){
       if(fin)return;
       if(!ad.url){adLog('no fill',tg);adFire(ad.errs,{err:303});return next()}

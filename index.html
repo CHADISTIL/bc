@@ -337,7 +337,7 @@ html.embed #spFab{display:none}
 <div id="toast"></div>
 
 <link rel="preconnect" href="https://api.themoviedb.org"><link rel="preconnect" href="https://image.tmdb.org"><link rel="preconnect" href="https://firestore.googleapis.com"><script src="config.js"></script>
-<script src="player.js?v=20"></script>
+<script src="player.js?v=21"></script>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {getAuth,onAuthStateChanged,GoogleAuthProvider,signInWithPopup,signInWithEmailAndPassword,createUserWithEmailAndPassword,signOut,updateProfile,sendPasswordResetEmail,deleteUser}
@@ -1553,7 +1553,7 @@ async function play(o){
   JP.open(o);
 }
 (function(){const f=()=>{if(window.JP&&JP.setRefresher)JP.setRefresher(async v=>{try{const j=await(await fetch(SP_CONFIG.push+"/vcdn-play?id="+v)).json();return j.streamUrl||""}catch(e){return""}});else setTimeout(f,500)};f()})();
-getDoc(doc(db,"settings","vast")).then(s=>{if(s.exists()&&window.JP)JP.configure({vast:s.data()})}).catch(()=>{});
+getDoc(doc(db,"settings","vast")).then(s=>{if(s.exists()&&window.JP)JP.configure({vast:s.data()})}).catch(e=>console.warn("[SP ad] تعذر قراءة settings/vast:",e&&e.code));
 
 async function runEmbed(type,id,se,ep){
   try{const v=await getDoc(doc(db,"settings","vast"));if(v.exists()&&window.JP)JP.configure({vast:v.data()})}catch(e){}
