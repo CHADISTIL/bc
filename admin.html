@@ -238,7 +238,7 @@ button:not(.sec):not(.del):not(.tab):not(.x):hover{box-shadow:0 6px 18px rgba(25
       <div id="movieBox">
         <label>روابط الفيلم — سطر لكل جودة بصيغة <code>1080p|https://...</code> أو الرابط فقط</label>
         <textarea id="mq" placeholder="1080p|https://example.com/movie-1080.mp4&#10;أو ارفع الفيديو بالزر أدناه"></textarea>
-        <div class="vup" data-t="m"><select class="inp vprov" style="margin:0 0 6px"><option value="vcdn">الوجهة: vcdn</option><option value="pd">الوجهة: PixelDrain (رابط مباشر)</option><option value="ia">الوجهة: Internet Archive (رابط مباشر)</option><option value="r2">الوجهة: Cloudflare R2 (الحساب النشط)</option></select><label class="file"><i class="fas fa-cloud-arrow-up"></i> رفع ملف من الجهاز<input type="file" accept="video/*"></label><label class="file hlsl" style="display:none"><i class="fas fa-folder-tree"></i> رفع مجلد HLS (m3u8 + مقاطع)<input type="file" class="hlsdir" webkitdirectory multiple></label><div class="row vrow" style="margin-top:4px"><div class="vin"><input class="inp vurl" dir="ltr" placeholder="رابط فيديو مباشر"><button type="button" class="vx" title="مسح" style="display:none"><i class="fas fa-xmark"></i></button></div><button type="button" class="sec sm2 vps"><i class="fas fa-paste"></i> لصق</button><button type="button" class="sm2 vgo"><i class="fas fa-cloud-arrow-up"></i> رفع</button></div>
+        <div class="vup" data-t="m"><select class="inp vprov" style="margin:0 0 6px"><option value="vcdn">الوجهة: vcdn</option><option value="pd">الوجهة: PixelDrain (رابط مباشر)</option><option value="ia">الوجهة: Internet Archive (رابط مباشر)</option><option value="r2">الوجهة: Cloudflare R2 (الحساب النشط)</option><option value="tg">الوجهة: تلغرام (تقطيع تلقائي)</option></select><label class="file"><i class="fas fa-cloud-arrow-up"></i> رفع ملف من الجهاز<input type="file" accept="video/*"></label><label class="file hlsl" style="display:none"><i class="fas fa-folder-tree"></i> رفع مجلد HLS (m3u8 + مقاطع)<input type="file" class="hlsdir" webkitdirectory multiple></label><div class="row vrow" style="margin-top:4px"><div class="vin"><input class="inp vurl" dir="ltr" placeholder="رابط فيديو مباشر"><button type="button" class="vx" title="مسح" style="display:none"><i class="fas fa-xmark"></i></button></div><button type="button" class="sec sm2 vps"><i class="fas fa-paste"></i> لصق</button><button type="button" class="sm2 vgo"><i class="fas fa-cloud-arrow-up"></i> رفع</button></div>
         <div class="vbar" style="display:none"><i></i></div><div class="sm vst"></div></div>
         <label>ترجمة (VTT أو SRT) — اختياري</label>
         <label class="file"><input type="file" id="msubF" accept=".srt,.vtt,.txt"><i class="fas fa-paperclip"></i> رفع ملف ترجمة</label> <span class="sm" id="msubI"></span>
@@ -281,7 +281,7 @@ button:not(.sec):not(.del):not(.tab):not(.x):hover{box-shadow:0 6px 18px rgba(25
         </div>
         <label>روابط الحلقة — سطر لكل جودة</label>
         <textarea id="eq" placeholder="720p|https://..."></textarea>
-        <div class="vup" data-t="e"><select class="inp vprov" style="margin:0 0 6px"><option value="vcdn">الوجهة: vcdn</option><option value="pd">الوجهة: PixelDrain (رابط مباشر)</option><option value="ia">الوجهة: Internet Archive (رابط مباشر)</option><option value="r2">الوجهة: Cloudflare R2 (الحساب النشط)</option></select><label class="file"><i class="fas fa-cloud-arrow-up"></i> رفع ملف من الجهاز<input type="file" accept="video/*"></label><label class="file hlsl" style="display:none"><i class="fas fa-folder-tree"></i> رفع مجلد HLS (m3u8 + مقاطع)<input type="file" class="hlsdir" webkitdirectory multiple></label><div class="row vrow" style="margin-top:4px"><div class="vin"><input class="inp vurl" dir="ltr" placeholder="رابط فيديو مباشر"><button type="button" class="vx" title="مسح" style="display:none"><i class="fas fa-xmark"></i></button></div><button type="button" class="sec sm2 vps"><i class="fas fa-paste"></i> لصق</button><button type="button" class="sm2 vgo"><i class="fas fa-cloud-arrow-up"></i> رفع</button></div>
+        <div class="vup" data-t="e"><select class="inp vprov" style="margin:0 0 6px"><option value="vcdn">الوجهة: vcdn</option><option value="pd">الوجهة: PixelDrain (رابط مباشر)</option><option value="ia">الوجهة: Internet Archive (رابط مباشر)</option><option value="r2">الوجهة: Cloudflare R2 (الحساب النشط)</option><option value="tg">الوجهة: تلغرام (تقطيع تلقائي)</option></select><label class="file"><i class="fas fa-cloud-arrow-up"></i> رفع ملف من الجهاز<input type="file" accept="video/*"></label><label class="file hlsl" style="display:none"><i class="fas fa-folder-tree"></i> رفع مجلد HLS (m3u8 + مقاطع)<input type="file" class="hlsdir" webkitdirectory multiple></label><div class="row vrow" style="margin-top:4px"><div class="vin"><input class="inp vurl" dir="ltr" placeholder="رابط فيديو مباشر"><button type="button" class="vx" title="مسح" style="display:none"><i class="fas fa-xmark"></i></button></div><button type="button" class="sec sm2 vps"><i class="fas fa-paste"></i> لصق</button><button type="button" class="sm2 vgo"><i class="fas fa-cloud-arrow-up"></i> رفع</button></div>
         <div class="vbar" style="display:none"><i></i></div><div class="sm vst"></div></div>
         <label>ترجمة الحلقة — اختياري</label>
         <label class="file"><input type="file" id="esubF" accept=".srt,.vtt,.txt"><i class="fas fa-paperclip"></i> رفع ملف ترجمة</label> <span class="sm" id="esubI"></span>
@@ -427,6 +427,31 @@ button:not(.sec):not(.del):not(.tab):not(.x):hover{box-shadow:0 6px 18px rgba(25
       <div id="r2List"></div>
       <div class="row"><button type="button" class="sec" id="r2Add"><i class="fas fa-plus"></i> إضافة حساب</button></div>
       <button id="r2Save"><i class="fas fa-floppy-disk"></i> حفظ الحسابات</button>
+    </div>
+    <div class="card">
+      <div class="ch"><span class="ci"><i class="fas fa-key"></i></span><b>مفاتيح منصات التخزين</b></div>
+      <p class="sm" style="margin:8px 0">كل مفاتيح المنصات تُدار من هنا وتُحفظ في Firestore للمشرفين فقط، فلا حاجة لـ Secrets في Cloudflare (تبقى احتياطية إن تركت الحقل فارغاً).</p>
+      <label><i class="fas fa-circle-play"></i> vcdn — مفتاح API</label>
+      <input class="inp" id="kVcdn" dir="ltr" type="password" autocomplete="off" placeholder="X-API-Key">
+      <label><i class="fas fa-droplet"></i> PixelDrain — مفتاح API</label>
+      <input class="inp" id="kPd" dir="ltr" type="password" autocomplete="off" placeholder="API key">
+      <label><i class="fas fa-box-archive"></i> Internet Archive — مفاتيح S3</label>
+      <input class="inp" id="kIaA" dir="ltr" autocomplete="off" placeholder="Access key">
+      <input class="inp" id="kIaS" dir="ltr" type="password" autocomplete="off" placeholder="Secret key">
+      <label><i class="fas fa-image"></i> الصور (Cloudinary) — صور المستخدمين والإشعارات</label>
+      <input class="inp" id="kCc" dir="ltr" placeholder="Cloud name">
+      <input class="inp" id="kCp" dir="ltr" placeholder="Upload preset (Unsigned)">
+      <p class="sm" style="margin:4px 0 8px">حقول Cloudinary ليست سرّية (Unsigned preset) وتُقرأ من التطبيق لرفع صور الحسابات. لا تضع API Secret هنا أبداً.</p>
+      <button id="kSave"><i class="fas fa-floppy-disk"></i> حفظ المفاتيح</button>
+      <div class="sm" id="kMsg" style="margin-top:6px"></div>
+    </div>
+    <div class="card">
+      <div class="ch"><span class="ci"><i class="fab fa-telegram"></i></span><b>حسابات تلغرام</b></div>
+      <p class="sm" style="margin:8px 0">كل حساب = بوت + قناة خاصة يكون البوت مشرفاً فيها بصلاحية النشر. الفيديو يُقطَّع إلى أجزاء 19MB تُرفع كملفات، ويجمعها Worker عند التشغيل ويبثها كفيديو واحد. الرابط المحفوظ يكون <code>tg:المعرّف</code>.</p>
+      <div class="sm" style="margin:0 0 10px;color:#ffb84d"><i class="fas fa-triangle-exclamation"></i> رفع أفلام محمية بحقوق النشر قد يؤدي إلى حظر البوت أو القناة من تلغرام. الفيلم المقسّم يستهلك طلبات Worker (sp-push) عند كل تقديم/تأخير.</div>
+      <div id="tgList"></div>
+      <div class="row"><button type="button" class="sec" id="tgAdd"><i class="fas fa-plus"></i> إضافة حساب</button></div>
+      <button id="tgSave"><i class="fas fa-floppy-disk"></i> حفظ حسابات تلغرام</button>
     </div>
   </div>
 
@@ -650,7 +675,7 @@ function renderComments(){
 }
 $("#nIup").onclick=()=>$("#nIf").click();
 $("#nIf").onchange=async ev=>{
-  const f=ev.target.files[0];if(!f)return;const C=window.SP_CONFIG&&SP_CONFIG.cloudinary;if(!C){msg("ضع إعدادات cloudinary في config.js","err");return}
+  const f=ev.target.files[0];if(!f)return;const C=KEYS.cc&&KEYS.cp?{cloud:KEYS.cc,preset:KEYS.cp}:(window.SP_CONFIG&&SP_CONFIG.cloudinary);if(!C){msg("ضع إعدادات Cloudinary في تبويب التخزين","err");return}
   msg("جارٍ رفع الصورة...","ok");
   try{
     const bm=await createImageBitmap(f),s=Math.min(1,1000/bm.width),cv=document.createElement("canvas");cv.width=Math.round(bm.width*s);cv.height=Math.round(bm.height*s);cv.getContext("2d").drawImage(bm,0,0,cv.width,cv.height);
@@ -675,7 +700,7 @@ function showPane(p){
 onAuthStateChanged(auth,u=>{
   if(!u){$("#loginBox").style.display="";$("#app").style.display="none";return}
   $("#loginBox").style.display="none";$("#app").style.display="";
-  $("#who").textContent=u.email;loadVast();loadR2();loadPub();countReports();loadAnalytics();anT=setInterval(()=>{if(!document.hidden&&$("#p-analytics").style.display!=="none")loadAnalytics(true)},20000);
+  $("#who").textContent=u.email;loadVast();loadR2();loadKeys();loadPub();countReports();loadAnalytics();anT=setInterval(()=>{if(!document.hidden&&$("#p-analytics").style.display!=="none")loadAnalytics(true)},20000);
   getDoc(doc(db,"admins",u.uid)).then(s=>{
     if(s.exists()){if(!sessionStorage.getItem("sp_wlc")){sessionStorage.setItem("sp_wlc","1");msg("مرحباً "+esc((u.displayName||u.email||"").split(" ")[0]),"ok")}}
     else note(`حسابك ليس مشرفاً بعد.<br>أنشئ في Firestore مجموعة <b>admins</b> ووثيقة معرّفها هذا الـ UID:<br><b dir="ltr" style="user-select:all;display:block;margin-top:8px;padding:10px;border-radius:12px;background:rgba(255,255,255,.07);word-break:break-all;font-size:.85em">${u.uid}</b>`,{title:"صلاحيات المشرف",icon:"fa-user-shield",html:true,tone:"safe",ok:"فهمت"});
@@ -729,7 +754,7 @@ function parseQ(txt){
     const i=l.indexOf("|");
     if(i>0&&!/^https?:/i.test(l.slice(0,i)))return{label:l.slice(0,i).trim(),url:l.slice(i+1).trim()};
     return{label:"تلقائي",url:l};
-  }).filter(q=>/^(https?:\/\/|vcdn:)/i.test(q.url));
+  }).filter(q=>/^(https?:\/\/|vcdn:|tg:)/i.test(q.url));
 }
 const fmtQ=a=>(a||[]).map(q=>`${q.label}|${q.url}`).join("\n");
 
@@ -913,15 +938,17 @@ const vMsg=m=>{m=String(m||"");
   if(/Range|الجزئي/.test(m))return "المصدر لا يدعم التحميل الجزئي";
   if(/MIME|mime/.test(m))return "نوع الملف غير مفعّل في حساب vcdn";
   if(/forbidden/i.test(m))return "غير مصرّح، سجّل الدخول كأدمين";
-  if(/PD_KEY|IA_ACCESS/.test(m))return "مفاتيح المزود غير مضبوطة في Worker";
-  if(/VCDN_KEY/.test(m))return "مفتاح vcdn غير مضبوط في Worker";
+  if(/PD_KEY|IA_ACCESS|مفاتيح IA/.test(m))return "مفاتيح المزود غير مضبوطة: أدخلها في تبويب التخزين";
+  if(/VCDN_KEY/.test(m))return "مفتاح vcdn غير مضبوط: أدخله في تبويب التخزين";
   if(/Failed to fetch|NetworkError|unreachable|Load failed/i.test(m))return "تعذر الاتصال بالخادم";
   if(/HTTP 4(01|03)|401|403/.test(m))return "الرابط منتهي أو غير مسموح";
   if(/404/.test(m))return "الرابط غير موجود";
   return m.length>60?m.slice(0,60)+"...":m;};
+let KEYS={vcdn:"",pd:"",iaA:"",iaS:"",cc:"",cp:""},TG={accounts:[],active:""};
+const kh=()=>{const h={};if(KEYS.vcdn)h["x-vcdn-key"]=KEYS.vcdn;if(KEYS.pd)h["x-pd-key"]=KEYS.pd;if(KEYS.iaA&&KEYS.iaS){h["x-ia-access"]=KEYS.iaA;h["x-ia-secret"]=KEYS.iaS}return h};
 async function vApi(path,opt){
   const tok=await auth.currentUser.getIdToken();
-  const r=await fetch(PUSH+"/vcdn/"+path,{...opt,headers:{...(opt&&opt.headers),Authorization:"Bearer "+tok}});
+  const r=await fetch(PUSH+"/vcdn/"+path,{...opt,headers:{...kh(),...(opt&&opt.headers),Authorization:"Bearer "+tok}});
   const j=await r.json().catch(()=>({}));
   if(!r.ok){console.warn("vcdn",path,r.status,j);throw new Error(j.message||j.error||("HTTP "+r.status))}
   return j;
@@ -933,7 +960,7 @@ async function vRun(src,title,ta,box){
   const lock=v=>box.querySelectorAll("input,button").forEach(x=>x.disabled=v);lock(true);
   try{
     st.textContent="بدء الرفع...";
-    const j=await vApi("upload/init",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({filename:src.name,size:src.size,contentType:src.type||"video/mp4",title,ladderProfile:"standard"})});
+    const j=await vApi("upload/init",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({filename:hNm(box,(String(src.name||"").match(/\.(mp4|mkv|mov|webm|avi|m4v|ts)$/i)||[])[1]||"mp4"),size:src.size,contentType:src.type||"video/mp4",title,ladderProfile:"standard"})});
     const id=j.uploadId||j.videoId||j.id;if(!id)throw new Error("فشل بدء الرفع");
     const CH=+(j.chunkSize||j.chunk_size)||8*1024*1024;
     let off=0;
@@ -963,11 +990,12 @@ async function vRun(src,title,ta,box){
 const vFile=(file)=>({name:file.name,size:file.size,type:file.type,send:(id,off,len)=>vApi(`upload/${id}/chunk`,{method:"POST",headers:{"Content-Type":"application/octet-stream"},body:file.slice(off,off+len)})});
 async function vPost(path,body){
   const tok=await auth.currentUser.getIdToken();
-  const r=await fetch(PUSH+path,{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+tok},body:JSON.stringify(body)});
+  const r=await fetch(PUSH+path,{method:"POST",headers:{...kh(),"Content-Type":"application/json",Authorization:"Bearer "+tok},body:JSON.stringify(body)});
   const j=await r.json().catch(()=>({}));
   if(!r.ok){console.warn("vcdn",path,r.status,j);throw new Error(j.message||j.error||("HTTP "+r.status))}return j;
 }
-const vTitle=box=>box.dataset.t==="m"?sel.name:`${sel.name} S${+$("#eS").value||1} E${+$("#eE").value||1}`;
+/* العنوان واسم الملف على أي منصة = رمز TMDB فقط (دون اسم الفيلم) */
+const vTitle=box=>box.dataset.t==="m"?String(sel.id):`${sel.id}_S${+$("#eS").value||1}E${+$("#eE").value||1}`;
 document.querySelectorAll(".vup").forEach(box=>{
   const ta=()=>box.dataset.t==="m"?$("#mq"):$("#eq"),st=box.querySelector(".vst");
   box.querySelector('input[type="file"]').onchange=e=>{
@@ -975,6 +1003,7 @@ document.querySelectorAll(".vup").forEach(box=>{
     if(!sel){msg("اختر العمل أولاً","err");return}
     const pv=box.querySelector(".vprov").value;
     if(pv==="r2"){r2Up(box,ta(),f,null);e.target.value="";return}
+    if(pv==="tg"){tgUp(box,ta(),f,null);e.target.value="";return}
     if(pv!=="vcdn"){hRun(box,pv,ta(),vTitle(box),f,null);e.target.value="";return}
     vRun(vFile(f),vTitle(box),ta(),box);e.target.value="";
   };
@@ -993,6 +1022,7 @@ document.querySelectorAll(".vup").forEach(box=>{
     if(!PUSH){st.textContent="ضع رابط الـ Worker في config.js";return}
     const pv=box.querySelector(".vprov").value;
     if(pv==="r2"){r2Up(box,ta(),null,url);return}
+    if(pv==="tg"){tgUp(box,ta(),null,url);return}
     if(pv!=="vcdn"){hRun(box,pv,ta(),vTitle(box),null,url);return}
     st.textContent="فحص الرابط...";
     try{
@@ -1131,7 +1161,7 @@ const hNm=(box,ext)=>box.dataset.t==="m"?`${sel.id}.${ext}`:`${sel.id}_S${+$("#e
 const hItem=()=>`sp-${sel.type==="tv"?"tv":"movie"}-${sel.id}`;
 /* Internet Archive: رفع متعدد الأجزاء (90MB لكل جزء، كل جزء يُعاد 3 مرات عند الفشل). يرجع null إذا المصدر لا يدعم Range */
 async function iaMulti(box,tok,url,title,fill,st){
-  const PART=90*1048576,H={"Content-Type":"application/json",Authorization:"Bearer "+tok};
+  const PART=90*1048576,H={...kh(),"Content-Type":"application/json",Authorization:"Bearer "+tok};
   const call=async o=>{const r=await fetch(MEDIA+"/ia-mp",{method:"POST",headers:H,body:JSON.stringify(o)});const j=await r.json().catch(()=>({}));if(!r.ok)throw Object.assign(new Error(j.error||("HTTP "+r.status)),{code:j.code});return j};
   st.innerHTML=`<i class="fas fa-gear fa-spin"></i> جارٍ تجهيز الرفع إلى Internet Archive...`;
   let i;try{i=await call({a:"init",src:url,title,item:hItem(),name:hNm(box,"")})}catch(e){if(e.code==="norange")return null;throw e}
@@ -1166,7 +1196,7 @@ async function hRun(box,p,ta,title,file,url){
       if(file.size>95*1048576)throw new Error("الملف أكبر من 95MB، استخدم الرفع من رابط");
       j=await new Promise((res,rej)=>{
         const x=new XMLHttpRequest();x.open("PUT",MEDIA+"/host-up?p="+p+"&item="+hItem()+"&name="+encodeURIComponent(hNm(box,((file.name.match(/\.(mp4|mkv|mov|webm|avi|m4v|ts)$/i)||[])[1]||"mp4").toLowerCase()))+"&title="+encodeURIComponent(title));
-        x.setRequestHeader("Authorization","Bearer "+tok);
+        x.setRequestHeader("Authorization","Bearer "+tok);for(const [k,v] of Object.entries(kh()))x.setRequestHeader(k,v);
         x.upload.onprogress=e=>{if(e.lengthComputable){const pc=Math.round(e.loaded/e.total*100);fill.style.width=pc+"%";st.textContent=`جارٍ الرفع إلى ${HN[p]} ${pc}% (${(e.loaded/1048576).toFixed(0)} / ${(e.total/1048576).toFixed(0)} MB)`}};
         x.onload=()=>{let r={};try{r=JSON.parse(x.responseText)}catch(e){}x.status>=200&&x.status<300&&r.url?res(r):rej(new Error(r.error||("HTTP "+x.status)))};
         x.onerror=()=>rej(new Error("Failed to fetch"));x.send(file);
@@ -1176,7 +1206,7 @@ async function hRun(box,p,ta,title,file,url){
       if(!j){
       st.innerHTML=`<i class="fas fa-gear fa-spin"></i> جارٍ نقل الملف إلى ${HN[p]} عبر الخادم... قد يستغرق عدة دقائق، أبقِ الصفحة مفتوحة`;
       fill.style.width="35%";
-      const r=await fetch(MEDIA+"/host-pull",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+tok},body:JSON.stringify({p,src:url,title,item:hItem(),name:hNm(box,"")})});
+      const r=await fetch(MEDIA+"/host-pull",{method:"POST",headers:{...kh(),"Content-Type":"application/json",Authorization:"Bearer "+tok},body:JSON.stringify({p,src:url,title,item:hItem(),name:hNm(box,"")})});
       j=await r.json().catch(()=>({}));
       if(!r.ok||!j.url)throw new Error(j.error||("HTTP "+r.status));
       }
@@ -1184,6 +1214,114 @@ async function hRun(box,p,ta,title,file,url){
     fill.style.width="100%";
     ta.value=ta.value.trim()?ta.value.trim()+"\n"+j.url:j.url;
     st.innerHTML=`<i class="fas fa-circle-check" style="color:var(--ok)"></i> تم الرفع وأُضيف الرابط تلقائياً`+(p==="ia"?" (قد يحتاج Internet Archive دقائق قبل أن يصبح الملف متاحاً للتشغيل)":"");
+  }catch(e){st.innerHTML=`<i class="fas fa-circle-xmark" style="color:var(--p)"></i> ${esc(vMsg(e.message))}`}
+  finally{lock(false)}
+}
+
+/* ───── مفاتيح المنصات (vcdn / PixelDrain / IA / Cloudinary) + تلغرام ───── */
+const kMsg=(t,ok)=>{$("#kMsg").innerHTML=t?`<i class="fas fa-circle-${ok?"check":"xmark"}" style="color:${ok?"var(--ok)":"#ff6b6b"}"></i> ${esc(t)}`:""};
+async function loadKeys(){
+  const [k,t,i]=await Promise.all([getDoc(doc(db,"storage","keys")).catch(()=>null),getDoc(doc(db,"storage","tg")).catch(()=>null),getDoc(doc(db,"settings","img")).catch(()=>null)]);
+  const kd=k&&k.exists()?k.data():{},id=i&&i.exists()?i.data():{};
+  KEYS={vcdn:kd.vcdn||"",pd:kd.pd||"",iaA:kd.iaA||"",iaS:kd.iaS||"",cc:id.cloud||"",cp:id.preset||""};
+  TG=t&&t.exists()?t.data():{accounts:[],active:""};TG.accounts=TG.accounts||[];
+  $("#kVcdn").value=KEYS.vcdn;$("#kPd").value=KEYS.pd;$("#kIaA").value=KEYS.iaA;$("#kIaS").value=KEYS.iaS;$("#kCc").value=KEYS.cc;$("#kCp").value=KEYS.cp;
+  drawTG();
+}
+/* نسخة المفاتيح التي يحتاجها Worker التشغيل للزوّار (مفتاح vcdn + رموز البوتات) تُرسل إلى KV */
+async function syncCfg(){
+  if(!PUSH)return;
+  const tg={};TG.accounts.forEach(a=>{if(a.token)tg[a.id]=a.token});
+  const tok=await auth.currentUser.getIdToken();
+  const r=await fetch(PUSH+"/cfg",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+tok},body:JSON.stringify({vcdn:KEYS.vcdn,tg})});
+  if(!r.ok)throw new Error("تعذّر مزامنة الإعدادات مع Worker التشغيل (HTTP "+r.status+")");
+}
+$("#kSave").onclick=async()=>{
+  const v=id=>$(id).value.trim();
+  KEYS={vcdn:v("#kVcdn"),pd:v("#kPd"),iaA:v("#kIaA"),iaS:v("#kIaS"),cc:v("#kCc"),cp:v("#kCp")};
+  if((KEYS.iaA&&!KEYS.iaS)||(!KEYS.iaA&&KEYS.iaS)){kMsg("أدخل مفتاحَي Internet Archive معاً",false);return}
+  if(KEYS.cc&&!/^[\w-]{2,60}$/.test(KEYS.cc)){kMsg("اسم Cloud غير صالح",false);return}
+  if(KEYS.vcdn&&!/^[\w.\-]{8,200}$/.test(KEYS.vcdn)){kMsg("مفتاح vcdn غير صالح",false);return}
+  try{
+    await setDoc(doc(db,"storage","keys"),{vcdn:KEYS.vcdn,pd:KEYS.pd,iaA:KEYS.iaA,iaS:KEYS.iaS,updatedAt:Date.now()});
+    await setDoc(doc(db,"settings","img"),{cloud:KEYS.cc,preset:KEYS.cp,updatedAt:Date.now()});
+  }catch(e){kMsg("فشل الحفظ — انشر قواعد Firestore ("+(e.code||e.message)+")",false);return}
+  try{await syncCfg();kMsg("تم حفظ المفاتيح ومزامنتها",true)}catch(e){kMsg("حُفظت المفاتيح لكن: "+e.message,false)}
+};
+const TGP=19*1048576;
+function drawTG(){
+  const L=$("#tgList");
+  if(!TG.accounts.length){L.innerHTML='<div class="sm" style="margin:6px 0 12px">لا توجد حسابات بعد. اضغط «إضافة حساب».</div>';return}
+  L.innerHTML=TG.accounts.map((a,i)=>`<div class="r2row${a.id===TG.active?" act":""}" data-i="${i}">
+    <div class="row" style="margin:0 0 8px"><label class="chk" style="flex:1;margin:0"><input type="radio" name="tgact" class="tg-a"${a.id===TG.active?" checked":""}>الحساب النشط للرفع</label><button type="button" class="sec ic tg-x" title="حذف"><i class="fas fa-trash"></i></button></div>
+    <input class="inp tg-n" placeholder="اسم الحساب" value="${esc(a.name||"")}">
+    <input class="inp tg-t" dir="ltr" type="password" autocomplete="off" placeholder="رمز البوت من BotFather (123456:ABC...)" value="${esc(a.token||"")}">
+    <input class="inp tg-c" dir="ltr" placeholder="معرّف القناة (مثال: -1001234567890)" value="${esc(a.chat||"")}">
+    <div class="row" style="margin-top:8px"><button type="button" class="sec tg-test"><i class="fas fa-vial"></i> اختبار الاتصال</button></div>
+    <div class="sm tg-m" style="margin-top:6px"></div></div>`).join("");
+}
+$("#tgList").addEventListener("input",e=>{
+  const row=e.target.closest(".r2row");if(!row)return;const a=TG.accounts[+row.dataset.i],c=e.target.classList;
+  if(c.contains("tg-n"))a.name=e.target.value.trim();else if(c.contains("tg-t"))a.token=e.target.value.trim();else if(c.contains("tg-c"))a.chat=e.target.value.trim();
+});
+$("#tgList").addEventListener("click",async e=>{
+  const row=e.target.closest(".r2row");if(!row)return;const i=+row.dataset.i,a=TG.accounts[i],m=row.querySelector(".tg-m");
+  if(e.target.closest(".tg-a")){TG.active=a.id;drawTG();return}
+  if(e.target.closest(".tg-x")){if(confirm("حذف هذا الحساب؟ الفيديوهات المرفوعة عليه ستتوقف عن العمل ما لم تُعد إضافته بنفس البوت.")){TG.accounts.splice(i,1);if(TG.active===a.id)TG.active="";drawTG()}return}
+  if(e.target.closest(".tg-test")){m.textContent="جارٍ الاختبار...";
+    try{const j=await r2Call("/tg-test",{token:a.token,chat:a.chat});m.innerHTML=`<i class="fas fa-circle-check" style="color:var(--ok)"></i> البوت @${esc(j.bot)} مشرف في «${esc(j.chat)}»`}
+    catch(err){m.innerHTML=`<i class="fas fa-circle-xmark" style="color:#ff6b6b"></i> ${esc(err.message)}`}
+  }
+});
+$("#tgAdd").onclick=()=>{const id="t"+Math.random().toString(36).slice(2,8);TG.accounts.push({id,name:"تلغرام رقم "+(TG.accounts.length+1),token:"",chat:""});if(!TG.active)TG.active=id;drawTG()};
+$("#tgSave").onclick=async()=>{
+  try{await setDoc(doc(db,"storage","tg"),{accounts:TG.accounts,active:TG.active,updatedAt:Date.now()})}
+  catch(e){msg("فشل الحفظ — انشر قواعد Firestore ("+(e.code||e.message)+")","err");return}
+  try{await syncCfg();msg("تم حفظ حسابات تلغرام ومزامنتها","ok")}catch(e){msg("حُفظت الحسابات لكن: "+e.message,"err")}
+};
+/* رفع إلى تلغرام: تقطيع 19MB، كل جزء يُعاد حتى 4 مرات، ثم يُكتب بيان الأجزاء في Firestore */
+async function tgUp(box,ta,file,url){
+  const bar=box.querySelector(".vbar"),fill=bar.firstElementChild,st=box.querySelector(".vst");
+  bar.style.display="";fill.style.width="0";
+  const lock=v=>box.querySelectorAll("input,button,select").forEach(x=>x.disabled=v);lock(true);
+  try{
+    if(!MEDIA||!PUSH)throw new Error("ضع روابط الـ Workers في config.js");
+    const a=TG.accounts.find(x=>x.id===TG.active);
+    if(!a)throw new Error("لا يوجد حساب تلغرام نشط. أضف حساباً وفعّله من تبويب «التخزين»");
+    if(!a.token||!a.chat)throw new Error("بيانات حساب تلغرام ناقصة");
+    const tok=await auth.currentUser.getIdToken();
+    let size,mime="video/mp4";
+    if(file){size=file.size;mime=file.type&&/^video\//.test(file.type)?file.type:"video/mp4"}
+    else{
+      st.textContent="فحص الرابط...";
+      const p=await vPost("/vcdn-probe",{src:url});size=p.size;
+      mime=({mkv:"video/x-matroska",webm:"video/webm",mov:"video/quicktime"})[(p.orig&&p.orig.ext)||""]||"video/mp4";
+    }
+    if(!size)throw new Error("حجم الملف غير معروف");
+    const vid="v"+Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4),total=Math.ceil(size/TGP),ps=[];
+    for(let n=1;n<=total;n++){
+      const s0=(n-1)*TGP,e0=Math.min(size,n*TGP)-1;let ok=false,last;
+      for(let t=0;t<4&&!ok;t++){
+        st.innerHTML=`<i class="fas fa-gear fa-spin"></i> رفع الجزء ${n} من ${total}${t?` (محاولة ${t+1})`:""} — ${(s0/1048576).toFixed(0)} / ${(size/1048576).toFixed(0)} MB`;
+        fill.style.width=Math.round(s0/size*100)+"%";
+        try{
+          const name=`${vid}.p${String(n).padStart(4,"0")}.bin`;
+          let r;
+          if(file)r=await fetch(MEDIA+"/tg-part?name="+encodeURIComponent(name),{method:"PUT",headers:{Authorization:"Bearer "+tok,"x-tg-token":a.token,"x-tg-chat":a.chat},body:file.slice(s0,e0+1)});
+          else r=await fetch(MEDIA+"/tg-pull",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+tok},body:JSON.stringify({src:url,start:s0,end:e0,name,token:a.token,chat:a.chat})});
+          const j=await r.json().catch(()=>({}));
+          if(!r.ok||!j.fid){const er=new Error(j.error||("HTTP "+r.status));er.retry=j.retry||0;er.fatal=r.status===400||r.status===403;throw er}
+          if(j.size!==e0-s0+1)throw new Error("حجم الجزء المرفوع غير مطابق");
+          ps.push(j.fid+"|"+j.size);ok=true;
+        }catch(e){last=e;if(e.fatal)throw e;await new Promise(x=>setTimeout(x,(e.retry?e.retry*1000+500:3000*(t+1))))}
+      }
+      if(!ok)throw last;
+    }
+    st.innerHTML=`<i class="fas fa-gear fa-spin"></i> حفظ بيان الأجزاء...`;
+    await setDoc(doc(db,"tgv",vid),{acc:a.id,mime,total:size,ps,at:Date.now()});
+    fill.style.width="100%";
+    const line="tg:"+vid;ta.value=ta.value.trim()?ta.value.trim()+"\n"+line:line;
+    st.innerHTML=`<i class="fas fa-circle-check" style="color:var(--ok)"></i> تم الرفع إلى تلغرام (${total} جزء) وأُضيف الرابط تلقائياً`;
   }catch(e){st.innerHTML=`<i class="fas fa-circle-xmark" style="color:var(--p)"></i> ${esc(vMsg(e.message))}`}
   finally{lock(false)}
 }
@@ -1207,7 +1345,8 @@ function firstCue(t){
 }
 async function spvSrc(qId){
   const q=parseQ($(qId).value)[0];if(!q)throw new Error("أدخل رابط الفيديو أولاً");
-  const u=q.url,m=/^vcdn:([\w-]+)$/i.exec(u);
+  const u=q.url,m=/^vcdn:([\w-]+)$/i.exec(u),tm=/^tg:([\w-]+)$/i.exec(u);
+  if(tm){if(!PUSH)throw new Error("رابط Worker غير مضبوط");return PUSH+"/tg/"+tm[1]+".mp4"}
   if(m){
     if(!PUSH)throw new Error("رابط Worker غير مضبوط");
     const j=await(await fetch(PUSH+"/vcdn-play?id="+m[1])).json();
