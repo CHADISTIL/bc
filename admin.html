@@ -1298,11 +1298,11 @@ async function tgUp(box,ta,file,url){
       mime=({mkv:"video/x-matroska",webm:"video/webm",mov:"video/quicktime"})[(p.orig&&p.orig.ext)||""]||"video/mp4";
     }
     if(!size)throw new Error("حجم الملف غير معروف");
-    const vid="v"+Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4),total=Math.ceil(size/TGP),ps=[];
+    let slow=0;const vid="v"+Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4),total=Math.ceil(size/TGP),ps=[];
     for(let n=1;n<=total;n++){
       const s0=(n-1)*TGP,e0=Math.min(size,n*TGP)-1;let ok=false,last;
       for(let t=0;t<4&&!ok;t++){
-        st.innerHTML=`<i class="fas fa-gear fa-spin"></i> رفع الجزء ${n} من ${total}${t?` (محاولة ${t+1})`:""} — ${(s0/1048576).toFixed(0)} / ${(size/1048576).toFixed(0)} MB`;
+        st.innerHTML=`<i class="fas fa-gear fa-spin"></i> رفع الجزء ${n} من ${total}${t?` (محاولة ${t+1})`:""} — ${(s0/1048576).toFixed(0)} / ${(size/1048576).toFixed(0)} MB${t&&last?`<br><span style="color:#ffb84d">آخر خطأ: ${esc(vMsg(last.message))}</span>`:""}`;
         fill.style.width=Math.round(s0/size*100)+"%";
         try{
           const name=`${vid}.p${String(n).padStart(4,"0")}.bin`;
@@ -1313,9 +1313,10 @@ async function tgUp(box,ta,file,url){
           if(!r.ok||!j.fid){const er=new Error(j.error||("HTTP "+r.status));er.retry=j.retry||0;er.fatal=r.status===400||r.status===403;throw er}
           if(j.size!==e0-s0+1)throw new Error("حجم الجزء المرفوع غير مطابق");
           ps.push(j.fid+"|"+j.size);ok=true;
-        }catch(e){last=e;if(e.fatal)throw e;await new Promise(x=>setTimeout(x,(e.retry?e.retry*1000+500:3000*(t+1))))}
+        }catch(e){last=e;if(e.fatal)throw e;if(e.retry&&slow++<30){t--;const w=Math.min(e.retry,120);for(let k=w;k>0;k--){st.innerHTML=`<i class="fas fa-hourglass-half"></i> تلغرام طلب الإبطاء — استئناف الجزء ${n} بعد ${k} ثانية`;await new Promise(x=>setTimeout(x,1000))}}else await new Promise(x=>setTimeout(x,3000*(t+1)))}
       }
       if(!ok)throw last;
+      if(n<total)await new Promise(x=>setTimeout(x,1500));   /* مهلة قصيرة بين الأجزاء تخفف ضغط الإبطاء */
     }
     st.innerHTML=`<i class="fas fa-gear fa-spin"></i> حفظ بيان الأجزاء...`;
     await setDoc(doc(db,"tgv",vid),{acc:a.id,mime,total:size,ps,at:Date.now()});
