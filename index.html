@@ -337,7 +337,7 @@ html.embed #spFab{display:none}
 <div id="toast"></div>
 
 <link rel="preconnect" href="https://api.themoviedb.org"><link rel="preconnect" href="https://image.tmdb.org"><link rel="preconnect" href="https://firestore.googleapis.com"><script src="config.js"></script>
-<script src="player.js?v=23"></script>
+<script src="player.js?v=24"></script>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {getAuth,onAuthStateChanged,GoogleAuthProvider,signInWithPopup,signInWithEmailAndPassword,createUserWithEmailAndPassword,signOut,updateProfile,sendPasswordResetEmail,deleteUser}
@@ -385,8 +385,13 @@ async function loadLiked(){
   likedFor=user.uid;likedC=new Set();
   try{const s=await getDocs(query(collection(db,"users",user.uid,"clikes"),limit(500)));s.forEach(d=>likedC.add(d.id))}catch(e){likedFor=""}
 }
+let imgP=null;
+/* إعدادات الصور من الأدمين (settings/img) مع الرجوع إلى config.js */
+function imgCfg(){
+  return imgP||(imgP=getDoc(doc(db,"settings","img")).then(d=>{const x=d.exists()?d.data():{};return x.cloud&&x.preset?{cloud:x.cloud,preset:x.preset}:(window.SP_CONFIG&&SP_CONFIG.cloudinary)||null}).catch(()=>(window.SP_CONFIG&&SP_CONFIG.cloudinary)||null));
+}
 async function cloudUp(blob,folder){
-  const C=window.SP_CONFIG&&SP_CONFIG.cloudinary;if(!C||!C.cloud||!C.preset)throw new Error("no cloudinary");
+  const C=await imgCfg();if(!C||!C.cloud||!C.preset)throw new Error("no cloudinary");
   const fd=new FormData();fd.append("file",blob);fd.append("upload_preset",C.preset);fd.append("folder",folder);
   const r=await fetch("https://api.cloudinary.com/v1_1/"+C.cloud+"/image/upload",{method:"POST",body:fd});
   const j=await r.json();if(!j.secure_url)throw new Error((j.error&&j.error.message)||"upload");
@@ -929,7 +934,7 @@ async function openAccount(){
   $("#ac-pic").onclick=()=>$("#ac-file").click();
   $("#ac-file").onchange=async ev=>{
     const f=ev.target.files[0];if(!f)return;
-    const C=window.SP_CONFIG&&SP_CONFIG.cloudinary;if(!C||!C.cloud||!C.preset){toast("خدمة الصور غير مفعّلة");return}
+    const C=await imgCfg();if(!C||!C.cloud||!C.preset){toast("خدمة الصور غير مفعّلة");return}
     if(!/^image\//.test(f.type)){toast("اختر صورة");return}
     const blob=await cropAvatar(f);ev.target.value="";if(!blob)return;
     toast("جارٍ رفع الصورة...");
@@ -1587,7 +1592,7 @@ function showEmbed(embed,o){
 async function play(o){
   if(!window.JP){toast("المشغّل غير محمّل — تأكد من رفع player.js");return}
   if(o.quals&&window.SP_CONFIG&&SP_CONFIG.media&&!/REPLACE/.test(SP_CONFIG.media)){
-    const hostedUrl=u=>{try{const t=new URL(u);const h=t.hostname.toLowerCase();
+    const hostedUrl=u=>{const tm=/^tg:([\w-]+)$/i.exec(u);if(tm)return SP_CONFIG.push+"/tg/"+tm[1]+".mp4";try{const t=new URL(u);const h=t.hostname.toLowerCase();
       if(t.protocol==="https:"&&((h==="pixeldrain.com"&&/^\/api\/file\//.test(t.pathname))||h==="archive.org"||h.endsWith(".archive.org")))return SP_CONFIG.media+"/pass?u="+encodeURIComponent(t.href)}catch(e){}return u};
     o.quals=o.quals.map(q=>({...q,url:hostedUrl(q.url)}));
   }
