@@ -337,7 +337,7 @@ html.embed #spFab{display:none}
 <div id="toast"></div>
 
 <link rel="preconnect" href="https://api.themoviedb.org"><link rel="preconnect" href="https://image.tmdb.org"><link rel="preconnect" href="https://firestore.googleapis.com"><script src="config.js"></script>
-<script src="player.js?v=24"></script>
+<script src="player.js?v=25"></script>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {getAuth,onAuthStateChanged,GoogleAuthProvider,signInWithPopup,signInWithEmailAndPassword,createUserWithEmailAndPassword,signOut,updateProfile,sendPasswordResetEmail,deleteUser}
@@ -1593,7 +1593,7 @@ async function play(o){
   if(!window.JP){toast("المشغّل غير محمّل — تأكد من رفع player.js");return}
   if(o.quals&&window.SP_CONFIG&&SP_CONFIG.media&&!/REPLACE/.test(SP_CONFIG.media)){
     const hostedUrl=u=>{const tm=/^tg:([\w-]+)$/i.exec(u);if(tm)return SP_CONFIG.push+"/tg/"+tm[1]+".mp4";try{const t=new URL(u);const h=t.hostname.toLowerCase();
-      if(t.protocol==="https:"&&((h==="pixeldrain.com"&&/^\/api\/file\//.test(t.pathname))||h==="archive.org"||h.endsWith(".archive.org")))return SP_CONFIG.media+"/pass?u="+encodeURIComponent(t.href)}catch(e){}return u};
+      const pd=/^(www\.)?(pixeldrain\.(com|net|dev)|pixeldra\.in)$/.test(h)&&/^\/(u|api\/file)\/([\w-]+)/.exec(t.pathname);if(pd)return SP_CONFIG.media+"/pass?u="+encodeURIComponent("https://pixeldrain.com/api/file/"+pd[2]);if(t.protocol==="https:"&&(h==="archive.org"||h.endsWith(".archive.org")))return SP_CONFIG.media+"/pass?u="+encodeURIComponent(t.href)}catch(e){}return u};
     o.quals=o.quals.map(q=>({...q,url:hostedUrl(q.url)}));
   }
   if(o.quals&&o.quals.some(q=>/^vcdn:/i.test(q.url))){

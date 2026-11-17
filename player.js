@@ -35,6 +35,17 @@ var CSS=`
 .jp-cb span{font-size:.62em}
 .jp-wrap.hide .jp-ctrl,.jp-wrap.hide .jp-top,.jp-wrap.hide .jp-fsbar{opacity:0;pointer-events:none}
 .jp-wrap.fs .jp-ctrl{padding-bottom:calc(20px + env(safe-area-inset-bottom))}
+/* المساحات الفارغة في الشريط العلوي والسفلي لا تبتلع اللمس: تبقى مساحة حرة للنقر (إيقاف/تشغيل، نقر مزدوج) */
+.jp-top,.jp-ctrl{pointer-events:none}
+.jp-top button,.jp-ctrl button,.jp-ctrl .jp-time{pointer-events:auto}
+.jp-wrap.hide .jp-top button,.jp-wrap.hide .jp-ctrl button,.jp-wrap.hide .jp-ctrl .jp-time{pointer-events:none}
+/* أزرار أصغر عندما يكون ارتفاع المشغّل قصيراً */
+.jp-wrap.sm .jp-top{padding:4px 8px}
+.jp-wrap.sm .jp-ib{width:30px;height:30px;font-size:.8em}
+.jp-wrap.sm .jp-ctrl{padding:10px 10px 12px}
+.jp-wrap.sm .jp-cb{width:38px;height:38px;font-size:1.02em}
+.jp-wrap.sm .jp-time{padding:3px 10px;font-size:.88em}
+.jp-wrap.sm .jp-btns{gap:8px}
 
 /* progress */
 .jp-prog{position:absolute;left:0;right:0;bottom:0;height:9px;background:rgba(255,255,255,.2);z-index:21;transition:height .35s cubic-bezier(.4,0,.2,1)}
@@ -543,7 +554,28 @@ function syncQualUI(){
   $('#fsQ').style.display=multi?'inline-flex':'none';
   var q=S.quals[S.qi];$('#jpQL').textContent=q?(q.label==='تلقائي'?'AUTO':q.label):'HD';
 }
-function showErr(){$('#jpSpin').style.display='none';$('#jpErr').style.display='block'}
+function showErr(kind){
+  var e=vid.error,m='تعذر تشغيل الفيديو',more=S.quals&&S.quals.length>1?' — جرّب جودة أخرى من الإعدادات':'';
+  if(kind==='novideo'||(e&&e.code===3))m='تعذّر فك ترميز الفيديو: غالباً ترميز HEVC/H.265 غير مدعوم على جهازك أو متصفحك'+more;
+  else if(e&&e.code===4)m='الرابط غير صالح أو ترميز الفيديو (مثل HEVC/H.265) غير مدعوم على جهازك'+more;
+  var d=$('#jpErr div');if(d)d.textContent=m;
+  $('#jpSpin').style.display='none';$('#jpErr').style.display='block';
+}
+/* HEVC غير المدعوم يعطي أحياناً صوتاً بلا صورة ودون خطأ: نكشفه من أبعاد الفيديو ومن عدد الإطارات التي فُكَّ ترميزها فعلاً */
+var nvSrc='';
+function noVideoNow(){
+  if(Y.on||S.ad.busy||!S.open||!S.opts||S.opts.audioOnly||!vid.src||vid.readyState<2||!(vid.duration>0))return false;
+  if(/\.(mp3|m4a|aac|ogg|wav)(\?|$)/i.test(vid.src))return false;
+  if(vid.videoWidth===0)return true;
+  if(!vid.paused&&!document.hidden&&vid.currentTime>1.5&&vid.getVideoPlaybackQuality){var q=vid.getVideoPlaybackQuality();if(q&&q.totalVideoFrames===0)return true}
+  return false;
+}
+function chkNoVideo(){
+  if(nvSrc===vid.src)return;
+  if(noVideoNow()){nvSrc=vid.src;try{vid.pause()}catch(e){}showErr('novideo')}
+}
+vid.addEventListener('loadeddata',function(){setTimeout(chkNoVideo,900)});
+vid.addEventListener('timeupdate',chkNoVideo);
 
 /* ───────────── subtitles ───────────── */
 function parseSubs(raw){
@@ -666,9 +698,13 @@ vid.addEventListener('timeupdate',function(){
 });
 vid.addEventListener('loadedmetadata',function(){
   $('#jpSpin').style.display='none';
+  applyAR();
+});
+/* نسبة أبعاد الفيديو الفعلية (تُعاد بعد الخروج من وضع التصغير) */
+function applyAR(){
   var w=vid.videoWidth,h=vid.videoHeight;
   if(w&&h){var r=w/h;wrap.style.aspectRatio=Math.abs(r-16/9)>.06?String(Math.min(Math.max(r,1),2.5)):''}
-});
+}
 vid.addEventListener('waiting',function(){$('#jpSpin').style.display='block'});
 ['playing','canplay','seeked'].forEach(function(ev){vid.addEventListener(ev,function(){$('#jpSpin').style.display='none'})});
 var rfTry=0,rfAt=0;
@@ -1116,6 +1152,8 @@ function checkAds(){
 }
 
 /* ───────────── mini player ───────────── */
+function fitSm(){try{wrap.classList.toggle('sm',!S.mini&&!wrap.classList.contains('fs')&&wrap.clientHeight>0&&wrap.clientHeight<=300)}catch(e){}}
+if(window.ResizeObserver)new ResizeObserver(fitSm).observe(wrap);else window.addEventListener('resize',fitSm);
 function syncMini(){$('#mbP').innerHTML='<i class="fas fa-'+(vid.paused?'play':'pause')+'"></i>'}
 function enterMini(){
   if(S.mini||!S.open)return;
@@ -1125,7 +1163,7 @@ function enterMini(){
   syncMini();
 }
 function exitMini(){
-  S.mini=false;root.classList.remove('mini');document.body.classList.add('lock');wrap.removeAttribute('style');$('#jpMB').classList.remove('show');
+  S.mini=false;root.classList.remove('mini');document.body.classList.add('lock');wrap.removeAttribute('style');$('#jpMB').classList.remove('show');applyAR();fitSm();
 }
 $('#mbX').onclick=function(e){e.stopPropagation();exitMini()};
 $('#mbP').onclick=function(e){e.stopPropagation();togglePlay()};
