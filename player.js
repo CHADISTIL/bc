@@ -714,6 +714,7 @@ vid.addEventListener('waiting',function(){$('#jpSpin').style.display='block'});
 ['playing','canplay','seeked'].forEach(function(ev){vid.addEventListener(ev,function(){$('#jpSpin').style.display='none'})});
 var rfTry=0,rfAt=0;
 vid.addEventListener('error',function(){
+  if(E.on){engFail();return}
   var o=S.opts,q=S.quals&&S.quals[S.qi];
   if(o&&q&&q.local&&o.fallback){
     var fb=o.fallback;o.fallback=null;$('#jpSpin').style.display='block';
@@ -899,9 +900,13 @@ function modal(title,icon,build){
   (isFs()?wrap:root).appendChild(m);S.modal=m;return m;
 }
 
-/* ───────────── مسار صوتي بديل (Mediabunny): الفيديو يبقى على <video> كما هو، ونسحب الصوت المطلوب فقط ونشغّله عبر Web Audio متزامناً معه ───────────── */
-var E={on:false,mb:null,mbP:null,input:null,tr:[],tracks:[],url:'',aIdx:0,ctx:null,gain:null,playing:false,startAt:0,startFrom:0,gen:0,drift:0,nodes:[],vol:1,muted:false,ai:null,pn:0,fail:false,busy:false,rate:1};
+/* ───────────── مسارات صوتية متعددة داخل الملف (mkv/mp4): إعادة تغليف MSE عبر Mediabunny ─────────────
+   الفيديو يبقى على <video> الأصلي حتى تختار لغة مختلفة عن المسار الأول؛ عندها يُقرأ الملف مرة واحدة
+   ويُعاد تغليفه إلى MP4 مجزّأ يحمل الفيديو + المسار المختار فقط (دون إعادة ترميز الفيديو) ويُسلَّم لـ MediaSource. */
+var E={on:false,mb:null,mbP:null,input:null,vTrack:null,tr:[],tracks:[],url:'',aIdx:0,pn:0,fail:false,busy:false,gen:0,ms:null,sb:null,blob:'',mime:'',conv:null,q:[],offKnown:false,finished:false,dur:0};
 var MUT=Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype,'muted');
+var MSE_=window.MediaSource||window.ManagedMediaSource;
+var REMUX_A=['aac','mp3','opus','flac'];
 function mbLoad(){
   if(E.mb)return Promise.resolve(E.mb);
   if(E.mbP)return E.mbP;
@@ -912,92 +917,150 @@ function mbLoad(){
   })();
   return E.mbP;
 }
-function engVol(){if(E.gain)E.gain.gain.value=E.muted?0:E.vol}
-/* الفيديو يُكتم أصلياً، وأزرار الكتم والصوت في المشغّل تتحكم بصوت المسار البديل */
-function engShim(){
-  var d=function(n,o){o.configurable=true;Object.defineProperty(vid,n,o)};
-  d('muted',{get:function(){return E.muted},set:function(v){E.muted=!!v;engVol();setTimeout(function(){try{vid.dispatchEvent(new Event('volumechange'))}catch(e){}},0)}});
-  d('volume',{get:function(){return E.vol},set:function(v){E.vol=Math.min(1,Math.max(0,+v||0));engVol();setTimeout(function(){try{vid.dispatchEvent(new Event('volumechange'))}catch(e){}},0)}});
-  try{MUT.set.call(vid,true)}catch(e){}
-}
-function engHalt(){
-  E.gen++;E.playing=false;
-  try{E.ai&&E.ai.return&&E.ai.return()}catch(e){}
-  E.ai=null;
-  E.nodes.forEach(function(n){try{n.stop()}catch(e){}});E.nodes=[];
-}
-/* بدء الصوت عند موضع الفيديو الحالي؛ المخازن تُجدول على ساعة AudioContext */
-async function engStart(){
-  if(!E.on||vid.paused||vid.seeking)return;
-  engHalt();
-  var gen=E.gen,A=E.tr[E.aIdx];if(!A)return;
-  if(!E.ctx){E.ctx=new (window.AudioContext||window.webkitAudioContext)();E.gain=E.ctx.createGain();E.gain.connect(E.ctx.destination);engVol()}
-  try{await E.ctx.resume()}catch(e){}
-  if(gen!==E.gen||vid.paused)return;
-  var rate=vid.playbackRate||1,lead=.12;
-  E.rate=rate;E.startAt=E.ctx.currentTime+lead;E.startFrom=vid.currentTime+lead*rate;E.playing=true;E.drift=0;
-  var from=E.startFrom,MB=E.mb;
-  try{
-    var sink=new MB.AudioBufferSink(A.tr);E.ai=sink.buffers(Math.max(0,from));
-    for await(var w of E.ai){
-      if(gen!==E.gen)return;
-      var src=E.ctx.createBufferSource();src.buffer=w.buffer;src.playbackRate.value=rate;src.connect(E.gain);
-      var when=E.startAt+(w.timestamp-from)/rate;
-      if(when<E.ctx.currentTime){var skip=(E.ctx.currentTime-when)*rate;if(skip>=w.buffer.duration)continue;src.start(E.ctx.currentTime,skip)}
-      else src.start(when);
-      E.nodes.push(src);if(E.nodes.length>80)E.nodes.shift();
-      while(gen===E.gen&&(w.timestamp-from)/rate-(E.ctx.currentTime-E.startAt)>5)await new Promise(function(r){setTimeout(r,200)});
-    }
-  }catch(e){if(gen===E.gen)engFail()}
-}
-/* فحص الانحراف كل ثانية: إن زاد على ربع ثانية نعيد مزامنة الصوت على الفيديو */
-setInterval(function(){
-  if(!E.on||!E.playing||vid.paused||vid.seeking||!E.ctx)return;
-  var exp=E.startFrom+(E.ctx.currentTime-E.startAt)*E.rate,dr=exp-vid.currentTime;
-  if(Math.abs(dr)>.25){E.drift++;engStart()}
-},1000);
-['play','playing'].forEach(function(ev){vid.addEventListener(ev,function(){if(E.on&&!E.playing)engStart()})});
-['pause','waiting','seeking','ended','stalled'].forEach(function(ev){vid.addEventListener(ev,function(){if(E.on)engHalt()})});
-vid.addEventListener('seeked',function(){if(E.on&&!vid.paused)engStart()});
-vid.addEventListener('canplay',function(){if(E.on&&!vid.paused&&!E.playing)engStart()});
-vid.addEventListener('ratechange',function(){if(E.on&&!vid.paused)engStart()});
-/* فشل: نعيد صوت الفيديو الأصلي ونُخفي زر اللغة */
-function engFail(){
-  engOff();E.tracks=[];E.fail=true;syncAudUI();
-  toast('تعذّر تبديل الصوت على هذا الجهاز');
-}
-function engOff(){
-  engHalt();
-  if(E.on){
-    try{delete vid.muted;delete vid.volume}catch(e){}
-    try{MUT.set.call(vid,E.muted)}catch(e){}
-    try{vid.volume=E.vol}catch(e){}
+function cat(a){var n=0;a.forEach(function(x){n+=x.byteLength});var o=new Uint8Array(n),p=0;a.forEach(function(x){o.set(x,p);p+=x.byteLength});return o}
+function sbWait(){return new Promise(function(r){if(!E.sb||!E.sb.updating)return r();E.sb.addEventListener('updateend',function(){r()},{once:true})})}
+async function sbAppend(buf){
+  await sbWait();
+  for(var k=0;k<4;k++){
+    try{E.sb.appendBuffer(buf);await sbWait();return}
+    catch(e){if(e&&e.name==='QuotaExceededError')await sbEvict(true);else throw e}
   }
-  E.on=false;
+  throw new Error('quota');
 }
-function engReset(){engOff();E.pn++;E.input=null;E.tr=[];E.tracks=[];E.url='';E.fail=false;E.busy=false}
+async function sbEvict(force){
+  var b=vid.buffered;if(!b.length||!E.sb)return;
+  var keep=force?10:40,ct=vid.currentTime;
+  if(b.start(0)<ct-keep){try{await sbWait();E.sb.remove(b.start(0),ct-keep);await sbWait()}catch(e){}}
+}
+function sbAhead(){
+  var b=vid.buffered,ct=vid.currentTime;
+  for(var i=0;i<b.length;i++)if(ct>=b.start(i)-.3&&ct<=b.end(i))return b.end(i)-ct;
+  return 0;
+}
+function mseTear(){
+  E.gen++;try{E.conv&&E.conv.cancel()}catch(e){}E.conv=null;E.q=[];
+  if(E.blob){try{URL.revokeObjectURL(E.blob)}catch(e){}}
+  E.ms=null;E.sb=null;E.blob='';E.mime='';E.finished=false;
+}
+async function mseMime(A){
+  var v=await E.vTrack.getCodecParameterString(),a=REMUX_A.indexOf(A.codec)>=0?await A.tr.getCodecParameterString():'mp4a.40.2';
+  return 'video/mp4; codecs="'+v+', '+a+'"';
+}
+/* بدء مقطع جديد من الموضع from بالمسار المختار */
+async function mseStart(from,idx,playAfter){
+  var gen=++E.gen;try{E.conv&&E.conv.cancel()}catch(e){}E.conv=null;E.finished=false;E.q=[];E.offKnown=false;
+  var A=E.tr[idx],MB=E.mb,mime=await mseMime(A);
+  if(!MSE_||!MSE_.isTypeSupported(mime))throw new Error('unsupported');
+  if(gen!==E.gen)return;
+  if(!E.ms||E.ms.readyState==='closed'||E.mime!==mime){
+    if(E.blob){try{URL.revokeObjectURL(E.blob)}catch(e){}}
+    E.ms=new MSE_();E.blob=URL.createObjectURL(E.ms);
+    var ms=E.ms;E.on=true;vid.src=E.blob;
+    await new Promise(function(r){ms.addEventListener('sourceopen',r,{once:true})});
+    if(gen!==E.gen)return;
+    E.sb=ms.addSourceBuffer(mime);E.mime=mime;
+    try{ms.duration=E.dur}catch(e){}
+  }else{
+    await sbWait();try{E.sb.abort()}catch(e){}
+    try{await sbWait();E.sb.remove(0,Infinity);await sbWait()}catch(e){}
+  }
+  if(gen!==E.gen)return;
+  var hdr=[],moofTs=null,pend=null;
+  var out=new MB.Output({
+    format:new MB.Mp4OutputFormat({fastStart:'fragmented',minimumFragmentDuration:2,
+      onFtyp:function(d){hdr.push(d.slice())},
+      onMoov:function(d){hdr.push(d.slice());E.q.push({kind:'init',data:cat(hdr)})},
+      onMoof:function(d,pos,ts){pend=d.slice();moofTs=ts},
+      onMdat:function(d){E.q.push({kind:'frag',data:cat([pend,d.slice()]),ts:moofTs});pend=null}}),
+    target:new MB.NullTarget()});
+  var conv=await MB.Conversion.init({
+    input:E.input,output:out,video:{},
+    audio:async function(t){if(t!==A.tr)return{discard:true};return REMUX_A.indexOf(A.codec)>=0?{}:{codec:'aac'}},
+    trim:from>0?{start:from}:undefined
+  });
+  if(gen!==E.gen)return;
+  if(!conv.isValid)throw new Error('invalid');
+  E.conv=conv;
+  msePump(gen,from,conv,playAfter);
+}
+async function msePump(gen,from,conv,playAfter){
+  var fed=0,first=false;
+  try{
+    while(gen===E.gen){
+      while(E.q.length&&gen===E.gen){
+        var it=E.q.shift();
+        if(it.kind==='init'){await sbAppend(it.data);continue}
+        if(!E.offKnown){
+          E.offKnown=true;var off=(from>0&&it.ts<from-1)?from:0;
+          await sbWait();E.sb.timestampOffset=off;
+        }
+        await sbAppend(it.data);
+        if(!first){first=true;
+          if(from>0&&Math.abs(vid.currentTime-from)>1){try{vid.currentTime=Math.max(from,vid.buffered.length?vid.buffered.start(0):from)}catch(e){}}
+          if(playAfter)vid.play().catch(function(){});
+        }
+        await sbEvict(false);
+      }
+      if(gen!==E.gen)return;
+      if(E.finished)break;
+      if(sbAhead()<30||!first){
+        fed+=8;await conv.execute({until:fed});
+        if(fed>=E.dur-from+1)E.finished=true;
+      }else await new Promise(function(r){setTimeout(r,400)});
+    }
+    if(gen===E.gen&&E.finished){
+      while(E.q.length&&gen===E.gen){await sbAppend(E.q.shift().data)}
+      await sbWait();try{E.ms.endOfStream()}catch(e){}
+    }
+  }catch(e){
+    if(gen===E.gen&&!(e&&/cancel/i.test(e.name||e.message||'')))engFail();
+  }
+}
+/* فشل: نعود إلى تشغيل الملف الأصلي (بصوته الأول) من الموضع الحالي */
+function engFail(msg){
+  var was=E.on,t=vid.currentTime||0,play=!vid.paused,u=E.url;
+  mseTear();E.on=false;E.tracks=[];E.tr=[];E.fail=true;E.busy=false;
+  if(was&&u){
+    S.curUrl=u;vid.src=u;
+    vid.addEventListener('loadedmetadata',function(){try{vid.currentTime=t}catch(e){}if(play)vid.play().catch(function(){})},{once:true});
+  }
+  syncAudUI();toast(msg||'تعذّر تبديل الصوت على هذا الجهاز');
+}
+function engReset(){mseTear();E.on=false;E.pn++;E.input=null;E.vTrack=null;E.tr=[];E.tracks=[];E.url='';E.fail=false;E.busy=false;E.aIdx=0;xReset()}
 async function engSelect(i){
-  var tr=null;E.tr.forEach(function(t){if(t.i===i)tr=t});if(!tr||E.busy)return;
-  var idx=E.tr.indexOf(tr);
-  if(E.on){E.aIdx=idx;engHalt();if(!vid.paused)engStart();syncAudUI();return}
-  E.busy=true;
+  var idx=-1;E.tr.forEach(function(t,k){if(t.i===i)idx=k});
+  if(idx<0||E.busy||S.ad.busy||E.fail)return;
+  if(E.on&&idx===E.aIdx)return;
+  if(!E.on&&idx===0){syncAudUI();return}
+  E.busy=true;var t=vid.currentTime||0,play=!vid.paused,pn=E.pn;
   try{
     if(!E.mb)await mbLoad();
-    E.vol=vid.volume;E.muted=vid.muted;E.aIdx=idx;
-    engShim();E.on=true;
-    if(!vid.paused)engStart();
-    syncAudUI();
-  }catch(e){engFail()}
-  E.busy=false;
+    if(pn!==E.pn)return;
+    if(!E.on)E.dur=isFinite(vid.duration)&&vid.duration>0?vid.duration:await E.input.computeDuration();
+    E.aIdx=idx;
+    $('#jpSpin').style.display='block';
+    await mseStart(t,idx,play);
+  }catch(e){if(pn===E.pn)engFail(e&&e.message==='unsupported'?'هذا الترميز الصوتي/المرئي غير مدعوم لتبديل الصوت على جهازك':null)}
+  if(pn===E.pn)E.busy=false;
+  syncAudUI();
 }
-/* فحص الملف في الخلفية بعد بدء التشغيل: لا يؤخر البدء */
+/* التقديم خارج المخزَّن: نبدأ مقطعاً جديداً من الموضع */
+vid.addEventListener('seeking',function(){
+  if(!E.on||E.busy||S.ad.busy)return;
+  var t=vid.currentTime,b=vid.buffered;
+  for(var i=0;i<b.length;i++)if(t>=b.start(i)&&t<=b.end(i)-.5)return;
+  E.busy=true;var pn=E.pn;
+  $('#jpSpin').style.display='block';
+  mseStart(t,E.aIdx,!vid.paused).catch(function(){if(pn===E.pn)engFail()}).then(function(){if(pn===E.pn)E.busy=false});
+});
+/* فحص الملف في الخلفية بعد بدء التشغيل: لا يؤخر البدء. يحتاج ≥2 مسار صوتي قابل للقراءة وفيديو */
 async function engProbe(url){
   var pn=E.pn;
-  if(E.fail||S.opts&&(S.opts.audioOnly||S.opts.yt)||Y.on||!url||isHls(url)||!/^https?:/i.test(url))return;
+  if(E.fail||!MSE_||S.opts&&(S.opts.audioOnly||S.opts.yt)||Y.on||!url||isHls(url)||!/^https?:/i.test(url))return;
   if(nativeAud())return;
   try{
     var MB=await mbLoad();if(pn!==E.pn)return;
-    var input=new MB.Input({source:new MB.UrlSource(url,{maxCacheSize:6*1048576,parallelism:1}),formats:MB.ALL_FORMATS});
+    var input=new MB.Input({source:new MB.UrlSource(url,{maxCacheSize:16*1048576,parallelism:1}),formats:MB.ALL_FORMATS});
     var at=await input.getAudioTracks();
     if(pn!==E.pn||at.length<2)return;
     var list=[];
@@ -1006,20 +1069,77 @@ async function engProbe(url){
       try{lang=await t.getLanguageCode()||'und'}catch(e){}
       try{name=await t.getName()||''}catch(e){}
       try{dec=await t.canDecode()}catch(e){}
-      list.push({i:i,tr:t,lang:lang,name:name,dec:dec});
+      list.push({i:i,tr:t,lang:lang,name:name,dec:dec,codec:String(t.codec)});
     }
     var ok=list.filter(function(t){return t.dec});
     if(ok.length<2||pn!==E.pn)return;
-    E.input=input;E.url=url;E.tr=ok;E.tracks=ok.map(function(t){return{i:t.i,lang:t.lang,name:t.name}});
-    /* الاختيار التلقائي بالأولوية: ننتظر انتهاء أي إعلان أولاً */
+    var vt=await input.getPrimaryVideoTrack();
+    if(!vt||pn!==E.pn)return;
+    E.input=input;E.vTrack=vt;E.url=url;E.tr=ok;E.tracks=ok.map(function(t){return{i:t.i,lang:t.lang,name:t.name}});
+    S.audN=0;
     var tries=0;(function go(){if(pn!==E.pn)return;if(S.ad.busy&&tries++<40){setTimeout(go,1000);return}autoAudio()})();
   }catch(e){}
 }
 
+/* ───────────── ملف صوتي خارجي (يضيفه الأدمين): عنصر <audio> متزامن مع الفيديو ───────────── */
+var X={on:false,a:null,k:-1,vol:1,muted:false,bad:{}};
+function xEv(){try{vid.dispatchEvent(new Event('volumechange'))}catch(e){}}
+function xVol(){if(X.a){try{X.a.volume=X.vol}catch(e){}X.a.muted=!!X.muted}}
+function xShim(){
+  var d=function(n,o){o.configurable=true;Object.defineProperty(vid,n,o)};
+  d('muted',{get:function(){return X.muted},set:function(v){X.muted=!!v;xVol();setTimeout(xEv,0)}});
+  d('volume',{get:function(){return X.vol},set:function(v){X.vol=Math.min(1,Math.max(0,+v||0));xVol();setTimeout(xEv,0)}});
+  try{MUT.set.call(vid,true)}catch(e){}
+}
+function xStop(){
+  if(X.a){var a=X.a;X.a=null;a.onerror=null;try{a.pause()}catch(e){}a.removeAttribute('src');try{a.load()}catch(e){}}
+}
+function xOff(){
+  xStop();
+  if(X.on){
+    try{delete vid.muted;delete vid.volume}catch(e){}
+    try{MUT.set.call(vid,X.muted)}catch(e){}
+    try{vid.volume=X.vol}catch(e){}
+  }
+  X.on=false;X.k=-1;
+}
+function xReset(){xOff();X.bad={}}
+function xSync(force){
+  var a=X.a;if(!a||a.readyState<1)return;
+  var d=a.currentTime-vid.currentTime;
+  if(force||Math.abs(d)>.3){try{a.currentTime=vid.currentTime}catch(e){}}
+}
+function xPlay(){
+  if(!X.on||!X.a||S.ad.busy||vid.paused)return;
+  xSync(true);X.a.playbackRate=vid.playbackRate||1;
+  var p=X.a.play();if(p&&p.catch)p.catch(function(){});
+}
+function xSelect(k){
+  var A=S.opts&&S.opts.audios&&S.opts.audios[k];if(!A||X.bad[k])return;
+  if(!X.on){X.vol=vid.volume;X.muted=vid.muted;xShim();X.on=true}
+  xStop();
+  var a=new Audio();a.preload='auto';a.src=A.url;X.a=a;X.k=k;xVol();
+  a.onerror=function(){if(X.a!==a)return;X.bad[k]=1;xOff();syncAudUI();toast('تعذّر تحميل هذا المسار الصوتي')};
+  a.addEventListener('loadedmetadata',function(){xSync(true);xPlay()},{once:true});
+  xPlay();syncAudUI();
+}
+['play','playing','canplay'].forEach(function(ev){vid.addEventListener(ev,function(){if(X.on&&X.a&&X.a.paused)xPlay()})});
+['pause','waiting','stalled','ended'].forEach(function(ev){vid.addEventListener(ev,function(){if(X.on&&X.a)try{X.a.pause()}catch(e){}})});
+vid.addEventListener('seeking',function(){if(X.on&&X.a)try{X.a.pause()}catch(e){}});
+vid.addEventListener('seeked',function(){if(X.on&&X.a){xSync(true);xPlay()}});
+vid.addEventListener('ratechange',function(){if(X.on&&X.a)X.a.playbackRate=vid.playbackRate||1});
+setInterval(function(){
+  if(!X.on||!X.a||vid.paused||vid.seeking)return;
+  if(S.ad.busy){try{X.a.pause()}catch(e){}return}
+  if(X.a.paused){if(X.a.readyState>=2)xPlay();return}
+  xSync(false);
+},1000);
+
 /* ───────────── المسارات الصوتية: أولوية العربية ثم الإنجليزية ثم الفرنسية ───────────── */
 var AUP=[[/^(ar|ara)([-_]|$)/i,/عرب|arab/i],[/^(en|eng)([-_]|$)/i,/engl|إنج|انج/i],[/^(fr|fre|fra)([-_]|$)/i,/fran|فرن/i]];
 var AUN={ar:'العربية',ara:'العربية',en:'الإنجليزية',eng:'الإنجليزية',fr:'الفرنسية',fre:'الفرنسية',fra:'الفرنسية',es:'الإسبانية',spa:'الإسبانية',de:'الألمانية',ger:'الألمانية',deu:'الألمانية',it:'الإيطالية',ita:'الإيطالية',tr:'التركية',tur:'التركية',ru:'الروسية',rus:'الروسية',ja:'اليابانية',jpn:'اليابانية',ko:'الكورية',kor:'الكورية',hi:'الهندية',hin:'الهندية',pt:'البرتغالية',por:'البرتغالية',zh:'الصينية',chi:'الصينية',zho:'الصينية',fa:'الفارسية',per:'الفارسية',fas:'الفارسية'};
-function audList(){
+/* مسارات الملف نفسه: HLS ثم audioTracks الأصلية (Safari) ثم مسارات Mediabunny */
+function audBase(){
   var out=[],i;
   try{
     if(S.hls&&S.hls.audioTracks&&S.hls.audioTracks.length>1){
@@ -1029,9 +1149,21 @@ function audList(){
     var at=Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype,'audioTracks');at=at&&vid.audioTracks;
     if(at&&at.length>1){for(i=0;i<at.length;i++)out.push({i:i,lang:at[i].language||'',name:at[i].label||''});return out}
   }catch(e){}
-  /* مسارات قرأها محرك Mediabunny (الفيديو يبقى على <video> حتى تختار لغة مختلفة) */
   if(E.tracks.length>1)return E.tracks.map(function(t){return {i:t.i,lang:t.lang,name:t.name}});
   return out;
+}
+/* ملفات صوتية خارجية أضافها الأدمين (المعرّفات تبدأ من 1000) */
+function audExt(){
+  var a=S.opts&&S.opts.audios,out=[];
+  if(!Array.isArray(a))return out;
+  a.forEach(function(x,k){if(x&&x.url&&!X.bad[k])out.push({i:1000+k,lang:String(x.lang||''),name:'',ext:true})});
+  return out;
+}
+function audList(){
+  var b=audBase(),x=audExt();
+  if(!x.length)return b;
+  if(!b.length){var ol=(S.opts&&S.opts.origLang)||'';b=[{i:0,lang:ol,name:'الصوت الأصلي',orig:true}]}
+  return b.concat(x);
 }
 function audRank(t){for(var k=0;k<AUP.length;k++){if(AUP[k][0].test(t.lang)||AUP[k][1].test(t.name))return k}return 99}
 function audKey(t){var r=audRank(t);return r<99?['ar','en','fr'][r]:(t.lang||t.name||'').toLowerCase()}
@@ -1043,20 +1175,26 @@ function audName(t){
 }
 function audCur(){
   var l=audList(),i;if(!l.length)return null;
+  if(X.on&&X.k>=0){for(i=0;i<l.length;i++)if(l[i].i===1000+X.k)return l[i]}
+  var bs=audBase();
+  if(!bs.length)return l[0];
   if(E.tracks.length>1&&!(S.hls&&S.hls.audioTracks&&S.hls.audioTracks.length>1)&&!nativeAud()){
     var ci=E.on&&E.tr[E.aIdx]?E.tr[E.aIdx].i:0;
-    for(i=0;i<l.length;i++)if(l[i].i===ci)return l[i];
-    return {i:-1,lang:'',name:''};
+    for(i=0;i<bs.length;i++)if(bs[i].i===ci)return bs[i];
+    return bs[0];
   }
   try{
-    if(S.hls&&S.hls.audioTracks&&S.hls.audioTracks.length>1){var c=S.hls.audioTrack;for(i=0;i<l.length;i++)if(l[i].i===c)return l[i]}
-    else if(vid.audioTracks){for(i=0;i<l.length;i++)if(vid.audioTracks[l[i].i].enabled)return l[i]}
+    if(S.hls&&S.hls.audioTracks&&S.hls.audioTracks.length>1){var c=S.hls.audioTrack;for(i=0;i<bs.length;i++)if(bs[i].i===c)return bs[i]}
+    else if(vid.audioTracks){for(i=0;i<bs.length;i++)if(vid.audioTracks[bs[i].i].enabled)return bs[i]}
   }catch(e){}
-  return l[0];
+  return bs[0];
 }
 function nativeAud(){try{var d=Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype,'audioTracks');var a=d&&vid.audioTracks;return !!(a&&a.length>1)}catch(e){return false}}
 function audSet(t){
-  if(E.tracks.length>1&&!(S.hls&&S.hls.audioTracks&&S.hls.audioTracks.length>1)&&!nativeAud()){if(!E.on&&t.i===0){syncAudUI();return}engSelect(t.i);return}
+  if(t.i>=1000){xSelect(t.i-1000);syncAudUI();return}
+  if(X.on)xOff();
+  if(!audBase().length){syncAudUI();return}
+  if(E.tracks.length>1&&!(S.hls&&S.hls.audioTracks&&S.hls.audioTracks.length>1)&&!nativeAud()){engSelect(t.i);return}
   try{
     if(S.hls&&S.hls.audioTracks&&S.hls.audioTracks.length>1)S.hls.audioTrack=t.i;
     else if(vid.audioTracks)for(var i=0;i<vid.audioTracks.length;i++)vid.audioTracks[i].enabled=(i===t.i);
@@ -1071,7 +1209,8 @@ function audPref(){try{return localStorage.getItem('sp_aud')||''}catch(e){return
 /* عند توفر عدة مسارات: يختار تلقائياً (اختيارك السابق، وإلا عربي > إنجليزي > فرنسي > الأول) */
 function autoAudio(){
   var l=audList();syncAudUI();
-  if(l.length<2||S.audN===l.length)return;
+  if(!S.open||l.length<2||S.audN===l.length)return;
+  if(S.ad.busy){setTimeout(autoAudio,1500);return}
   S.audN=l.length;
   var pref=audPref(),best=null,i;
   if(pref)for(i=0;i<l.length;i++)if(audKey(l[i])===pref){best=l[i];break}

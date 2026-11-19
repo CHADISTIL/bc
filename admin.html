@@ -240,6 +240,7 @@ button:not(.sec):not(.del):not(.tab):not(.x):hover{box-shadow:0 6px 18px rgba(25
         <textarea id="mq" placeholder="1080p|https://example.com/movie-1080.mp4&#10;أو ارفع الفيديو بالزر أدناه"></textarea>
         <div class="vup" data-t="m"><select class="inp vprov" style="margin:0 0 6px"><option value="vcdn">الوجهة: vcdn</option><option value="pd">الوجهة: PixelDrain (رابط مباشر)</option><option value="ia">الوجهة: Internet Archive (رابط مباشر)</option><option value="r2">الوجهة: Cloudflare R2 (الحساب النشط)</option><option value="tg">الوجهة: تلغرام (تقطيع تلقائي)</option></select><label class="file"><i class="fas fa-cloud-arrow-up"></i> رفع ملف من الجهاز<input type="file" accept="video/*"></label><label class="file hlsl" style="display:none"><i class="fas fa-folder-tree"></i> رفع مجلد HLS (m3u8 + مقاطع)<input type="file" class="hlsdir" webkitdirectory multiple></label><div class="row vrow" style="margin-top:4px"><div class="vin"><input class="inp vurl" dir="ltr" placeholder="رابط فيديو مباشر"><button type="button" class="vx" title="مسح" style="display:none"><i class="fas fa-xmark"></i></button></div><button type="button" class="sec sm2 vps"><i class="fas fa-paste"></i> لصق</button><button type="button" class="sm2 vgo"><i class="fas fa-cloud-arrow-up"></i> رفع</button></div>
         <div class="vbar" style="display:none"><i></i></div><div class="sm vst"></div></div>
+        <div class="aupanel" data-t="m"></div>
         <label>ترجمة (VTT أو SRT) — اختياري</label>
         <label class="file"><input type="file" id="msubF" accept=".srt,.vtt,.txt"><i class="fas fa-paperclip"></i> رفع ملف ترجمة</label> <span class="sm" id="msubI"></span>
         <textarea id="msub" placeholder="WEBVTT ..."></textarea>
@@ -283,6 +284,7 @@ button:not(.sec):not(.del):not(.tab):not(.x):hover{box-shadow:0 6px 18px rgba(25
         <textarea id="eq" placeholder="720p|https://..."></textarea>
         <div class="vup" data-t="e"><select class="inp vprov" style="margin:0 0 6px"><option value="vcdn">الوجهة: vcdn</option><option value="pd">الوجهة: PixelDrain (رابط مباشر)</option><option value="ia">الوجهة: Internet Archive (رابط مباشر)</option><option value="r2">الوجهة: Cloudflare R2 (الحساب النشط)</option><option value="tg">الوجهة: تلغرام (تقطيع تلقائي)</option></select><label class="file"><i class="fas fa-cloud-arrow-up"></i> رفع ملف من الجهاز<input type="file" accept="video/*"></label><label class="file hlsl" style="display:none"><i class="fas fa-folder-tree"></i> رفع مجلد HLS (m3u8 + مقاطع)<input type="file" class="hlsdir" webkitdirectory multiple></label><div class="row vrow" style="margin-top:4px"><div class="vin"><input class="inp vurl" dir="ltr" placeholder="رابط فيديو مباشر"><button type="button" class="vx" title="مسح" style="display:none"><i class="fas fa-xmark"></i></button></div><button type="button" class="sec sm2 vps"><i class="fas fa-paste"></i> لصق</button><button type="button" class="sm2 vgo"><i class="fas fa-cloud-arrow-up"></i> رفع</button></div>
         <div class="vbar" style="display:none"><i></i></div><div class="sm vst"></div></div>
+        <div class="aupanel" data-t="e"></div>
         <label>ترجمة الحلقة — اختياري</label>
         <label class="file"><input type="file" id="esubF" accept=".srt,.vtt,.txt"><i class="fas fa-paperclip"></i> رفع ملف ترجمة</label> <span class="sm" id="esubI"></span>
         <textarea id="esub"></textarea>
@@ -790,13 +792,13 @@ async function pick(type,id,name,ep){
   const s=await getDoc(doc(db,"titles",tid())).catch(()=>null);
   const d=s&&s.exists()?s.data():{};
   $("#mq").value=fmtQ(d.qualities||(d.watchUrl?[{label:"تلقائي",url:d.watchUrl}]:[]));
-  $("#msub").value=d.subtitle||"";spvReset();adSet("m",d.ad);adSet("e",null);
+  $("#msub").value=d.subtitle||"";spvReset();adSet("m",d.ad);adSet("e",null);auSet("m",d.audios,d.origLang);auSet("e",[],"");
   if(type==="tv"){
     await loadEps();
     if(ep&&ep.season){
       $("#eS").value=ep.season;$("#eE").value=ep.episode;
       const x=epCache.find(i=>i.season===ep.season&&i.episode===ep.episode);
-      $("#eq").value=x?fmtQ(x.qualities):"";$("#esub").value=x?.subtitle||"";adSet("e",x&&x.ad);spvReset();
+      $("#eq").value=x?fmtQ(x.qualities):"";$("#esub").value=x?.subtitle||"";adSet("e",x&&x.ad);auSet("e",x&&x.audios,x&&x.origLang);spvReset();
     }
   }
   window.scrollTo({top:$("#editor").offsetTop-60,behavior:"smooth"});
@@ -808,7 +810,7 @@ $("#saveMovie").onclick=async()=>{
   if(!qualities.length)return msg("أدخل رابطاً صالحاً واحداً على الأقل","err");
   const ad=adGet("m");if(!ad)return;
   try{
-    await setDoc(doc(db,"titles",tid()),{type:"movie",tmdbId:sel.id,title:sel.name,qualities,watchUrl:qualities[0].url,subtitle:$("#msub").value.trim(),ad,updatedAt:Date.now()},{merge:true});
+    await setDoc(doc(db,"titles",tid()),{type:"movie",tmdbId:sel.id,title:sel.name,qualities,watchUrl:qualities[0].url,subtitle:$("#msub").value.trim(),ad,...auGet("m"),updatedAt:Date.now()},{merge:true});
     msg("تم حفظ الفيلم","ok");loadPub();
   }catch(e){msg("فشل الحفظ — تأكد أن حسابك ضمن admins وأن القواعد منشورة ("+e.code+")","err")}
 };
@@ -821,12 +823,12 @@ async function saveEp(){
   const ad=adGet("e");if(!ad)return;
   try{
     await setDoc(doc(db,"titles",tid()),{type:"tv",tmdbId:sel.id,title:sel.name,lastSeason:s,lastEpisode:e,updatedAt:Date.now()},{merge:true});
-    await setDoc(doc(db,"titles",tid(),"episodes",`s${s}e${e}`),{season:s,episode:e,qualities,url:qualities[0].url,subtitle:$("#esub").value.trim(),ad,updatedAt:Date.now()});
+    await setDoc(doc(db,"titles",tid(),"episodes",`s${s}e${e}`),{season:s,episode:e,qualities,url:qualities[0].url,subtitle:$("#esub").value.trim(),ad,...auGet("e"),updatedAt:Date.now()});
     msg(`تم حفظ S${s} E${e}`,"ok");loadEps();loadPub();return true;
   }catch(x){msg("فشل الحفظ — تأكد أن حسابك ضمن admins ("+x.code+")","err")}
 }
 $("#saveEp").onclick=saveEp;
-$("#nextEp").onclick=async()=>{if(await saveEp()){$("#eE").value=+$("#eE").value+1;$("#eq").value="";$("#esub").value="";$("#esubI").textContent="";adSet("e",null);spvReset()}};
+$("#nextEp").onclick=async()=>{if(await saveEp()){$("#eE").value=+$("#eE").value+1;$("#eq").value="";$("#esub").value="";$("#esubI").textContent="";adSet("e",null);auSet("e",[],"");spvReset()}};
 
 let epCache=[];
 async function loadEps(){
@@ -839,7 +841,7 @@ async function loadEps(){
   box.querySelectorAll("button").forEach(b=>b.onclick=async()=>{
     const x=arr.find(i=>i.id===b.dataset.e);
     if(b.dataset.a==="del"){if(await ask("ستُحذف هذه الحلقة.",{title:"حذف الحلقة",icon:"fa-trash",danger:true,ok:"حذف"})){await deleteDoc(doc(db,"titles",tid(),"episodes",x.id)).catch(()=>msg("فشل الحذف","err"));loadEps()}}
-    else{$("#eS").value=x.season;$("#eE").value=x.episode;$("#eq").value=fmtQ(x.qualities);$("#esub").value=x.subtitle||"";adSet("e",x.ad);$("#esubI").textContent="";spvReset();window.scrollTo({top:$("#tvBox").offsetTop,behavior:"smooth"})}
+    else{$("#eS").value=x.season;$("#eE").value=x.episode;$("#eq").value=fmtQ(x.qualities);$("#esub").value=x.subtitle||"";adSet("e",x.ad);auSet("e",x.audios,x.origLang);$("#esubI").textContent="";spvReset();window.scrollTo({top:$("#tvBox").offsetTop,behavior:"smooth"})}
   });
 }
 
@@ -960,7 +962,7 @@ async function vRun(src,title,ta,box){
   const lock=v=>box.querySelectorAll("input,button").forEach(x=>x.disabled=v);lock(true);
   try{
     st.textContent="بدء الرفع...";
-    const j=await vApi("upload/init",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({filename:hNm(box,(String(src.name||"").match(/\.(mp4|mkv|mov|webm|avi|m4v|ts)$/i)||[])[1]||"mp4"),size:src.size,contentType:src.type||"video/mp4",title,ladderProfile:"standard"})});
+    const j=await vApi("upload/init",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({filename:hNm(box,(String(src.name||"").match(/\.(mp4|mkv|mov|webm|avi|m4v|ts|m4a|mp3|aac|ogg|opus|wav|flac|mka|ac3|eac3)$/i)||[])[1]||"mp4"),size:src.size,contentType:src.type||"video/mp4",title,ladderProfile:"standard"})});
     const id=j.uploadId||j.videoId||j.id;if(!id)throw new Error("فشل بدء الرفع");
     const CH=+(j.chunkSize||j.chunk_size)||8*1024*1024;
     let off=0;
@@ -994,13 +996,74 @@ async function vPost(path,body){
   const j=await r.json().catch(()=>({}));
   if(!r.ok){console.warn("vcdn",path,r.status,j);throw new Error(j.message||j.error||("HTTP "+r.status))}return j;
 }
+/* ───── مسارات صوتية إضافية (عربي / فرنسي / إنجليزي / رمز لغة آخر) ───── */
+const AU={m:[],e:[]},AO={m:"",e:""};
+const AUL={ar:"العربية",fr:"الفرنسية",en:"الإنجليزية"};
+const auNorm=c=>{c=String(c||"").trim().toLowerCase();return({ara:"ar",arb:"ar",fra:"fr",fre:"fr",eng:"en"})[c]||c};
+const auOk=c=>/^[a-z]{2,3}(-[a-z0-9]{2,8})?$/.test(c);
+const auLbl=c=>AUL[c]||c.toUpperCase();
+const auPan=box=>box.closest(".aupanel");
+const auLang=box=>{const p=auPan(box),v=p.querySelector(".aulang").value;return v==="_"?auNorm(p.querySelector(".aucode").value):v};
+const auSfx=box=>box.dataset.a?"_a-"+(auLang(box)||"x"):"";
+const auCheck=box=>{
+  if(!box.dataset.a)return true;
+  const c=auLang(box);if(auOk(c))return true;
+  box.querySelector(".vst").textContent="اكتب رمز اللغة أولاً (مثال: spa أو es)";return false;
+};
+function auAdd(t,url,lang){
+  lang=auNorm(lang);if(!auOk(lang)||!/^https?:\/\/|^tg:/i.test(url))return false;
+  AU[t]=AU[t].filter(x=>x.lang!==lang);AU[t].push({lang,url});auDraw(t);return true;
+}
+const taOf=box=>{
+  if(!box.dataset.a)return box.dataset.t==="m"?$("#mq"):$("#eq");
+  const t=box.dataset.t;
+  return {get value(){return ""},set value(v){auAdd(t,String(v).split("\n").pop().trim(),auLang(box))}};
+};
+function auDraw(t){
+  const p=document.querySelector(`.aupanel[data-t="${t}"]`);if(!p)return;
+  const L=p.querySelector(".aulist");
+  L.innerHTML=AU[t].length?AU[t].map((x,i)=>`<div class="eprow"><b>${esc(auLbl(x.lang))}</b><span dir="ltr" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0">${esc(x.url)}</span><button type="button" class="del ic" data-i="${i}"><i class="fas fa-trash"></i></button></div>`).join(""):'<div class="sm" style="margin-bottom:6px">لا توجد مسارات صوتية إضافية</div>';
+  L.querySelectorAll("button").forEach(b=>b.onclick=()=>{AU[t].splice(+b.dataset.i,1);auDraw(t)});
+}
+function auSet(t,list,orig){
+  AU[t]=(Array.isArray(list)?list:[]).filter(x=>x&&x.url&&x.lang).map(x=>({lang:auNorm(x.lang),url:x.url}));AO[t]=orig||"";
+  const p=document.querySelector(`.aupanel[data-t="${t}"]`);if(p){p.querySelector(".auorig").value=AO[t];const u=p.querySelector(".auurl");if(u)u.value="";p.querySelectorAll(".vst").forEach(x=>x.textContent="")}
+  auDraw(t);
+}
+const auGet=t=>({audios:AU[t].map(x=>({lang:x.lang,url:x.url})),origLang:AO[t]||""});
+document.querySelectorAll(".aupanel").forEach(p=>{
+  const t=p.dataset.t;
+  p.innerHTML=`<label>مسارات صوتية إضافية — اختياري</label>
+  <div class="sm" style="margin-bottom:6px">للملفات التي لا تحتوي إلا على صوت واحد. أما ملفات mkv/mp4 التي تحمل عدة مسارات صوتية داخلها فيكتشفها المشغّل تلقائياً.</div>
+  <div class="aulist"></div>
+  <label>لغة الصوت الأصلي داخل الفيديو</label>
+  <select class="inp auorig"><option value="">تلقائي (من بيانات الملف)</option><option value="ar">العربية</option><option value="fr">الفرنسية</option><option value="en">الإنجليزية</option></select>
+  <label>لغة المسار الجديد</label>
+  <div class="row" style="margin:0 0 6px"><select class="inp aulang" style="margin:0"><option value="ar">العربية</option><option value="fr">الفرنسية</option><option value="en">الإنجليزية</option><option value="_">لغة أخرى (اكتب الرمز)</option></select><input class="inp aucode" dir="ltr" maxlength="8" placeholder="رمز اللغة مثل spa" style="display:none;margin:0"></div>
+  <div class="sm auhint" style="display:none;margin-bottom:6px">اكتب رمز اللغة بأحرف إنجليزية صغيرة، 3 أحرف (ISO 639-2) أو حرفان: <b dir="ltr">spa</b> الإسبانية · <b dir="ltr">deu</b> الألمانية · <b dir="ltr">ita</b> الإيطالية · <b dir="ltr">tur</b> التركية · <b dir="ltr">rus</b> الروسية · <b dir="ltr">jpn</b> اليابانية · <b dir="ltr">kor</b> الكورية · <b dir="ltr">hin</b> الهندية · <b dir="ltr">zho</b> الصينية</div>
+  <div class="row" style="margin:0 0 6px"><input class="inp auurl" dir="ltr" placeholder="رابط ملف الصوت المباشر (mp3 / m4a / aac / ogg ...)" style="margin:0"><button type="button" class="sm2 auadd"><i class="fas fa-plus"></i> إضافة الرابط</button></div>
+  <div class="sm" style="margin-bottom:6px">أو ارفع الملف الصوتي إلى إحدى المنصات، وسيُضاف رابطه تلقائياً بلغة المسار المختارة:</div>
+  <div class="vup" data-t="${t}" data-a="1"><select class="inp vprov" style="margin:0 0 6px"><option value="pd">الوجهة: PixelDrain (رابط مباشر)</option><option value="ia">الوجهة: Internet Archive (رابط مباشر)</option><option value="r2">الوجهة: Cloudflare R2 (الحساب النشط)</option><option value="tg">الوجهة: تلغرام (تقطيع تلقائي)</option><option value="vcdn">الوجهة: vcdn (منصة فيديو، قد ترفض ملفات الصوت)</option></select><label class="file"><i class="fas fa-cloud-arrow-up"></i> رفع ملف صوتي من الجهاز<input type="file" accept="audio/*,.mka,.m4a,.ac3,.eac3,.opus"></label><div class="row vrow" style="margin-top:4px"><div class="vin"><input class="inp vurl" dir="ltr" placeholder="رابط صوت لنقله إلى المنصة"><button type="button" class="vx" title="مسح" style="display:none"><i class="fas fa-xmark"></i></button></div><button type="button" class="sec sm2 vps"><i class="fas fa-paste"></i> لصق</button><button type="button" class="sm2 vgo"><i class="fas fa-cloud-arrow-up"></i> رفع</button></div>
+  <div class="vbar" style="display:none"><i></i></div><div class="sm vst"></div></div>`;
+  const ls=p.querySelector(".aulang"),cd=p.querySelector(".aucode"),ht=p.querySelector(".auhint");
+  ls.onchange=()=>{const o=ls.value==="_";cd.style.display=o?"":"none";ht.style.display=o?"":"none";if(o)cd.focus()};
+  p.querySelector(".auorig").onchange=e=>{AO[t]=e.target.value};
+  p.querySelector(".auadd").onclick=()=>{
+    const u=p.querySelector(".auurl"),v=u.value.trim(),c=ls.value==="_"?auNorm(cd.value):ls.value;
+    if(!auOk(c)){msg("اكتب رمز لغة صالحاً (مثال: spa)","err");return}
+    if(!/^https?:\/\//i.test(v)){msg("الصق رابطاً يبدأ بـ http","err");return}
+    auAdd(t,v,c);u.value="";
+  };
+  auDraw(t);
+});
 /* العنوان واسم الملف على أي منصة = رمز TMDB فقط (دون اسم الفيلم) */
-const vTitle=box=>box.dataset.t==="m"?String(sel.id):`${sel.id}_S${+$("#eS").value||1}E${+$("#eE").value||1}`;
+const vTitle=box=>(box.dataset.t==="m"?String(sel.id):`${sel.id}_S${+$("#eS").value||1}E${+$("#eE").value||1}`)+auSfx(box);
 document.querySelectorAll(".vup").forEach(box=>{
-  const ta=()=>box.dataset.t==="m"?$("#mq"):$("#eq"),st=box.querySelector(".vst");
+  const ta=()=>taOf(box),st=box.querySelector(".vst");
   box.querySelector('input[type="file"]').onchange=e=>{
     const f=e.target.files[0];if(!f)return;
     if(!sel){msg("اختر العمل أولاً","err");return}
+    if(!auCheck(box)){e.target.value="";return}
     const pv=box.querySelector(".vprov").value;
     if(pv==="r2"){r2Up(box,ta(),f,null);e.target.value="";return}
     if(pv==="tg"){tgUp(box,ta(),f,null);e.target.value="";return}
@@ -1018,6 +1081,7 @@ document.querySelectorAll(".vup").forEach(box=>{
   box.querySelector(".vgo").onclick=async()=>{
     const url=box.querySelector(".vurl").value.trim();
     if(!sel)return msg("اختر العمل أولاً","err");
+    if(!auCheck(box))return;
     if(!/^https?:\/\//i.test(url)){st.textContent="الصق رابطاً يبدأ بـ http";return}
     if(!PUSH){st.textContent="ضع رابط الـ Worker في config.js";return}
     const pv=box.querySelector(".vprov").value;
@@ -1102,7 +1166,7 @@ async function r2Up(box,ta,file,url){
     if(!sel)throw new Error("اختر العمل أولاً");
     const a=r2Ready();let size=0,key;
     if(file){
-      const ext=((file.name.match(/\.(mp4|mkv|mov|webm|avi|m4v|ts)$/i)||[])[1]||"mp4").toLowerCase();key=hNm(box,ext);size=file.size;r2Room(a,size);
+      const ext=((file.name.match(/\.(mp4|mkv|mov|webm|avi|m4v|ts|m4a|mp3|aac|ogg|opus|wav|flac|mka|ac3|eac3)$/i)||[])[1]||"mp4").toLowerCase();key=hNm(box,ext);size=file.size;r2Room(a,size);
       const j=await r2Call("/r2-sign",{acc:r2Cred(a),items:[{key}]});
       await new Promise((res,rej)=>{
         const x=new XMLHttpRequest();x.open("PUT",j.urls[0]);x.setRequestHeader("Content-Type",r2CT(key));
@@ -1111,7 +1175,7 @@ async function r2Up(box,ta,file,url){
         x.onerror=()=>rej(new Error("تعذّر الاتصال بـ R2 — فعّل CORS للحاوية (PUT)"));x.send(file);
       });
     }else{
-      const ext=((url.split(/[?#]/)[0].match(/\.(mp4|mkv|mov|webm|avi|m4v|ts)$/i)||[])[1]||"mp4").toLowerCase();key=hNm(box,ext);
+      const ext=((url.split(/[?#]/)[0].match(/\.(mp4|mkv|mov|webm|avi|m4v|ts|m4a|mp3|aac|ogg|opus|wav|flac|mka|ac3|eac3)$/i)||[])[1]||"mp4").toLowerCase();key=hNm(box,ext);
       st.innerHTML=`<i class="fas fa-gear fa-spin"></i> جارٍ نقل الملف إلى ${esc(a.name)} عبر الخادم... قد يستغرق عدة دقائق، أبقِ الصفحة مفتوحة`;fill.style.width="35%";
       const j=await r2Call("/r2-pull",{acc:r2Cred(a),src:url,key});size=j.size||0;
     }
@@ -1151,13 +1215,14 @@ async function r2Hls(box,ta,files){
   finally{lock(false)}
 }
 document.querySelectorAll(".vup").forEach(box=>{
-  const ta=()=>box.dataset.t==="m"?$("#mq"):$("#eq"),pv=box.querySelector(".vprov"),hl=box.querySelector(".hlsl");
+  const ta=()=>taOf(box),pv=box.querySelector(".vprov"),hl=box.querySelector(".hlsl");if(!hl)return;
   const sh=()=>{hl.style.display=pv.value==="r2"?"":"none"};pv.addEventListener("change",sh);sh();
   box.querySelector(".hlsdir").onchange=e=>{const fs=e.target.files;if(fs&&fs.length)r2Hls(box,ta(),fs);e.target.value=""};
 });
 /* ───── رفع إلى PixelDrain / Internet Archive ───── */
 const HN={pd:"PixelDrain",ia:"Internet Archive"};
-const hNm=(box,ext)=>box.dataset.t==="m"?`${sel.id}.${ext}`:`${sel.id}_S${+$("#eS").value||1}E${+$("#eE").value||1}.${ext}`;
+
+const hNm=(box,ext)=>(box.dataset.t==="m"?`${sel.id}`:`${sel.id}_S${+$("#eS").value||1}E${+$("#eE").value||1}`)+auSfx(box)+"."+ext;
 const hItem=()=>`sp-${sel.type==="tv"?"tv":"movie"}-${sel.id}`;
 /* Internet Archive: رفع متعدد الأجزاء (90MB لكل جزء، كل جزء يُعاد 3 مرات عند الفشل). يرجع null إذا المصدر لا يدعم Range */
 async function iaMulti(box,tok,url,title,fill,st){
@@ -1195,7 +1260,7 @@ async function hRun(box,p,ta,title,file,url){
     if(file){
       if(file.size>95*1048576)throw new Error("الملف أكبر من 95MB، استخدم الرفع من رابط");
       j=await new Promise((res,rej)=>{
-        const x=new XMLHttpRequest();x.open("PUT",MEDIA+"/host-up?p="+p+"&item="+hItem()+"&name="+encodeURIComponent(hNm(box,((file.name.match(/\.(mp4|mkv|mov|webm|avi|m4v|ts)$/i)||[])[1]||"mp4").toLowerCase()))+"&title="+encodeURIComponent(title));
+        const x=new XMLHttpRequest();x.open("PUT",MEDIA+"/host-up?p="+p+"&item="+hItem()+"&name="+encodeURIComponent(hNm(box,((file.name.match(/\.(mp4|mkv|mov|webm|avi|m4v|ts|m4a|mp3|aac|ogg|opus|wav|flac|mka|ac3|eac3)$/i)||[])[1]||"mp4").toLowerCase()))+"&title="+encodeURIComponent(title));
         x.setRequestHeader("Authorization","Bearer "+tok);for(const [k,v] of Object.entries(kh()))x.setRequestHeader(k,v);
         x.upload.onprogress=e=>{if(e.lengthComputable){const pc=Math.round(e.loaded/e.total*100);fill.style.width=pc+"%";st.textContent=`جارٍ الرفع إلى ${HN[p]} ${pc}% (${(e.loaded/1048576).toFixed(0)} / ${(e.total/1048576).toFixed(0)} MB)`}};
         x.onload=()=>{let r={};try{r=JSON.parse(x.responseText)}catch(e){}x.status>=200&&x.status<300&&r.url?res(r):rej(new Error(r.error||("HTTP "+x.status)))};
@@ -1291,7 +1356,7 @@ async function tgUp(box,ta,file,url){
     if(!a.token||!a.chat)throw new Error("بيانات حساب تلغرام ناقصة");
     const tok=await auth.currentUser.getIdToken();
     let size,mime="video/mp4";
-    if(file){size=file.size;mime=file.type&&/^video\//.test(file.type)?file.type:"video/mp4"}
+    if(file){size=file.size;mime=file.type&&/^(video|audio)\//.test(file.type)?file.type:"video/mp4"}
     else{
       st.textContent="فحص الرابط...";
       const p=await vPost("/vcdn-probe",{src:url});size=p.size;
@@ -1354,7 +1419,7 @@ async function spvSrc(qId){
     if(!j.streamUrl)throw new Error("تعذر جلب رابط التشغيل من vcdn (قد لا يكون جاهزاً بعد)");
     return j.streamUrl;
   }
-  try{const t=new URL(u),h=t.hostname.toLowerCase();if(MEDIA&&t.protocol==="https:"&&(h==="pixeldrain.com"||h==="archive.org"||h.endsWith(".archive.org")))return MEDIA+"/pass?u="+encodeURIComponent(u)}catch(e){}
+  try{const t=new URL(u),h=t.hostname.toLowerCase();const pd=/^(www\.)?(pixeldrain\.(com|net|dev)|pixeldra\.in)$/.test(h)&&/^\/(u|api\/file)\/([\w-]+)/.exec(t.pathname);if(MEDIA&&pd)return MEDIA+"/pass?u="+encodeURIComponent("https://pixeldrain.com/api/file/"+pd[2]);if(MEDIA&&t.protocol==="https:"&&(h==="archive.org"||h.endsWith(".archive.org")))return MEDIA+"/pass?u="+encodeURIComponent(u)}catch(e){}
   return u;
 }
 const SPV={};

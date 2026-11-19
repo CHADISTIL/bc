@@ -337,7 +337,7 @@ html.embed #spFab{display:none}
 <div id="toast"></div>
 
 <link rel="preconnect" href="https://api.themoviedb.org"><link rel="preconnect" href="https://image.tmdb.org"><link rel="preconnect" href="https://firestore.googleapis.com"><script src="config.js"></script>
-<script src="player.js?v=28"></script>
+<script src="player.js?v=29"></script>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {getAuth,onAuthStateChanged,GoogleAuthProvider,signInWithPopup,signInWithEmailAndPassword,createUserWithEmailAndPassword,signOut,updateProfile,sendPasswordResetEmail,deleteUser}
@@ -1470,7 +1470,7 @@ async function openDetail(type,id,epSel){
         const bodyEl=ov.querySelector(".d-body");
         closeDetail();
         const h=histTrack(it,0,0);
-        play({...h,sk:favId("movie",it.id),ad:link.ad,cat:adCat(d,"movie"),isUser:()=>!!user,title:it.title,quals,subtitle:link.subtitle,poster:it.poster,backdrop:d.backdrop_path?IMG+"w1280"+d.backdrop_path:it.poster,chips:[it.year,"فيلم"].filter(Boolean),kind:"movie",fav:favFor(it),slot:bodyEl,shareUrl:shareLink("movie",id),embedUrl:embedLink("movie",id),onClose:()=>setHash("")});
+        play({...h,sk:favId("movie",it.id),ad:link.ad,cat:adCat(d,"movie"),isUser:()=>!!user,title:it.title,quals,subtitle:link.subtitle,audios:link.audios,origLang:link.origLang,poster:it.poster,backdrop:d.backdrop_path?IMG+"w1280"+d.backdrop_path:it.poster,chips:[it.year,"فيلم"].filter(Boolean),kind:"movie",fav:favFor(it),slot:bodyEl,shareUrl:shareLink("movie",id),embedUrl:embedLink("movie",id),onClose:()=>setHash("")});
         setHash(`#/movie/${id}`);
       }else{
         const b=document.createElement("button");b.className="btn sec";b.innerHTML=`<i class="fas fa-clock"></i> غير متوفر بعد`;b.style.cssText="opacity:.6;cursor:default";b.onclick=()=>toast("لم يُضف رابط المشاهدة بعد");acts.appendChild(b);
@@ -1541,7 +1541,7 @@ async function renderEpisodes(d,it,epSel){
         const img=c.ep.still_path;
         info.innerHTML=c.ep.overview?`<div class="desc"><b>${esc(c.ep.name||"")}</b><br>${esc(c.ep.overview)}</div>`:"";
         const h=histTrack(it,+n,c.ep.episode_number);
-        play({...h,sk:favId("tv",it.id),ad:c.l.ad,cat:adCat(d,"tv"),isUser:()=>!!user,title:`${it.title} - S${n} E${c.ep.episode_number}`,quals:c.q,subtitle:c.l.subtitle,poster:img?IMG+"w300"+img:it.poster,backdrop:img?IMG+"w780"+img:it.poster,chips:[`S${n}`,`E${c.ep.episode_number}`],kind:"episode",fav:favFor(it),slot:bodyEl,
+        play({...h,sk:favId("tv",it.id),ad:c.l.ad,cat:adCat(d,"tv"),isUser:()=>!!user,title:`${it.title} - S${n} E${c.ep.episode_number}`,quals:c.q,subtitle:c.l.subtitle,audios:c.l.audios,origLang:c.l.origLang,poster:img?IMG+"w300"+img:it.poster,backdrop:img?IMG+"w780"+img:it.poster,chips:[`S${n}`,`E${c.ep.episode_number}`],kind:"episode",fav:favFor(it),slot:bodyEl,
           shareUrl:shareLink("tv",d.id,n,c.ep.episode_number),embedUrl:embedLink("tv",d.id,n,c.ep.episode_number),onClose:back,
           next:()=>{for(let j=i+1;j<allEps.length;j++){if(mk(allEps[j]).q.length)return{title:`${it.title} - S${n} E${allEps[j].episode_number}`,play:()=>playEp(j)}}return null}});
         setHash(`#/tv/${d.id}/${n}/${c.ep.episode_number}`);
@@ -1595,6 +1595,7 @@ async function play(o){
     const hostedUrl=u=>{const tm=/^tg:([\w-]+)$/i.exec(u);if(tm)return SP_CONFIG.push+"/tg/"+tm[1]+".mp4";try{const t=new URL(u);const h=t.hostname.toLowerCase();
       const pd=/^(www\.)?(pixeldrain\.(com|net|dev)|pixeldra\.in)$/.test(h)&&/^\/(u|api\/file)\/([\w-]+)/.exec(t.pathname);if(pd)return SP_CONFIG.media+"/pass?u="+encodeURIComponent("https://pixeldrain.com/api/file/"+pd[2]);if(t.protocol==="https:"&&(h==="archive.org"||h.endsWith(".archive.org")))return SP_CONFIG.media+"/pass?u="+encodeURIComponent(t.href)}catch(e){}return u};
     o.quals=o.quals.map(q=>({...q,url:hostedUrl(q.url)}));
+    if(Array.isArray(o.audios))o.audios=o.audios.filter(a=>a&&a.url).map(a=>({...a,url:hostedUrl(a.url)}));
   }
   if(o.quals&&o.quals.some(q=>/^vcdn:/i.test(q.url))){
     const q0=o.quals;
@@ -1629,7 +1630,7 @@ async function runEmbed(type,id,se,ep){
     const bd=d.backdrop_path?IMG+"w1280"+d.backdrop_path:(d.poster_path?IMG+"w500"+d.poster_path:"");
     if(!quals.length){document.body.insertAdjacentHTML("beforeend",`<div class="center" style="position:fixed;inset:0;z-index:500;background:#000;display:flex;align-items:center;justify-content:center">هذا المحتوى غير متوفر بعد</div>`);return}
     trackVisit({type,id,title:d.original_title||d.original_name||d.title||d.name,poster:d.poster_path?IMG+"w342"+d.poster_path:""});
-    play({embed:true,sk:favId(type,id),ad:link.ad,cat:adCat(d,type),isUser:()=>!!user,title:name,quals,subtitle:link.subtitle,poster:bd,backdrop:bd,kind:type==="tv"?"episode":"movie",rep:{type,tmdbId:id,title:name,season:se||0,episode:ep||0}});
+    play({embed:true,sk:favId(type,id),ad:link.ad,cat:adCat(d,type),isUser:()=>!!user,title:name,quals,subtitle:link.subtitle,audios:link.audios,origLang:link.origLang,poster:bd,backdrop:bd,kind:type==="tv"?"episode":"movie",rep:{type,tmdbId:id,title:name,season:se||0,episode:ep||0}});
   }catch(e){document.body.insertAdjacentHTML("beforeend",`<div class="center" style="position:fixed;inset:0;z-index:500;background:#000;display:flex;align-items:center;justify-content:center">تعذر تحميل الفيديو</div>`)}
 }
 {const a=new URLSearchParams(location.search).get("act");if(a){const h=location.hash;try{history.replaceState(history.state,"",location.pathname)}catch(e){}setTimeout(()=>spAct(a,h),0)}}
