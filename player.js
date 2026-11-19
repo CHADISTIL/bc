@@ -17,8 +17,6 @@ var CSS=`
 .jp-wrap video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
 .jp-wrap.fs{position:fixed;inset:0;width:100vw;height:100vh;max-height:none;aspect-ratio:auto!important;z-index:2147483000}
 .jp-wrap.stretch video{object-fit:fill}
-.jp-ec{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000;z-index:1;pointer-events:none}
-.jp-wrap.stretch .jp-ec{object-fit:fill}
 
 /* top bar */
 .jp-top{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;gap:8px;padding:8px 10px;background:linear-gradient(rgba(0,0,0,.75),transparent);z-index:20;transition:opacity .3s;direction:ltr}
@@ -571,7 +569,7 @@ function showErr(kind){
 /* HEVC غير المدعوم يعطي أحياناً صوتاً بلا صورة ودون خطأ: نكشفه من أبعاد الفيديو ومن عدد الإطارات التي فُكَّ ترميزها فعلاً */
 var nvSrc='';
 function noVideoNow(){
-  if(Y.on||E.on||S.ad.busy||!S.open||!S.opts||S.opts.audioOnly||!vid.src||vid.readyState<2||!(vid.duration>0))return false;
+  if(Y.on||S.ad.busy||!S.open||!S.opts||S.opts.audioOnly||!vid.src||vid.readyState<2||!(vid.duration>0))return false;
   if(/\.(mp3|m4a|aac|ogg|wav)(\?|$)/i.test(vid.src))return false;
   if(vid.videoWidth===0)return true;
   if(!vid.paused&&!document.hidden&&vid.currentTime>1.5&&vid.getVideoPlaybackQuality){var q=vid.getVideoPlaybackQuality();if(q&&q.totalVideoFrames===0)return true}
@@ -901,9 +899,9 @@ function modal(title,icon,build){
   (isFs()?wrap:root).appendChild(m);S.modal=m;return m;
 }
 
-/* ───────────── محرك الصوت المتعدد (Mediabunny): يعمل فقط عندما يحتوي الملف على عدة أصوات ولا يستطيع المتصفح تبديلها ───────────── */
-var E={on:false,mb:null,mbP:null,input:null,vt:null,tr:[],tracks:[],url:'',aIdx:0,dur:0,ctx:null,gain:null,playing:false,startAt:0,startPos:0,gen:0,raf:0,tick:0,nodes:[],rate:1,vol:1,muted:false,cv:null,cx:null,vi:null,ai:null,pn:0,fail:false,busy:false};
-var EP=['paused','duration','currentTime','playbackRate','muted','volume','videoWidth','videoHeight','readyState','ended','play','pause'];
+/* ───────────── مسار صوتي بديل (Mediabunny): الفيديو يبقى على <video> كما هو، ونسحب الصوت المطلوب فقط ونشغّله عبر Web Audio متزامناً معه ───────────── */
+var E={on:false,mb:null,mbP:null,input:null,tr:[],tracks:[],url:'',aIdx:0,ctx:null,gain:null,playing:false,startAt:0,startFrom:0,gen:0,drift:0,nodes:[],vol:1,muted:false,ai:null,pn:0,fail:false,busy:false,rate:1};
+var MUT=Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype,'muted');
 function mbLoad(){
   if(E.mb)return Promise.resolve(E.mb);
   if(E.mbP)return E.mbP;
@@ -914,124 +912,82 @@ function mbLoad(){
   })();
   return E.mbP;
 }
-function engNow(){return E.playing?E.startPos+(E.ctx.currentTime-E.startAt)*E.rate:E.startPos}
-function engEv(n){try{vid.dispatchEvent(new Event(n))}catch(e){}}
+function engVol(){if(E.gain)E.gain.gain.value=E.muted?0:E.vol}
+/* الفيديو يُكتم أصلياً، وأزرار الكتم والصوت في المشغّل تتحكم بصوت المسار البديل */
 function engShim(){
   var d=function(n,o){o.configurable=true;Object.defineProperty(vid,n,o)};
-  d('paused',{get:function(){return !E.playing}});
-  d('ended',{get:function(){return E.dur>0&&engNow()>=E.dur-.25&&!E.playing}});
-  d('duration',{get:function(){return E.dur||NaN}});
-  d('videoWidth',{get:function(){return E.cv?E.cv.width:0}});
-  d('videoHeight',{get:function(){return E.cv?E.cv.height:0}});
-  d('readyState',{get:function(){return 4}});
-  d('currentTime',{get:function(){return engNow()},set:function(v){engSeek(+v||0)}});
-  d('playbackRate',{get:function(){return E.rate},set:function(v){v=+v||1;if(v===E.rate)return;var p=engNow(),w=E.playing;engHalt();E.rate=v;E.startPos=p;if(w)engPlay(p);engEv('ratechange')}});
-  d('muted',{get:function(){return E.muted},set:function(v){E.muted=!!v;engVol();setTimeout(function(){engEv('volumechange')},0)}});
-  d('volume',{get:function(){return E.vol},set:function(v){E.vol=Math.min(1,Math.max(0,+v||0));engVol();setTimeout(function(){engEv('volumechange')},0)}});
-  d('play',{value:function(){if(!E.playing)engPlay(E.startPos>=E.dur-.25?0:E.startPos);return Promise.resolve()}});
-  d('pause',{value:function(){if(E.playing){var p=engNow();engHalt();E.startPos=p;engEv('pause')}}});
+  d('muted',{get:function(){return E.muted},set:function(v){E.muted=!!v;engVol();setTimeout(function(){try{vid.dispatchEvent(new Event('volumechange'))}catch(e){}},0)}});
+  d('volume',{get:function(){return E.vol},set:function(v){E.vol=Math.min(1,Math.max(0,+v||0));engVol();setTimeout(function(){try{vid.dispatchEvent(new Event('volumechange'))}catch(e){}},0)}});
+  try{MUT.set.call(vid,true)}catch(e){}
 }
-function engVol(){if(E.gain)E.gain.gain.value=E.muted?0:E.vol}
 function engHalt(){
-  E.gen++;E.playing=false;cancelAnimationFrame(E.raf);
-  try{E.vi&&E.vi.return&&E.vi.return()}catch(e){}
+  E.gen++;E.playing=false;
   try{E.ai&&E.ai.return&&E.ai.return()}catch(e){}
+  E.ai=null;
   E.nodes.forEach(function(n){try{n.stop()}catch(e){}});E.nodes=[];
 }
-/* تشغيل المحرك من نقطة: الصوت يُجدول على ساعة AudioContext والإطارات تُرسم عند موعدها */
-async function engPlay(from){
-  var gen=++E.gen,A=E.tr[E.aIdx];
+/* بدء الصوت عند موضع الفيديو الحالي؛ المخازن تُجدول على ساعة AudioContext */
+async function engStart(){
+  if(!E.on||vid.paused||vid.seeking)return;
+  engHalt();
+  var gen=E.gen,A=E.tr[E.aIdx];if(!A)return;
   if(!E.ctx){E.ctx=new (window.AudioContext||window.webkitAudioContext)();E.gain=E.ctx.createGain();E.gain.connect(E.ctx.destination);engVol()}
   try{await E.ctx.resume()}catch(e){}
-  if(gen!==E.gen)return;
-  E.startPos=from;E.startAt=E.ctx.currentTime+.15;E.playing=true;E.ended=false;
-  engEv('play');engEv('playing');
-  var MB=E.mb,rate=E.rate;
-  if(A)(async function(){
-    try{
-      var sink=new MB.AudioBufferSink(A.tr);E.ai=sink.buffers(from);
-      for await(var w of E.ai){
-        if(gen!==E.gen)return;
-        var src=E.ctx.createBufferSource();src.buffer=w.buffer;src.playbackRate.value=rate;src.connect(E.gain);
-        var when=E.startAt+(w.timestamp-from)/rate;
-        if(when<E.ctx.currentTime){var skip=(E.ctx.currentTime-when)*rate;if(skip>=w.buffer.duration)continue;src.start(E.ctx.currentTime,skip)}
-        else src.start(when);
-        E.nodes.push(src);if(E.nodes.length>60)E.nodes.shift();
-        while(gen===E.gen&&(w.timestamp-from)/rate-(E.ctx.currentTime-E.startAt)>4)await new Promise(function(r){setTimeout(r,200)});
-      }
-    }catch(e){}
-  })();
-  (async function(){
-    try{
-      var sink=new MB.CanvasSink(E.vt);E.vi=sink.canvases(from);
-      var q=[],done=false,first=true;
-      (async function(){
-        try{for await(var w of E.vi){if(gen!==E.gen)return;q.push(w);while(gen===E.gen&&q.length>4)await new Promise(function(r){setTimeout(r,40)})}}catch(e){}
-        done=true;
-      })();
-      var loop=function(){
-        if(gen!==E.gen)return;
-        var t=engNow(),last=null;
-        while(q.length&&q[0].timestamp<=t)last=q.shift();
-        if(last){
-          if(E.cv.width!==last.canvas.width){E.cv.width=last.canvas.width;E.cv.height=last.canvas.height}
-          E.cx.drawImage(last.canvas,0,0);
-          if(first){first=false;$('#jpSpin').style.display='none'}
-        }
-        if(done&&!q.length&&t>=E.dur-.25){engHalt();if(vid.loop){E.startPos=0;engPlay(0);return}E.startPos=E.dur;engEv('pause');engEv('ended');return}
-        E.raf=requestAnimationFrame(loop);
-      };
-      E.raf=requestAnimationFrame(loop);
-    }catch(e){engFail()}
-  })();
+  if(gen!==E.gen||vid.paused)return;
+  var rate=vid.playbackRate||1,lead=.12;
+  E.rate=rate;E.startAt=E.ctx.currentTime+lead;E.startFrom=vid.currentTime+lead*rate;E.playing=true;E.drift=0;
+  var from=E.startFrom,MB=E.mb;
+  try{
+    var sink=new MB.AudioBufferSink(A.tr);E.ai=sink.buffers(Math.max(0,from));
+    for await(var w of E.ai){
+      if(gen!==E.gen)return;
+      var src=E.ctx.createBufferSource();src.buffer=w.buffer;src.playbackRate.value=rate;src.connect(E.gain);
+      var when=E.startAt+(w.timestamp-from)/rate;
+      if(when<E.ctx.currentTime){var skip=(E.ctx.currentTime-when)*rate;if(skip>=w.buffer.duration)continue;src.start(E.ctx.currentTime,skip)}
+      else src.start(when);
+      E.nodes.push(src);if(E.nodes.length>80)E.nodes.shift();
+      while(gen===E.gen&&(w.timestamp-from)/rate-(E.ctx.currentTime-E.startAt)>5)await new Promise(function(r){setTimeout(r,200)});
+    }
+  }catch(e){if(gen===E.gen)engFail()}
 }
-async function engSeek(p){
-  p=Math.min(Math.max(0,p),E.dur||p);var w=E.playing;
-  engHalt();E.startPos=p;engEv('seeking');
-  if(w)await engPlay(p);
-  else{
-    try{var sink=new E.mb.CanvasSink(E.vt),f=await sink.getCanvas(p);if(f){E.cx.drawImage(f.canvas,0,0)}}catch(e){}
-  }
-  engEv('seeked');engEv('timeupdate');
-}
-/* فشل المحرك: نعود إلى <video> عند نفس النقطة ونُخفي زر اللغة */
+/* فحص الانحراف كل ثانية: إن زاد على ربع ثانية نعيد مزامنة الصوت على الفيديو */
+setInterval(function(){
+  if(!E.on||!E.playing||vid.paused||vid.seeking||!E.ctx)return;
+  var exp=E.startFrom+(E.ctx.currentTime-E.startAt)*E.rate,dr=exp-vid.currentTime;
+  if(Math.abs(dr)>.25){E.drift++;engStart()}
+},1000);
+['play','playing'].forEach(function(ev){vid.addEventListener(ev,function(){if(E.on&&!E.playing)engStart()})});
+['pause','waiting','seeking','ended','stalled'].forEach(function(ev){vid.addEventListener(ev,function(){if(E.on)engHalt()})});
+vid.addEventListener('seeked',function(){if(E.on&&!vid.paused)engStart()});
+vid.addEventListener('canplay',function(){if(E.on&&!vid.paused&&!E.playing)engStart()});
+vid.addEventListener('ratechange',function(){if(E.on&&!vid.paused)engStart()});
+/* فشل: نعيد صوت الفيديو الأصلي ونُخفي زر اللغة */
 function engFail(){
-  var p=E.on?engNow():0,w=E.playing;
   engOff();E.tracks=[];E.fail=true;syncAudUI();
-  try{vid.currentTime=p;if(w)vid.play().catch(function(){})}catch(e){}
   toast('تعذّر تبديل الصوت على هذا الجهاز');
 }
 function engOff(){
-  engHalt();clearInterval(E.tick);
-  if(E.on){EP.forEach(function(n){try{delete vid[n]}catch(e){}});vid.style.visibility='';if(E.cv&&E.cv.parentNode)E.cv.parentNode.removeChild(E.cv)}
-  E.on=false;E.cv=null;E.cx=null;E.vi=null;E.ai=null;
+  engHalt();
+  if(E.on){
+    try{delete vid.muted;delete vid.volume}catch(e){}
+    try{MUT.set.call(vid,E.muted)}catch(e){}
+    try{vid.volume=E.vol}catch(e){}
+  }
+  E.on=false;
 }
-/* إعادة ضبط كاملة عند تحميل مصدر جديد */
-function engReset(){engOff();E.pn++;E.input=null;E.vt=null;E.tr=[];E.tracks=[];E.url='';E.fail=false;E.busy=false;E.startPos=0;E.dur=0}
+function engReset(){engOff();E.pn++;E.input=null;E.tr=[];E.tracks=[];E.url='';E.fail=false;E.busy=false}
 async function engSelect(i){
-  if(E.busy)return;
-  var tr=null;E.tr.forEach(function(t){if(t.i===i)tr=t});if(!tr)return;
+  var tr=null;E.tr.forEach(function(t){if(t.i===i)tr=t});if(!tr||E.busy)return;
   var idx=E.tr.indexOf(tr);
-  if(E.on){ /* المحرك يعمل: بدّل الصوت فقط عند نفس النقطة */
-    var p=engNow(),w=E.playing;engHalt();E.aIdx=idx;E.startPos=p;if(w)await engPlay(p);syncAudUI();return;
-  }
-  E.busy=true;$('#jpSpin').style.display='block';
+  if(E.on){E.aIdx=idx;engHalt();if(!vid.paused)engStart();syncAudUI();return}
+  E.busy=true;
   try{
-    var p=vid.currentTime||0,w=!vid.paused;
-    if(!E.dur){E.dur=await E.input.computeDuration()||vid.duration||0}
-    if(!E.vt||!(await E.vt.canDecode()))throw new Error('novideo');
-    try{HTMLMediaElement.prototype.pause.call(vid)}catch(e){}
-    E.aIdx=idx;E.startPos=p;E.playing=false;E.rate=vid.playbackRate||1;E.vol=vid.volume;E.muted=vid.muted;
-    E.cv=document.createElement('canvas');E.cv.className='jp-ec';E.cv.width=Math.max(2,vid.videoWidth||640);E.cv.height=Math.max(2,vid.videoHeight||360);E.cx=E.cv.getContext('2d');
-    vid.parentNode.insertBefore(E.cv,vid.nextSibling);vid.style.visibility='hidden';
+    if(!E.mb)await mbLoad();
+    E.vol=vid.volume;E.muted=vid.muted;E.aIdx=idx;
     engShim();E.on=true;
-    E.tick=setInterval(function(){if(E.on)engEv('timeupdate')},250);
-    if(w)await engPlay(p);else{await engSeek(p)}
-    $('#jpSpin').style.display='none';syncAudUI();
-  }catch(e){
-    $('#jpSpin').style.display='none';
-    if(E.on)engFail();else{E.tracks=[];E.fail=true;syncAudUI();toast('تعذّر تبديل الصوت على هذا الجهاز')}
-  }
+    if(!vid.paused)engStart();
+    syncAudUI();
+  }catch(e){engFail()}
   E.busy=false;
 }
 /* فحص الملف في الخلفية بعد بدء التشغيل: لا يؤخر البدء */
@@ -1043,8 +999,7 @@ async function engProbe(url){
     var MB=await mbLoad();if(pn!==E.pn)return;
     var input=new MB.Input({source:new MB.UrlSource(url,{maxCacheSize:6*1048576,parallelism:1}),formats:MB.ALL_FORMATS});
     var at=await input.getAudioTracks();
-    if(pn!==E.pn)return;
-    if(at.length<2)return;
+    if(pn!==E.pn||at.length<2)return;
     var list=[];
     for(var i=0;i<at.length;i++){
       var t=at[i],lang='und',name='',dec=false;
@@ -1055,13 +1010,12 @@ async function engProbe(url){
     }
     var ok=list.filter(function(t){return t.dec});
     if(ok.length<2||pn!==E.pn)return;
-    var vt=await input.getPrimaryVideoTrack();
-    if(!vt||pn!==E.pn)return;
-    E.input=input;E.vt=vt;E.url=url;E.tr=ok;E.tracks=ok.map(function(t){return{i:t.i,lang:t.lang,name:t.name}});
-    /* الاختيار التلقائي عبر الأولوية: ننتظر انتهاء أي إعلان أولاً */
+    E.input=input;E.url=url;E.tr=ok;E.tracks=ok.map(function(t){return{i:t.i,lang:t.lang,name:t.name}});
+    /* الاختيار التلقائي بالأولوية: ننتظر انتهاء أي إعلان أولاً */
     var tries=0;(function go(){if(pn!==E.pn)return;if(S.ad.busy&&tries++<40){setTimeout(go,1000);return}autoAudio()})();
   }catch(e){}
 }
+
 /* ───────────── المسارات الصوتية: أولوية العربية ثم الإنجليزية ثم الفرنسية ───────────── */
 var AUP=[[/^(ar|ara)([-_]|$)/i,/عرب|arab/i],[/^(en|eng)([-_]|$)/i,/engl|إنج|انج/i],[/^(fr|fre|fra)([-_]|$)/i,/fran|فرن/i]];
 var AUN={ar:'العربية',ara:'العربية',en:'الإنجليزية',eng:'الإنجليزية',fr:'الفرنسية',fre:'الفرنسية',fra:'الفرنسية',es:'الإسبانية',spa:'الإسبانية',de:'الألمانية',ger:'الألمانية',deu:'الألمانية',it:'الإيطالية',ita:'الإيطالية',tr:'التركية',tur:'التركية',ru:'الروسية',rus:'الروسية',ja:'اليابانية',jpn:'اليابانية',ko:'الكورية',kor:'الكورية',hi:'الهندية',hin:'الهندية',pt:'البرتغالية',por:'البرتغالية',zh:'الصينية',chi:'الصينية',zho:'الصينية',fa:'الفارسية',per:'الفارسية',fas:'الفارسية'};
@@ -1463,7 +1417,7 @@ window.addEventListener('popstate',function(){if(S.open&&!S.mini&&!(S.opts&&S.op
 /* auto PiP */
 document.addEventListener('visibilitychange',function(){
   if(document.hidden){
-    if(S.open&&!S.mini&&!E.on&&!vid.paused&&!S.ad.busy&&document.pictureInPictureEnabled&&vid.readyState>=2)vid.requestPictureInPicture().catch(function(){});
+    if(S.open&&!S.mini&&!vid.paused&&!S.ad.busy&&document.pictureInPictureEnabled&&vid.readyState>=2)vid.requestPictureInPicture().catch(function(){});
   }else if(document.pictureInPictureElement){document.exitPictureInPicture().catch(function(){})}
 });
 
@@ -1778,7 +1732,6 @@ function drawTo(src,w,h,max,q,type){
 }
 async function snapBlob(max,q,type){
   var w=vid.videoWidth,h=vid.videoHeight;
-  if(E.on&&E.cv)return await drawTo(E.cv,E.cv.width,E.cv.height,max,q,type);
   try{return await drawTo(vid,w,h,max,q,type)}
   catch(e){
     if(isHls(S.curUrl||'')||!S.curUrl)throw e;
