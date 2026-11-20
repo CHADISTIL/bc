@@ -26,7 +26,7 @@ var CSS=`
 .jp-wrap.fs .jp-top{display:none}
 
 /* controls */
-.jp-ctrl{position:absolute;left:0;right:0;bottom:0;padding:0 12px 18px;background:linear-gradient(to top,rgba(0,0,0,.75),transparent);z-index:20;transition:opacity .3s;padding-top:28px}
+.jp-ctrl{position:absolute;left:0;right:0;bottom:0;padding:0 12px 30px;background:linear-gradient(to top,rgba(0,0,0,.75),transparent);z-index:20;transition:opacity .3s;padding-top:28px}
 .jp-row{display:flex;align-items:center;justify-content:space-between}
 .jp-time{font-size:.98em;font-weight:600;background:rgba(0,0,0,.4);padding:5px 12px;border-radius:14px;text-shadow:0 1px 2px #000}
 .jp-btns{display:flex;gap:10px;align-items:center}
@@ -34,7 +34,7 @@ var CSS=`
 .jp-cb:active{background:rgba(255,255,255,.32);transform:scale(.92)}
 .jp-cb span{font-size:.62em}
 .jp-wrap.hide .jp-ctrl,.jp-wrap.hide .jp-top,.jp-wrap.hide .jp-fsbar{opacity:0;pointer-events:none}
-.jp-wrap.fs .jp-ctrl{padding-bottom:calc(20px + env(safe-area-inset-bottom))}
+.jp-wrap.fs .jp-ctrl{padding-bottom:calc(32px + env(safe-area-inset-bottom))}
 /* المساحات الفارغة في الشريط العلوي والسفلي لا تبتلع اللمس: تبقى مساحة حرة للنقر (إيقاف/تشغيل، نقر مزدوج) */
 .jp-top,.jp-ctrl{pointer-events:none}
 .jp-top button,.jp-ctrl button,.jp-ctrl .jp-time{pointer-events:auto}
@@ -42,7 +42,7 @@ var CSS=`
 /* أزرار أصغر عندما يكون ارتفاع المشغّل قصيراً */
 .jp-wrap.sm .jp-top{padding:4px 8px}
 .jp-wrap.sm .jp-ib{width:30px;height:30px;font-size:.8em}
-.jp-wrap.sm .jp-ctrl{padding:10px 10px 12px}
+.jp-wrap.sm .jp-ctrl{padding:10px 10px 20px}
 .jp-wrap.sm .jp-cb{width:38px;height:38px;font-size:1.02em}
 .jp-wrap.sm .jp-time{padding:3px 10px;font-size:.88em}
 .jp-wrap.sm .jp-btns{gap:8px}
@@ -1072,13 +1072,14 @@ async function engProbe(url){
       list.push({i:i,tr:t,lang:lang,name:name,dec:dec,codec:String(t.codec)});
     }
     var ok=list.filter(function(t){return t.dec});
-    if(ok.length<2||pn!==E.pn)return;
+    if(pn!==E.pn)return;
+    if(ok.length<2){toast('الملف يحوي '+list.length+' مسارات صوتية لكن ترميزها (مثل AC3/DTS) غير مدعوم في هذا المتصفح');return}
     var vt=await input.getPrimaryVideoTrack();
     if(!vt||pn!==E.pn)return;
     E.input=input;E.vTrack=vt;E.url=url;E.tr=ok;E.tracks=ok.map(function(t){return{i:t.i,lang:t.lang,name:t.name}});
     S.audN=0;
     var tries=0;(function go(){if(pn!==E.pn)return;if(S.ad.busy&&tries++<40){setTimeout(go,1000);return}autoAudio()})();
-  }catch(e){}
+  }catch(e){if(pn===E.pn&&!E.fail)toast('تعذّر فحص المسارات الصوتية للملف (قد يمنع الخادم القراءة الجزئية CORS/Range)')}
 }
 
 /* ───────────── ملف صوتي خارجي (يضيفه الأدمين): عنصر <audio> متزامن مع الفيديو ───────────── */

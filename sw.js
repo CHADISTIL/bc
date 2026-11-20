@@ -1,5 +1,5 @@
 importScripts('config.js');
-const CACHE='sp-v40';
+const CACHE='sp-v41';
 const SHELL=['./','index.html','player.js','config.js','manifest.webmanifest','icons/icon-192.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL).catch(()=>{})))});
 /* النسخة الجديدة تنتظر موافقة المستخدم (زر «تحديث الآن» في التطبيق) */
